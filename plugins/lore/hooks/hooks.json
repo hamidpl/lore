@@ -1,0 +1,26 @@
+{
+  "description": "Lore documentation factory — deterministic enforcement of BLOCKING image-path rules (DoD §6 / Rule 1). check-image-path.sh blocks (exit 2) any docs/ markdown using /static/img/ or any image written under docs/. verify-docs.sh warns (non-blocking) about orphan images on Stop. Scope carve-out: .claude/** and _templates/** intentional negative examples are ignored.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-image-path.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verify-docs.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

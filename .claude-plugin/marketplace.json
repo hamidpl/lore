@@ -1,0 +1,17 @@
+{
+  "name": "lore-marketplace",
+  "owner": {
+    "name": "Hamid Ostadhashemi"
+  },
+  "metadata": {
+    "description": "Marketplace for the Lore documentation factory.",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "lore",
+      "source": "./plugins/lore",
+      "description": "Lore — a reusable product-documentation factory: figma/brief/site-to-doc skills, a DoD reviewer, supporting subagents, and BLOCKING-rule enforcement hooks. Product-agnostic; each consumer repo supplies its own CLAUDE.md (sources, roles, structure)."
+    }
+  ]
+}
