@@ -1,0 +1,23 @@
+@font-face {
+	font-family: 'IRANSansXV-Regular';
+	src: url('/fonts/iransansweb.ttf') format('truetype');
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'IRANSansXV-DemiBold';
+	src: url('/fonts/iransansxdemibold.ttf') format('truetype');
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'IRANSansXV-Bold';
+	src: url('/fonts/iransansxbold.ttf') format('truetype');
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'IRANSansXV-Medium';
+	src: url('/fonts/iransansxmedium.ttf') format('truetype');
+	font-display: swap;
+}

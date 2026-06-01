@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "lore-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "hamidpl/lore"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "lore@lore-marketplace": true
+  }
+}

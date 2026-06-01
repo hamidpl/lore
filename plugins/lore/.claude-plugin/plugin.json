@@ -1,7 +1,7 @@
 {
   "name": "lore",
-  "version": "1.0.0",
-  "description": "Reusable product-documentation factory (Figma/Brief/Site → Doc) with DoD review, supporting subagents, and BLOCKING-rule enforcement hooks. Product-agnostic: the consuming repo's CLAUDE.md supplies trusted sources, user roles, and documentation structure.",
+  "version": "1.1.0",
+  "description": "Reusable product-documentation factory (Figma/Brief/Site → Doc) with a /lore:init scaffold wizard, DoD review, supporting subagents, and BLOCKING-rule enforcement hooks. Product-agnostic and multilingual: the consuming repo's CLAUDE.md supplies trusted sources, user roles, structure, and documentation language.",
   "author": {
     "name": "Hamid Ostadhashemi"
   },

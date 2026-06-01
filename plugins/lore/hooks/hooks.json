@@ -1,5 +1,5 @@
 {
-  "description": "Lore documentation factory — deterministic enforcement of BLOCKING image-path rules (DoD §6 / Rule 1). check-image-path.sh blocks (exit 2) any docs/ markdown using /static/img/ or any image written under docs/. verify-docs.sh warns (non-blocking) about orphan images on Stop. Scope carve-out: .claude/** and _templates/** intentional negative examples are ignored.",
+  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules. check-image-path.sh blocks (exit 2) any docs/ markdown using /static/img/ or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown missing valid frontmatter keys (§2/§6). verify-docs.sh warns (non-blocking) about orphan images on Stop. Scope carve-out: .claude/**, templates/**, and _templates/** intentional examples are ignored.",
   "hooks": {
     "PostToolUse": [
       {
@@ -8,6 +8,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-image-path.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-frontmatter.sh"
           }
         ]
       }

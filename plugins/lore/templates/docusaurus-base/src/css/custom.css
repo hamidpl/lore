@@ -1,0 +1,181 @@
+/**
+ * Docusaurus custom styles — generic, language-agnostic.
+ * Brand color + shared documentation components (badges, cards, KPI, flow steps).
+ *
+ * SETUP: replace the brand color below. The seven --ifm-color-primary-* shades
+ * are the only product-specific values here.
+ * Palette tool: https://docusaurus.io/docs/styling-layout#styling-your-site-with-infima
+ *
+ * NOTE: RTL + Persian font rules are NOT here — for an RTL language the wizard
+ * also adds src/css/custom-rtl.css (imported after this file in docusaurus.config.ts).
+ */
+
+:root {
+	/* {{BRAND_PRIMARY_COLOR}} — replace these 7 shades with your product palette */
+	--ifm-color-primary: #2e8555;
+	--ifm-color-primary-dark: #29784c;
+	--ifm-color-primary-darker: #277148;
+	--ifm-color-primary-darkest: #205d3b;
+	--ifm-color-primary-light: #33925d;
+	--ifm-color-primary-lighter: #359962;
+	--ifm-color-primary-lightest: #3cad6e;
+	--ifm-code-font-size: 95%;
+	--docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+	/* {{BRAND_PRIMARY_COLOR_DARK}} — dark-mode palette */
+	--ifm-color-primary: #25c2a0;
+	--ifm-color-primary-dark: #21af90;
+	--ifm-color-primary-darker: #1fa588;
+	--ifm-color-primary-darkest: #1a8870;
+	--ifm-color-primary-light: #29d5b0;
+	--ifm-color-primary-lighter: #32d8b4;
+	--ifm-color-primary-lightest: #4fddbf;
+	--docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Table styles for documentation */
+table {
+	display: table;
+	width: 100%;
+}
+
+/* Status badges */
+.badge {
+	display: inline-block;
+	padding: 0.25rem 0.5rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.badge--success {
+	background-color: #4caf50;
+	color: white;
+}
+
+.badge--warning {
+	background-color: #ff9800;
+	color: white;
+}
+
+.badge--danger {
+	background-color: #f44336;
+	color: white;
+}
+
+.badge--info {
+	background-color: #2196f3;
+	color: white;
+}
+
+.badge--draft {
+	background-color: #9e9e9e;
+	color: white;
+}
+
+/* Scenario cards */
+.scenario-card {
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 8px;
+	padding: 1rem;
+	margin-bottom: 1rem;
+}
+
+.scenario-card h4 {
+	margin-top: 0;
+	color: var(--ifm-color-primary);
+}
+
+/* Image containers */
+.img-container {
+	text-align: center;
+	margin: 1.5rem 0;
+}
+
+.img-container img {
+	max-width: 100%;
+	border: 1px solid var(--ifm-color-emphasis-200);
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.img-caption {
+	font-size: 0.875rem;
+	color: var(--ifm-color-emphasis-600);
+	margin-top: 0.5rem;
+}
+
+/* Flow steps */
+.flow-step {
+	display: flex;
+	align-items: flex-start;
+	margin-bottom: 1rem;
+}
+
+.flow-step-number {
+	background-color: var(--ifm-color-primary);
+	color: white;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: bold;
+	flex-shrink: 0;
+}
+
+/* Role access table */
+.role-table {
+	width: 100%;
+}
+
+.role-table th {
+	background-color: var(--ifm-color-emphasis-100);
+}
+
+/* KPI cards */
+.kpi-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.kpi-card {
+	background-color: var(--ifm-color-emphasis-100);
+	border-radius: 8px;
+	padding: 1rem;
+	text-align: center;
+}
+
+.kpi-value {
+	font-size: 1.5rem;
+	font-weight: bold;
+	color: var(--ifm-color-primary);
+}
+
+.kpi-label {
+	font-size: 0.875rem;
+	color: var(--ifm-color-emphasis-600);
+}
+
+/* Error handling section */
+.error-item {
+	background-color: #fff3e0;
+	border-left: 4px solid #ff9800;
+	padding: 1rem;
+	margin-bottom: 1rem;
+	border-radius: 8px 0 0 8px;
+}
+
+[data-theme='dark'] .error-item {
+	background-color: rgba(255, 152, 0, 0.1);
+}
+
+.error-item h5 {
+	color: #e65100;
+	margin-top: 0;
+}
