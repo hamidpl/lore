@@ -23,7 +23,7 @@ You are extracting product documentation from Figma design files. Approved sourc
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Approved Sources) — see those sections for the global requirement.
+Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources) — see those sections for the global requirement.
 
 ### Phase 1: Source Collection
 
@@ -31,9 +31,8 @@ Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUD
 |---|------|---------------|------------|
 | 1 | **Fetch Figma comments** | List of comment threads with content | `GET /v1/files/{key}/comments` |
 | 2 | **Fetch Figma annotations** | List of TEXT nodes extracted from node tree | `GET /v1/files/{key}/nodes?ids={id}` → scan for `type: "TEXT"` |
-| 3 | **Search Help Center** | List of relevant articles found (or "none found") | Browse the Help Center URL in `CLAUDE.md` §1 |
-| 4 | **Search Blog** | List of relevant articles found (or "none found") | Browse the Blog URL in `CLAUDE.md` §1 |
-| 5 | **Check lesson-learned.md** | Confirm no relevant unresolved issues | Read `.claude/lesson-learned.md` (per Rule 3) |
+| 3 | **Search configured trusted sources** | List of relevant material found (or "none configured") | Browse the trusted sources in `CLAUDE.md` §1 (e.g. Help Center, Blog, live product); skip if none are configured |
+| 4 | **Check lesson-learned.md** | Confirm no relevant unresolved issues | Read `.claude/lesson-learned.md` (per Rule 3) |
 
 ⛔ **Blocking:** ALL 5 steps must be completed before Phase 2.
 

@@ -18,8 +18,8 @@ Use AskUserQuestion. Every question is optional: tell the user they can **skip**
 
 **Deferred settings**
 - **Product description** — a short description of the product (used in intro/tagline).
-- **Trusted sources (§1)** — Help Center URL, Blog URL, Live product URL. These become the approved sources in the DoD.
-- **User roles (§3)** — the product's roles (name + localized name + description). Replaces the `{{ROLE_*}}` rows.
+- **Trusted sources (§1)** — e.g. a Help Center URL, Blog URL, Live product URL, or any source the user trusts. These become the configured trusted sources in the DoD. Replace the "Configured trusted sources" block in §1 (default text: "_None yet…_") with the list the user gives.
+- **User roles (§3)** — the product's roles (name + localized name + description). Add a roles table to §3 (it ships as source-agnostic prose with no table).
 - **Document-writing template** — "use the default template, or provide your own path?". Default = the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/export-sample-data/Product Document Template.md"` (already copied at init). If the user gives a path, copy that file over `export-sample-data/Product Document Template.md` instead.
 - **Brand color** — only meaningful if Docusaurus is installed. A hex color; regenerate the 7 `--ifm-color-primary-*` shades in `src/css/custom.css` from it.
 
@@ -30,7 +30,7 @@ Use AskUserQuestion. Every question is optional: tell the user they can **skip**
 
 ## Step 2 — Apply
 
-For each setting the user provided (skip the rest), edit the right file:
+For each setting the user provided (skip the rest), edit the right file. §1 and §3 contain default source-agnostic text, not `{{...}}` tokens — **rewrite the whole section** with the user's values rather than looking for placeholders to substitute:
 - Sources, roles, product name/description, language → `.claude/CLAUDE.md`.
 - Title/slug/org/copyright, i18n, customCss → `docusaurus.config.ts` / `package.json` (only if Docusaurus present).
 - Brand color → `src/css/custom.css`.

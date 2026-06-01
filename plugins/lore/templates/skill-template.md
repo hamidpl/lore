@@ -30,7 +30,7 @@ user-invocable: true
 ## 2. Pre-Flight Checklist (BLOCKING)
 
 Input-specific source gathering that must be completed before writing.
-Reference `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Approved Sources) for the
+Reference `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources) for the
 global requirements — list here ONLY the steps unique to this input type.
 
 | # | Step | How to Verify |

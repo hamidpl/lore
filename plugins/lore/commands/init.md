@@ -51,7 +51,7 @@ sh "$PLUGIN_ROOT/scripts/scaffold.sh" --target . --layer docs [--layer docusauru
 
 ## Step 4 — Fill the essential placeholders
 
-Edit the generated files to replace the essentials only (leave the rest as `{{...}}` for `/lore:config`):
+Edit the generated files to replace the essential placeholders only. The optional product-layer sections (§1 Trusted Sources, §3 User Roles, the Documentation Structure) already ship as source-agnostic, role-agnostic default text with **no `{{...}}`** — leave them as-is; `/lore:config` fills/rewrites them later. After this step, **no `{{...}}` should remain in `.claude/CLAUDE.md`** (only the essentials below exist as placeholders, and you fill all of them here).
 
 - `.claude/CLAUDE.md`: `{{PRODUCT_NAME}}`, `{{DOC_LANGUAGE}}`, `{{LOCALE}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`.
 - `docs/intro.md`: rewrite the sample title/body in the chosen documentation language. **Never put `{{...}}` inside any file under `docs/`** — Docusaurus parses it as MDX and the build fails (`{...}` = JS). Use plain text.

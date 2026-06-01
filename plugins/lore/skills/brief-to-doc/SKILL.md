@@ -23,7 +23,7 @@ You are creating product documentation from textual requirements (briefs, epics,
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-This is the brief-specific expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Approved Sources). Before writing:
+This is the brief-specific expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources). Before writing:
 
 1. **Read the entire brief/epic** from start to finish.
 2. **Identify all user stories** / feature requirements.

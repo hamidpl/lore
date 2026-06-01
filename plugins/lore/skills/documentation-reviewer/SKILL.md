@@ -36,9 +36,9 @@ Validate each item against the **canonical rule in `CLAUDE.md`** (do not re-deri
 
 | DoD area | What to check (compliance) | Canonical rule |
 |----------|----------------------------|----------------|
-| ⛔ **§0 Pre-Writing** | Evidence of source review; Help Center AND Blog explicitly searched (or "none found"); for Figma, annotations checked separately from comments | `CLAUDE.md` §0 |
-| ⛔ **§1 Approved Sources** | All cited sources are from the approved list; no external/third-party sources; missing info marked `[CLARIFICATION NEEDED]` | `CLAUDE.md` §1 |
-| **§2 Scope & Structure** | Valid frontmatter (sidebar_position, title, description, tags); all 7 mandatory sections present with content | `CLAUDE.md` §2 + template |
+| ⛔ **§0 Pre-Writing** | Evidence that the available inputs were reviewed; every configured trusted source searched (or "none configured"); for Figma, annotations checked separately from comments | `CLAUDE.md` §0 |
+| ⛔ **§1 Trusted Sources** | No fabricated facts or unverified third-party sources; where trusted sources are configured, claims are consistent with them; missing info marked `[CLARIFICATION NEEDED]` | `CLAUDE.md` §1 |
+| **§2 Scope & Structure** | Valid frontmatter (sidebar_position, title, description, tags); all sections defined in the document template present with content | `CLAUDE.md` §2 + template |
 | **§3 User Roles** | Relevant roles documented using approved names; role differences explained | `CLAUDE.md` §3 |
 | ⛔ **§4 Scenarios** | Each has Purpose/Preconditions/Flow/Postconditions; images inline at the right step (not grouped); options, validations, exact messages, edge cases present | `CLAUDE.md` §4 |
 | **§5 Accuracy** | Consistent terminology; UI labels match source; explicit (not vague) rules; KPIs where applicable | `CLAUDE.md` §5 |
@@ -71,7 +71,7 @@ For §6, actually run the checks rather than eyeballing:
 | DoD area | Status | Issue (location) |
 |----------|--------|------------------|
 | §0 Pre-Writing | ✅/⚠️/❌ | ... |
-| §1 Approved Sources | ✅/⚠️/❌ | ... |
+| §1 Trusted Sources | ✅/⚠️/❌ | ... |
 | §2 Scope & Structure | ✅/⚠️/❌ | ... |
 | §3 User Roles | ✅/⚠️/❌ | ... |
 | §4 Scenarios | ✅/⚠️/❌ | ... |

@@ -23,7 +23,7 @@ You are documenting features by observing the live product. Approved sources, us
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Approved Sources). Before writing:
+This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources). Before writing:
 
 1. **Access the live site** (URL from `CLAUDE.md` §1, or one provided by the user).
 2. **Navigate to the specific feature** being documented.
