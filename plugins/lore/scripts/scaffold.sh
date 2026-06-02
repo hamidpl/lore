@@ -7,8 +7,11 @@
 #   scaffold.sh --target <dir> --layer docs [--layer docusaurus] [--layer rtl]
 #
 # Layers:
-#   docs        templates/docs-layer/      → .claude/, docs/, export-sample-data/
-#   docusaurus  templates/docusaurus-base/ → package.json, config, src/css, etc.
+#   docs        templates/docs-layer/      → .claude/, docs/, product-doc-template/
+#   docusaurus  templates/docusaurus-base/ → overlay only: docusaurus.config.ts,
+#               sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus
+#               framework itself is fetched fresh via create-docusaurus@latest
+#               by /lore:add-docusaurus — it is NOT bundled here.
 #   rtl         templates/rtl-assets/      → fonts + custom-rtl.css (RTL languages)
 #
 # Never overwrites existing files (cp without -f, guarded). Placeholder filling

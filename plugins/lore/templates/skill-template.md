@@ -16,7 +16,7 @@ user-invocable: true
 > Canonical locations:
 > - Global rules / DoD / image paths / roles / sources → `.claude/CLAUDE.md`
 > - Lessons learned → `.claude/lesson-learned.md`
-> - Document template → `export-sample-data/Product Document Template.md`
+> - Document template → `product-doc-template/Product Document Template.md`
 
 ---
 

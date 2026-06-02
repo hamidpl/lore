@@ -15,8 +15,8 @@ Current version: check `plugins/lore/.claude-plugin/plugin.json`.
 plugins/lore/                      # the plugin itself
   .claude-plugin/plugin.json       # plugin manifest (name, version, description)
   commands/                        # /lore:init, /lore:config, /lore:add-docusaurus
-  skills/                          # figma-to-doc, brief-to-doc, site-to-doc, documentation-reviewer
-  agents/                          # doc-reviewer, figma-extractor (read-only subagents)
+  skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
+  agents/                          # doc-validator, figma-extractor (read-only subagents)
   hooks/                           # hooks.json + 3 shell scripts (BLOCKING enforcement)
   scripts/                         # scaffold.sh, detect-project.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
@@ -26,7 +26,7 @@ plugins/lore/                      # the plugin itself
 
 **Validate the plugin:**
 ```bash
-claude plugin validate ./plugins/lore --strict
+claude plugin validate ./plugins/lore
 ```
 
 **Local dev install (marketplace from local path):**
@@ -66,7 +66,7 @@ Every fact exists in exactly one canonical location; everywhere else references 
 | Global rules / DoD | Consuming repo's `.claude/CLAUDE.md` |
 | Input-specific workflow | The relevant skill (`skills/{name}/SKILL.md`) |
 | Lessons learned | Consuming repo's `.claude/lesson-learned.md` |
-| Document structure template | `templates/docs-layer/export-sample-data/Product Document Template.md` |
+| Document structure template | `templates/docs-layer/product-doc-template/Product Document Template.md` |
 | Skill structure template | `templates/skill-template.md` |
 
 Copying the full text of an existing rule into a second place is prohibited.
@@ -80,7 +80,7 @@ All skills follow the canonical 7-section structure defined in `plugins/lore/tem
 3. Core Workflow (the unique value — only input-specific content)
 4. DoD Additions (input-specific deltas only — references §4/§6 for the rest)
 5. Final Report Additions (skill-specific fields only — references §8)
-6. Completion Checklist (ends with self-verification via `lore:doc-reviewer`)
+6. Completion Checklist (ends with self-verification via `lore:doc-validator`)
 7. Reference Example
 
 A skill must contain ONLY input-specific content. If something is already a global rule in CLAUDE.md, reference it — don't repeat it.
@@ -101,9 +101,9 @@ Hook paths in `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`. Scripts themselves self-
 
 Three independent, composable layers copied by `scripts/scaffold.sh`:
 
-- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `export-sample-data/`
-- **`docusaurus-base`** — optional viewer: package.json, docusaurus.config.ts, sidebars.ts, src/css/
-- **`rtl-assets`** — optional: Persian fonts (Iran Sans) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
+- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `product-doc-template/`
+- **`docusaurus-base`** — optional viewer **overlay**: docusaurus.config.ts, sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus framework itself is fetched fresh via `create-docusaurus@latest` (always latest) by `/lore:add-docusaurus`, not bundled here.
+- **`rtl-assets`** — optional: Persian font (self-hosted Vazirmatn) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
 
 `scaffold.sh` never overwrites existing files (safe to re-run). Placeholder filling (`{{PRODUCT_NAME}}`, `{{LOCALE}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`, `{{DOC_LANGUAGE}}`) is the command's responsibility, not the script's.
 
@@ -111,7 +111,7 @@ Three independent, composable layers copied by `scripts/scaffold.sh`:
 
 ## Subagent Naming
 
-All subagent and skill references use the `lore:` namespace prefix: `lore:doc-reviewer`, `lore:figma-extractor`, `lore:figma-to-doc`, etc.
+All subagent and skill references use the `lore:` namespace prefix: `lore:doc-validator`, `lore:figma-extractor`, `lore:figma-to-doc`, etc.
 
 ## Versioning
 

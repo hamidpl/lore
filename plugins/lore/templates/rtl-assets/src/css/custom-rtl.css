@@ -1,5 +1,5 @@
 /**
- * RTL + Persian styling layer (IRANSansX fonts, RTL fixes, RTL footer).
+ * RTL + Persian styling layer (Vazirmatn font, RTL fixes, RTL footer).
  * Added ONLY when the documentation language is RTL.
  * Imported AFTER the generic src/css/custom.css (the wizard wires the import
  * into docusaurus.config.ts customCss as an array: [custom.css, custom-rtl.css]).
@@ -10,7 +10,7 @@
 
 /* Persian font stack */
 body {
-	font-family: 'IRANSansXV-Regular', 'Segoe UI', Tahoma, Geneva, Verdana,
+	font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana,
 		sans-serif;
 	font-weight: normal;
 }
@@ -21,7 +21,7 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: 'IRANSansXV-Bold', 'IRANSansXV-Regular', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-weight: bold;
 }
 h1 {
@@ -41,21 +41,21 @@ h4 {
 .font-normal,
 [style*='font-weight: normal'],
 [style*='font-weight: 400'] {
-	font-family: 'IRANSansXV-Regular', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-weight: normal;
 }
 
 .font-medium,
 [style*='font-weight: 500'],
 [style*='font-weight: medium'] {
-	font-family: 'IRANSansXV-Medium', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-weight: 500;
 }
 
 .font-semibold,
 [style*='font-weight: 600'],
 [style*='font-weight: semibold'] {
-	font-family: 'IRANSansXV-DemiBold', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-weight: 600;
 }
 
@@ -64,7 +64,7 @@ b,
 .font-bold,
 [style*='font-weight: bold'],
 [style*='font-weight: 700'] {
-	font-family: 'IRANSansXV-Bold', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-weight: bold;
 }
 
@@ -128,7 +128,7 @@ html[dir='rtl'] .footer__link-item {
 }
 
 html[dir='rtl'] .footer__title {
-	font-family: 'IRANSansXV-Bold', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-weight: bold;
 	margin-bottom: 1rem;
 	font-size: 1rem;
@@ -141,7 +141,7 @@ html[dir='rtl'] .footer__item {
 }
 
 html[dir='rtl'] .footer__link {
-	font-family: 'IRANSansXV-Regular', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-size: 0.875rem;
 	line-height: 1.6;
 	opacity: 0.8;
@@ -155,7 +155,7 @@ html[dir='rtl'] .footer__link:hover {
 }
 
 html[dir='rtl'] .footer__copyright {
-	font-family: 'IRANSansXV-Regular', sans-serif;
+	font-family: 'Vazirmatn', sans-serif;
 	font-size: 0.875rem;
 	margin-top: 2.5rem;
 	padding-top: 1.5rem;

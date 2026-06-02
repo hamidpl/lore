@@ -1,5 +1,5 @@
 ---
-name: documentation-reviewer
+name: doc-reviewer
 description: Validate existing documentation against the Definition of Done. Use this to review docs before delivery, audit existing files, or when the user asks to "review", "validate", "check", or "audit" documentation.
 user-invocable: true
 ---
@@ -43,7 +43,7 @@ Validate each item against the **canonical rule in `CLAUDE.md`** (do not re-deri
 | ⛔ **§4 Scenarios** | Each has Purpose/Preconditions/Flow/Postconditions; images inline at the right step (not grouped); options, validations, exact messages, edge cases present | `CLAUDE.md` §4 |
 | **§5 Accuracy** | Consistent terminology; UI labels match source; explicit (not vague) rules; KPIs where applicable | `CLAUDE.md` §5 |
 | ⛔ **§6 Technical Validity** | Internal links work; image markdown uses `/img/` (not `/static/img/`); files exist under `static/img/`; no images in `/docs/`; no orphan images; `npm run build` passes | `CLAUDE.md` §6 |
-| **§7 Language & Style** | Persian content; English file/dir names; product-focused (non-marketing) tone | `CLAUDE.md` §7 |
+| **§7 Language & Style** | Content language matches §7; English file/dir names; product-focused (non-marketing) tone | `CLAUDE.md` §7 |
 | ⛔ **§8 Final Report** | Final report present with Sources, Tools/Skills, and Summary | `CLAUDE.md` §8 |
 | ⛔ **Rule 3 Lessons** | Issues encountered are documented in `lesson-learned.md` (4 fields each); skill-related lessons also propagated to the skill file; no orphan files from error recovery | `CLAUDE.md` Rule 3 |
 | ⛔ **Rule 4 Single Truth** | No global rule restated inside skills/docs where a reference should be used; facts live in one canonical place | `CLAUDE.md` Rule 4 |

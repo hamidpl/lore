@@ -137,9 +137,9 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-reviewer` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure (§0/§1/§4/§6/§8, Rule 3, Rule 4), fix and re-run until it returns green. Only then write the final report (§8). This does not duplicate the DoD — it invokes the canonical validator.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure (§0/§1/§4/§6/§8, Rule 3, Rule 4), fix and re-run until it returns green. Only then write the final report (§8). This does not duplicate the DoD — it invokes the canonical validator.
 
-- [ ] `lore:doc-reviewer` run and returned APPROVED (no blocking failures)
+- [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] All URLs tested and listed
 - [ ] Happy path, validation errors, and edge cases tested
 - [ ] Exact UI text / error messages captured verbatim

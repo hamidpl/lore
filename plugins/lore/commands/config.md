@@ -1,5 +1,5 @@
 ---
-description: Fill in or edit a Lore documentation project's settings — product description, trusted sources, user roles, doc-writing template, brand color, and the 3 init answers. All questions are skippable.
+description: Fill in or edit a Lore documentation project's settings — project site URL, product description, trusted sources, doc-writing template, brand color, and the 3 init answers. All questions are skippable.
 ---
 
 # /lore:config — Configure / edit documentation settings
@@ -17,24 +17,24 @@ Resolve the plugin root the same way as `/lore:init` (env `${CLAUDE_PLUGIN_ROOT}
 Use AskUserQuestion. Every question is optional: tell the user they can **skip** any item and it keeps its current value. Show the current value where one is already set. Cover:
 
 **Deferred settings**
+- **Project site URL** — the product's live website, if it has one (optional). Ask this **before** the description. If given, record it together with the product description and offer to add it to §1 Trusted Sources as the live product URL.
 - **Product description** — a short description of the product (used in intro/tagline).
 - **Trusted sources (§1)** — e.g. a Help Center URL, Blog URL, Live product URL, or any source the user trusts. These become the configured trusted sources in the DoD. Replace the "Configured trusted sources" block in §1 (default text: "_None yet…_") with the list the user gives.
-- **User roles (§3)** — the product's roles (name + localized name + description). Add a roles table to §3 (it ships as source-agnostic prose with no table).
-- **Document-writing template** — "use the default template, or provide your own path?". Default = the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/export-sample-data/Product Document Template.md"` (already copied at init). If the user gives a path, copy that file over `export-sample-data/Product Document Template.md` instead.
+- **Document-writing template** — present exactly **two** options: **Use the default template** (the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/product-doc-template/Product Document Template.md"`, already copied at init) or **Provide a custom template path**. If the user picks custom, capture the path (free-text) and copy that file over `product-doc-template/Product Document Template.md`.
 - **Brand color** — only meaningful if Docusaurus is installed. A hex color; regenerate the 7 `--ifm-color-primary-*` shades in `src/css/custom.css` from it.
 
 **The 3 init answers (editable here too)**
 - **Product name** — updates `{{PRODUCT_NAME}}` everywhere and, if Docusaurus, the title/slug.
 - **Documentation language** — re-applies styling: if it changes RTL↔LTR and Docusaurus is present, rewrite the `i18n` block and the `customCss` array (add/remove `custom-rtl.css`), and add/remove the RTL assets (fonts + `custom-rtl.css`). Use `/lore:add-docusaurus`'s asset-copy logic if you need to add RTL assets.
-- **Docusaurus on/off** — if currently OFF and the user wants it ON, route to `/lore:add-docusaurus` (do that flow). If currently ON and the user wants it OFF, offer to remove the viewer files (`docusaurus.config.ts`, `sidebars.ts`, `package.json`, `src/`, `static/css`, `static/fonts`, `tsconfig.json`) while keeping `docs/` and `.claude/`.
+- **Docusaurus on/off** — if currently OFF and the user wants it ON, route to `/lore:add-docusaurus` (do that flow). If currently ON and the user wants it OFF, offer to remove the viewer files (`docusaurus.config.ts`, `sidebars.ts`, `package.json`, `package-lock.json`, `tsconfig.json`, `babel.config.js`, `src/`, `static/css`, `static/fonts`, `node_modules/`, `build/`, `.docusaurus/`) while keeping `docs/`, `static/img/`, and `.claude/`.
 
 ## Step 2 — Apply
 
-For each setting the user provided (skip the rest), edit the right file. §1 and §3 contain default source-agnostic text, not `{{...}}` tokens — **rewrite the whole section** with the user's values rather than looking for placeholders to substitute:
-- Sources, roles, product name/description, language → `.claude/CLAUDE.md`.
+For each setting the user provided (skip the rest), edit the right file. §1 contains default source-agnostic text, not `{{...}}` tokens — **rewrite the whole section** with the user's values rather than looking for placeholders to substitute:
+- Site URL, sources, product name/description, language → `.claude/CLAUDE.md`.
 - Title/slug/org/copyright, i18n, customCss → `docusaurus.config.ts` / `package.json` (only if Docusaurus present).
 - Brand color → `src/css/custom.css`.
-- Document template → `export-sample-data/Product Document Template.md`.
+- Document template → `product-doc-template/Product Document Template.md`.
 
 **Never write `{{...}}` into any file under `docs/`** (MDX breaks the build). Plain text only there.
 

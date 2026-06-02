@@ -23,7 +23,9 @@ const config: Config = {
   projectName: '{{PROJECT_SLUG}}',
 
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
+  // onBrokenMarkdownLinks defaults to 'warn'. Not set explicitly: the top-level
+  // option is deprecated in Docusaurus 3.9+ (moved to markdown.hooks) and removed
+  // in v4 — omitting it keeps the 'warn' default across every Docusaurus version.
 
   i18n: {
     defaultLocale: '{{LOCALE}}',

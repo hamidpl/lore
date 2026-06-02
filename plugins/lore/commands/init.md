@@ -33,43 +33,52 @@ Run `sh "$PLUGIN_ROOT/scripts/detect-project.sh"` in the user's cwd. Branch on t
 Use AskUserQuestion. **All three are required — do not proceed until each is answered.** Give each a one-line explanation.
 
 1. **Product name** — the product these docs are for (used in titles, config, the DoD header).
-2. **Documentation language** — the language docs will be *written in*. This drives styling: an RTL language (e.g. Persian, Arabic) gets the bundled RTL/Persian fonts + right-to-left layout; an LTR language (e.g. English) gets stock styling. Offer at least: Persian (RTL), English (LTR), Other.
-3. **Install Docusaurus?** — Docusaurus is the optional tool that renders the Markdown docs into a browsable website. **Yes** = copy the site files and build a preview now; **No** = create only the documentation files (you can add Docusaurus later with `/lore:add-docusaurus`).
+2. **Documentation language** — the language docs will be *written in*. This drives styling: an RTL language (e.g. Persian, Arabic) gets the self-hosted Vazirmatn font + right-to-left layout; an LTR language (e.g. English) gets stock styling. Offer at least: Persian (RTL), English (LTR), Other.
+3. **Install Docusaurus?** — Docusaurus is the optional tool that renders the Markdown docs into a browsable website. **Yes** = fetch the latest Docusaurus and build a preview now (needs network); **No** = create only the documentation files (you can add Docusaurus later with `/lore:add-docusaurus`).
 
 Derive language variables from answer 2:
 - RTL language → `LOCALE` (e.g. `fa`), `DIRECTION=rtl`, `HTML_LANG` (e.g. `fa-IR`), `LANG_LABEL` (the language's endonym), and include the `rtl` layer.
 - LTR language → `LOCALE` (e.g. `en`), `DIRECTION=ltr`, `HTML_LANG` (e.g. `en-US`), `LANG_LABEL`, no `rtl` layer.
 - `DOC_LANGUAGE` = the human language name (e.g. "Persian (Farsi)", "English").
 
-## Step 3 — Scaffold the chosen layers
+## Step 3 — Scaffold the docs layer
 
-Call scaffold with the layers implied by the answers (always `docs`; add `docusaurus` if chosen; add `rtl` only if the language is RTL **and** Docusaurus was chosen — RTL assets are CSS/fonts that only matter with the viewer):
+Always scaffold the docs layer first — this is everything a docs-only project needs:
 
 ```bash
-sh "$PLUGIN_ROOT/scripts/scaffold.sh" --target . --layer docs [--layer docusaurus] [--layer rtl]
+sh "$PLUGIN_ROOT/scripts/scaffold.sh" --target . --layer docs
 ```
 
-## Step 4 — Fill the essential placeholders
+The Docusaurus viewer (and its RTL assets) is added separately in Step 5, because Lore **fetches the latest Docusaurus** rather than copying a bundled, version-pinned one.
 
-Edit the generated files to replace the essential placeholders only. The optional product-layer sections (§1 Trusted Sources, §3 User Roles, the Documentation Structure) already ship as source-agnostic, role-agnostic default text with **no `{{...}}`** — leave them as-is; `/lore:config` fills/rewrites them later. After this step, **no `{{...}}` should remain in `.claude/CLAUDE.md`** (only the essentials below exist as placeholders, and you fill all of them here).
+## Step 4 — Fill the essential placeholders (docs layer)
+
+Edit the generated files to replace the essential placeholders only. The optional product-layer sections (§1 Trusted Sources, §3 User Roles, the Documentation Structure) ship as source-agnostic, role-agnostic default text with **no `{{...}}`** — leave them as-is and refine later (`/lore:config` for trusted sources / doc template / etc.; roles you add by hand if your product needs them). After this step, **no `{{...}}` should remain in `.claude/CLAUDE.md`**.
 
 - `.claude/CLAUDE.md`: `{{PRODUCT_NAME}}`, `{{DOC_LANGUAGE}}`, `{{LOCALE}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`.
 - `docs/intro.md`: rewrite the sample title/body in the chosen documentation language. **Never put `{{...}}` inside any file under `docs/`** — Docusaurus parses it as MDX and the build fails (`{...}` = JS). Use plain text.
-- If Docusaurus was installed:
-  - `package.json`: `{{PROJECT_SLUG}}` (kebab-case of the product name).
-  - `docusaurus.config.ts`: `{{SITE_TITLE}}`, `{{SITE_TAGLINE}}`, `{{PROJECT_SLUG}}`, `{{ORG}}`, `{{COPYRIGHT}}`, and the i18n placeholders `{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`.
-  - **RTL only:** set `customCss` to the array `['./src/css/custom.css', './src/css/custom-rtl.css']`. **LTR:** leave it as `['./src/css/custom.css']` and ensure no `custom-rtl.css`/fonts were copied.
 
-## Step 5 — Build (only if Docusaurus)
+## Step 5 — Add the Docusaurus viewer (only if chosen)
 
-If Docusaurus was installed, run `npm install && npm run build` and report success/failure. If it's docs-only, skip the build entirely.
+If the user chose **No**, skip this entirely — a docs-only project is complete after Step 4.
+
+If the user chose **Yes**, run the install sequence from **`/lore:add-docusaurus`** (its Steps 2–6) as the single source of truth — Lore fetches the latest Docusaurus, so there is nothing version-pinned to copy:
+
+1. Fetch the latest Docusaurus into `.lore-tmp/` and import the framework, discarding its sample `docs/`/`blog/`/`src/pages/` (add-docusaurus Steps 2–3).
+2. Overlay Lore's config/styling: `sh "$PLUGIN_ROOT/scripts/scaffold.sh" --target . --layer docusaurus` — add `--layer rtl` when the language is RTL.
+3. Fill the Docusaurus placeholders with the answers you already have: `package.json` `{{PROJECT_SLUG}}` (kebab-case of the product name); `docusaurus.config.ts` `{{SITE_TITLE}}`, `{{SITE_TAGLINE}}`, `{{PROJECT_SLUG}}`, `{{ORG}}`, `{{COPYRIGHT}}`, and the i18n placeholders `{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`. **RTL:** set `customCss` to `['./src/css/custom.css', './src/css/custom-rtl.css']`; **LTR:** `['./src/css/custom.css']` and ensure no `custom-rtl.css`/fonts were copied.
+4. Wire `sidebars.ts` to the real `docs/` tree.
+5. Run `npm install && npm run build` from the project root and report green/red.
+
+Do not duplicate the `create-docusaurus` bash here — follow `/lore:add-docusaurus` for the fetch/import details.
 
 ## Step 6 — Finish
 
 Tell the user, in English:
-- What was created (layers + whether a build passed).
-- **Next:** run `/lore:config` to set the product description, trusted sources, user roles, document-writing template, and brand color (all optional, editable anytime).
-- Then use `/lore:figma-to-doc` / `/lore:brief-to-doc` / `/lore:site-to-doc` to write docs, and `/lore:documentation-reviewer` to validate.
+- What was created (docs layer ± Docusaurus, and whether a build passed).
+- **Next:** run `/lore:config` to set the project site URL, product description, trusted sources, document-writing template, and brand color (all optional, editable anytime).
+- Then use `/lore:figma-to-doc` / `/lore:brief-to-doc` / `/lore:site-to-doc` to write docs, and `/lore:doc-reviewer` to validate.
+- If Docusaurus was installed: show the beginner preview guidance from `/lore:add-docusaurus` Step 6 — run commands **inside the project folder**, `npm start` opens the dev server at http://localhost:3000.
 - If docs-only: mention `/lore:add-docusaurus` to add a browsable site later.
 
 > The exact wording/order of questions is yours to refine; the rule is: 3 mandatory essentials at init, everything else deferred to `/lore:config`.

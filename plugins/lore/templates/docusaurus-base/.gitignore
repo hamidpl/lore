@@ -11,7 +11,7 @@
 .obsidian/workspace-mobile.json
 .obsidian/cache
 
-# Node modules (for future Docusaurus)
+# Node modules
 node_modules/
 .pnp
 .pnp.js
@@ -21,6 +21,9 @@ build/
 dist/
 .docusaurus/
 .cache/
+
+# Lore install temp (create-docusaurus staging; auto-removed)
+.lore-tmp/
 
 # Logs
 *.log

@@ -25,4 +25,4 @@ Use the Lore plugin skills to generate documentation from Figma, a brief, or the
 - `lore:figma-to-doc` — from Figma design files
 - `lore:brief-to-doc` — from a brief / PRD / user story
 - `lore:site-to-doc` — from observing the live product
-- `lore:documentation-reviewer` — validate against the Definition of Done
+- `lore:doc-reviewer` — validate against the Definition of Done
