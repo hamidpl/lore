@@ -80,7 +80,7 @@ Every fact, rule, or definition must be written in **exactly one canonical locat
 | Global rules / DoD / image paths / user roles / trusted sources | `.claude/CLAUDE.md` (this file) |
 | Input-specific workflow logic | the relevant skill in the **Lore** plugin (`lore:{name}`) |
 | Lessons learned | `.claude/lesson-learned.md` |
-| Document structure template | `product-doc-template/Product Document Template.md` |
+| Document structure template | `docs-template/Product Document Template.md` |
 | Skill structure template | `templates/skill-template.md` in the **Lore** plugin |
 
 - ⛔ Copying the full text of an existing rule into a second place is prohibited. This rule is BLOCKING.
@@ -121,7 +121,7 @@ _None yet — define them via `/lore:config`._
 
 ### Section 2 — Documentation Scope & Structure
 
-Every document follows the structure defined in the canonical template at `product-doc-template/Product Document Template.md` — use its sections, in its order. If the project's template is customized, that file remains the single source of truth for document structure (Rule 4).
+Every document follows the structure defined in the canonical template at `docs-template/Product Document Template.md` — use its sections, in its order. If the project's template is customized, that file remains the single source of truth for document structure (Rule 4).
 
 Independent of the template body, every document must begin with valid YAML frontmatter (enforced by the frontmatter hook and §6):
 

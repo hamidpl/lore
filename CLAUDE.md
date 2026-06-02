@@ -66,7 +66,7 @@ Every fact exists in exactly one canonical location; everywhere else references 
 | Global rules / DoD | Consuming repo's `.claude/CLAUDE.md` |
 | Input-specific workflow | The relevant skill (`skills/{name}/SKILL.md`) |
 | Lessons learned | Consuming repo's `.claude/lesson-learned.md` |
-| Document structure template | `templates/docs-layer/product-doc-template/Product Document Template.md` |
+| Document structure template | `templates/docs-layer/docs-template/Product Document Template.md` |
 | Skill structure template | `templates/skill-template.md` |
 
 Copying the full text of an existing rule into a second place is prohibited.
@@ -101,7 +101,7 @@ Hook paths in `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`. Scripts themselves self-
 
 Three independent, composable layers copied by `scripts/scaffold.sh`:
 
-- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `product-doc-template/`
+- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `docs-template/`
 - **`docusaurus-base`** — optional viewer **overlay**: docusaurus.config.ts, sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus framework itself is fetched fresh via `create-docusaurus@latest` (always latest) by `/lore:add-docusaurus`, not bundled here.
 - **`rtl-assets`** — optional: Persian font (self-hosted Vazirmatn) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
 

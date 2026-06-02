@@ -20,7 +20,7 @@ Use AskUserQuestion. Every question is optional: tell the user they can **skip**
 - **Project site URL** — the product's live website, if it has one (optional). Ask this **before** the description. If given, record it together with the product description and offer to add it to §1 Trusted Sources as the live product URL.
 - **Product description** — a short description of the product (used in intro/tagline).
 - **Trusted sources (§1)** — e.g. a Help Center URL, Blog URL, Live product URL, or any source the user trusts. These become the configured trusted sources in the DoD. Replace the "Configured trusted sources" block in §1 (default text: "_None yet…_") with the list the user gives.
-- **Document-writing template** — present exactly **two** options: **Use the default template** (the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/product-doc-template/Product Document Template.md"`, already copied at init) or **Provide a custom template path**. If the user picks custom, capture the path (free-text) and copy that file over `product-doc-template/Product Document Template.md`.
+- **Document-writing template** — present exactly **two** options: **Use the default template** (the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/docs-template/Product Document Template.md"`, already copied at init) or **Provide a custom template path**. If the user picks custom, capture the path (free-text) and copy that file over `docs-template/Product Document Template.md`.
 - **Brand color** — only meaningful if Docusaurus is installed. A hex color; regenerate the 7 `--ifm-color-primary-*` shades in `src/css/custom.css` from it.
 
 **The 3 init answers (editable here too)**
@@ -34,7 +34,7 @@ For each setting the user provided (skip the rest), edit the right file. §1 con
 - Site URL, sources, product name/description, language → `.claude/CLAUDE.md`.
 - Title/slug/org/copyright, i18n, customCss → `docusaurus.config.ts` / `package.json` (only if Docusaurus present).
 - Brand color → `src/css/custom.css`.
-- Document template → `product-doc-template/Product Document Template.md`.
+- Document template → `docs-template/Product Document Template.md`.
 
 **Never write `{{...}}` into any file under `docs/`** (MDX breaks the build). Plain text only there.
 
