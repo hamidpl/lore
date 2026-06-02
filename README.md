@@ -46,10 +46,17 @@ Lore carries **only the product-agnostic methodology**. Everything product-speci
 
 ## Install
 
+Installing Lore is **two separate steps** — and a common point of confusion, so read this carefully:
+
+1. **Add the marketplace** (the catalog Lore is published in) — done once per machine.
+2. **Install the plugin** from that catalog — also once per machine.
+
 ```text
-/plugin marketplace add hamidpl/lore
-/plugin install lore@lore-marketplace
+/plugin marketplace add hamidpl/lore       # step 1 — add the catalog
+/plugin install lore@lore-marketplace       # step 2 — install the plugin
 ```
+
+Run all plugin commands **inside Claude Code** (they start with `/`). Both commands are idempotent — re-running `add` when the catalog already exists just succeeds silently.
 
 For a team/CI repo, install at project scope so the repo is self-contained:
 
@@ -58,6 +65,43 @@ For a team/CI repo, install at project scope so the repo is self-contained:
 ```
 
 This writes `extraKnownMarketplaces` + `enabledPlugins` into the repo's `.claude/settings.json`, so anyone who clones and trusts the repo gets the plugin automatically.
+
+### Already installed? Enable it in a project
+
+> **Installed ≠ enabled.** Installing caches the plugin on your machine once. *Enabling* turns it on for a specific project. If you already installed Lore before, **do not** run `/plugin install` again (it will error — there's nothing new to install). Instead, just enable it:
+
+**The easy way — interactive menu:**
+
+```text
+/plugin
+```
+
+Press <kbd>Tab</kbd> to the **Installed** tab → select `lore` → <kbd>Enter</kbd> → **Enable** (for this project). The same menu lets you disable or uninstall, and the **Marketplaces** tab lets you add/update catalogs — all without typing settings by hand.
+
+**The manual way — edit `.claude/settings.json`** in your project root:
+
+```json
+{
+  "enabledPlugins": {
+    "lore@lore-marketplace": true
+  }
+}
+```
+
+Set it to `false` to disable Lore in that project. (Use `~/.claude/settings.json` instead to enable it for *all* your projects.)
+
+### Update to the latest version
+
+When a new Lore release ships, pull it in two steps:
+
+```text
+/plugin marketplace update lore-marketplace    # 1. refresh the catalog
+```
+```bash
+claude plugin update lore@lore-marketplace      # 2. update the installed plugin
+```
+
+You can also do both from the `/plugin` menu (**Marketplaces** tab → update). To see which version you have, open `/plugin` → **Installed** → `lore`.
 
 ### Local development
 
