@@ -16,7 +16,9 @@ const config: Config = {
   title: '{{SITE_TITLE}}',
   tagline: '{{SITE_TAGLINE}}',
 
-  url: 'https://{{PROJECT_SLUG}}.pages.dev',
+  // Production deploy URL — only affects the built site's absolute links/sitemap.
+  // Local dev (`npm start`) ignores it. Update when you host the site somewhere.
+  url: 'https://your-docusaurus-site.example.com',
   baseUrl: '/',
 
   organizationName: '{{ORG}}',

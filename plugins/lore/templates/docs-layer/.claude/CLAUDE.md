@@ -240,4 +240,4 @@ Docusaurus v3. Key files: `docusaurus.config.ts` (site metadata, i18n, navbar/fo
 
 ## Deployment (generic)
 
-**Platform:** Cloudflare Pages — Build Command `npm run build`, Output Directory `build`, auto-deploy on push to `main`. Most common build failure: image path uses `/static/img/` instead of `/img/` → fix the markdown reference.
+**Build:** `npm run build` → static output in `build/`. Deploy that folder to any static host (e.g. Cloudflare Pages, Netlify, Vercel, GitHub Pages). Most common build failure: image path uses `/static/img/` instead of `/img/` → fix the markdown reference.

@@ -127,7 +127,7 @@ cd <your-empty-or-existing-project>
 - **Nothing is locked in.** Run **`/lore:config`** anytime to fill or edit the project site URL, product description, trusted sources (§1), the document-writing template, the brand color — and even the 3 init answers (name / language / Docusaurus on-off). All `/lore:config` questions are skippable. (User roles live in §3 of the repo's `CLAUDE.md`; add them by hand if your product needs them.)
 - **Non-empty folders are safe.** Running `/lore:init` in an existing project adds only the documentation layer and never overwrites your files.
 
-Then build content with `lore:figma-to-doc` / `lore:brief-to-doc` / `lore:site-to-doc`; validate with `lore:doc-reviewer`; deploy (e.g. Cloudflare Pages: build `npm run build`, output `build`).
+Then build content with `lore:figma-to-doc` / `lore:brief-to-doc` / `lore:site-to-doc`; validate with `lore:doc-reviewer`; deploy the static `build/` output (`npm run build`) to any static host.
 
 ## Skill Authoring Standard
 
