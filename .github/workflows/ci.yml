@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Lint shell scripts
+        run: shellcheck -s sh plugins/lore/hooks/*.sh plugins/lore/scripts/*.sh tests/*.sh
+
+  validate:
+    name: manifests & hook wiring
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON
+        run: |
+          fail=0
+          for f in $(find . -path ./node_modules -prune -o -name '*.json' -print); do
+            jq empty "$f" || { echo "invalid JSON: $f"; fail=1; }
+          done
+          exit $fail
+      - name: plugin.json has required fields
+        run: |
+          jq -e '.name and .version and .license' plugins/lore/.claude-plugin/plugin.json >/dev/null
+      - name: hook scripts referenced by hooks.json exist and are executable
+        run: |
+          fail=0
+          for s in check-image-path.sh check-frontmatter.sh verify-docs.sh; do
+            p="plugins/lore/hooks/$s"
+            grep -q "$s" plugins/lore/hooks/hooks.json || { echo "hooks.json does not reference $s"; fail=1; }
+            test -x "$p" || { echo "not executable: $p"; fail=1; }
+          done
+          for s in scaffold.sh detect-project.sh; do
+            test -x "plugins/lore/scripts/$s" || { echo "not executable: $s"; fail=1; }
+          done
+          exit $fail
+      - name: validate the plugin (if the CLI is available)
+        run: |
+          if command -v claude >/dev/null 2>&1; then
+            claude plugin validate ./plugins/lore
+          else
+            echo "claude CLI not present on the runner — skipping plugin validate"
+          fi
+
+  hook-tests:
+    name: hook & script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the test harness
+        run: sh tests/run-tests.sh
+
+  scaffold-smoke:
+    name: scaffold + docusaurus build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Scaffold a project and build it
+        run: sh tests/smoke-build.sh "${RUNNER_TEMP}/smoke-proj"

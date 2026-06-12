@@ -10,7 +10,7 @@ The viewer is built by **fetching the latest Docusaurus fresh** with the officia
 
 ## Step 0 — Preconditions
 
-- Resolve the plugin root (env `${CLAUDE_PLUGIN_ROOT}` or this file's `../`); you need `scripts/scaffold.sh`, `scripts/detect-project.sh`, and the `templates/`.
+- Resolve the plugin root (env `${CLAUDE_PLUGIN_ROOT}`, else glob `~/.claude/plugins/marketplaces/*/plugins/lore`, else ask — never `$(dirname "$0")`); you need `scripts/scaffold.sh`, `scripts/detect-project.sh`, and the `templates/`.
 - **Network is required** for this command (it downloads Docusaurus from npm). If you are offline, stop and tell the user to retry when online.
 - Run `sh "$PLUGIN_ROOT/scripts/detect-project.sh"`:
   - `has-docusaurus` → already installed; tell the user and stop.
@@ -89,6 +89,8 @@ npm install && npm run build
 ```
 
 Report success or failure. If the build fails on a Node engine error, tell the user the installed Docusaurus needs a newer Node (the version is whatever the latest release requires).
+
+After a green build, set `"docusaurus": true` in `.claude/lore.json` (create the marker if a pre-marker project lacks it) so the project state stays accurate.
 
 Then give the user **beginner-friendly** preview guidance. Stress that all commands run **inside the project folder** (the one with `package.json`), and explain each:
 

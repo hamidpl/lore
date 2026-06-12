@@ -10,7 +10,9 @@ You configure an existing Lore documentation project (one created by `/lore:init
 
 Ensure `.claude/CLAUDE.md` exists in the cwd (this is a Lore project). If not, tell the user to run `/lore:init` first and stop.
 
-Resolve the plugin root the same way as `/lore:init` (env `${CLAUDE_PLUGIN_ROOT}` or fallback to this file's `../`), in case you need the bundled document template.
+Read `.claude/lore.json` for the project's current settings (language, locale, direction, docusaurus on/off, scaffoldVersion). If the file is missing (a pre-marker project), reconstruct it from the current state — language/locale/direction from `.claude/CLAUDE.md`, `docusaurus` from whether `docusaurus.config.*` exists — and write it, so subsequent runs have a single source of truth for these values.
+
+Resolve the plugin root the same way as `/lore:init` (env `${CLAUDE_PLUGIN_ROOT}`, else glob `~/.claude/plugins/marketplaces/*/plugins/lore`, else ask) — never `$(dirname "$0")` — in case you need the bundled document template.
 
 ## Step 1 — Ask which settings to set (ALL skippable)
 
@@ -26,7 +28,7 @@ Use AskUserQuestion. Every question is optional: tell the user they can **skip**
 **The 3 init answers (editable here too)**
 - **Product name** — updates `{{PRODUCT_NAME}}` everywhere and, if Docusaurus, the title/slug.
 - **Documentation language** — re-applies styling: if it changes RTL↔LTR and Docusaurus is present, rewrite the `i18n` block and the `customCss` array (add/remove `custom-rtl.css`), and add/remove the RTL assets (fonts + `custom-rtl.css`). Use `/lore:add-docusaurus`'s asset-copy logic if you need to add RTL assets.
-- **Docusaurus on/off** — if currently OFF and the user wants it ON, route to `/lore:add-docusaurus` (do that flow). If currently ON and the user wants it OFF, offer to remove the viewer files (`docusaurus.config.ts`, `sidebars.ts`, `package.json`, `package-lock.json`, `tsconfig.json`, `babel.config.js`, `src/`, `static/css`, `static/fonts`, `node_modules/`, `build/`, `.docusaurus/`) while keeping `docs/`, `static/img/`, and `.claude/`.
+- **Docusaurus on/off** — if currently OFF and the user wants it ON, route to `/lore:add-docusaurus` (do that flow). If currently ON and the user wants it OFF, offer to remove the viewer files (`docusaurus.config.ts`, `sidebars.ts`, `package.json`, `package-lock.json`, `tsconfig.json`, `babel.config.js`, `src/`, `static/fonts`, `node_modules/`, `build/`, `.docusaurus/`) while keeping `docs/`, `static/img/`, and `.claude/`.
 
 ## Step 2 — Apply
 
@@ -38,7 +40,8 @@ For each setting the user provided (skip the rest), edit the right file. §1 con
 
 **Never write `{{...}}` into any file under `docs/`** (MDX breaks the build). Plain text only there.
 
-## Step 3 — Validate + report
+## Step 3 — Sync the marker, validate + report
 
+- If you changed the language, locale, direction, or Docusaurus on/off, update the matching fields in `.claude/lore.json`.
 - If Docusaurus is present and you changed config/CSS, run `npm run build` and report green/red.
 - Summarize what changed and what was skipped (still unset). Remind the user they can re-run `/lore:config` anytime.

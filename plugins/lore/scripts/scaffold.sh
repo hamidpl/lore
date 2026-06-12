@@ -19,6 +19,19 @@
 
 set -e
 
+# Report which layer was in flight if we die mid-copy. Already-copied files are
+# kept (copies never overwrite), so re-running is always safe. The trap captures
+# and re-exits with the real status — otherwise the last command in the trap
+# would silently become the script's exit code.
+current_layer=""
+on_exit() {
+  status=$?
+  [ "$status" -ne 0 ] && [ -n "$current_layer" ] &&
+    echo "scaffold.sh: FAILED while applying layer '$current_layer' — already-copied files were kept; safe to re-run." >&2
+  exit "$status"
+}
+trap on_exit EXIT
+
 # --- locate plugin root (two levels up from scripts/) ---
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PLUGIN_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
@@ -57,6 +70,7 @@ copy_layer() {
 }
 
 for layer in $layers; do
+  current_layer="$layer"
   case "$layer" in
     docs)       copy_layer "$TEMPLATES/docs-layer" ;;
     docusaurus) copy_layer "$TEMPLATES/docusaurus-base" ;;
@@ -64,6 +78,7 @@ for layer in $layers; do
     *) echo "scaffold.sh: unknown layer '$layer'" >&2; exit 2 ;;
   esac
 done
+current_layer=""   # past the copy phase; the EXIT trap must stay quiet now
 
 # Ensure static/img exists when a Docusaurus layer was added.
 case " $layers " in

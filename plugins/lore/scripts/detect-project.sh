@@ -5,9 +5,12 @@
 # Usage: detect-project.sh [target-dir]   (defaults to current directory)
 # Echoes exactly one of:
 #   empty           — no files (ignoring dotfiles like .git, .DS_Store)
-#   docs-only       — has docs/ or .claude/ but NO docusaurus.config.ts
-#   has-docusaurus  — has docusaurus.config.ts (a Docusaurus site already)
-#   non-empty       — has other files but none of the markers above
+#   docs-only       — a Lore docs project (has .claude/lore.json marker, or a
+#                     legacy docs/ + .claude/CLAUDE.md) but NO docusaurus.config.*
+#   has-docusaurus  — has docusaurus.config.ts/js (a Docusaurus site already)
+#   non-empty       — has other files but none of the markers above (a bare
+#                     .claude/ with no Lore marker counts as non-empty, NOT as a
+#                     Lore project)
 
 target="${1:-.}"
 cd "$target" 2>/dev/null || { echo "error: cannot cd to $target" >&2; exit 1; }
@@ -17,7 +20,16 @@ if [ -f docusaurus.config.ts ] || [ -f docusaurus.config.js ]; then
   exit 0
 fi
 
-if [ -d docs ] || [ -d .claude ]; then
+# Positive marker written by /lore:init. Authoritative signal of a Lore project.
+if [ -f .claude/lore.json ]; then
+  echo "docs-only"
+  exit 0
+fi
+
+# Legacy Lore projects (created before the marker existed): require BOTH a docs/
+# tree and a project CLAUDE.md, so an unrelated repo that merely has a .claude/
+# settings dir is not misclassified as a Lore docs project.
+if [ -d docs ] && [ -f .claude/CLAUDE.md ]; then
   echo "docs-only"
   exit 0
 fi

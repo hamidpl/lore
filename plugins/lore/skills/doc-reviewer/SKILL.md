@@ -42,7 +42,7 @@ Validate each item against the **canonical rule in `CLAUDE.md`** (do not re-deri
 | **§3 User Roles** | Relevant roles documented using approved names; role differences explained | `CLAUDE.md` §3 |
 | ⛔ **§4 Scenarios** | Each has Purpose/Preconditions/Flow/Postconditions; images inline at the right step (not grouped); options, validations, exact messages, edge cases present | `CLAUDE.md` §4 |
 | **§5 Accuracy** | Consistent terminology; UI labels match source; explicit (not vague) rules; KPIs where applicable | `CLAUDE.md` §5 |
-| ⛔ **§6 Technical Validity** | Internal links work; image markdown uses `/img/` (not `/static/img/`); files exist under `static/img/`; no images in `/docs/`; no orphan images; `npm run build` passes | `CLAUDE.md` §6 |
+| ⛔ **§6 Technical Validity** | Internal links work; image markdown uses `/img/` (not `/static/img/`); files exist under `static/img/`; no images in `/docs/`; no orphan images; `npm run build` passes **if Docusaurus is installed** (otherwise N/A — verify links/images manually) | `CLAUDE.md` §6 |
 | **§7 Language & Style** | Content language matches §7; English file/dir names; product-focused (non-marketing) tone | `CLAUDE.md` §7 |
 | ⛔ **§8 Final Report** | Final report present with Sources, Tools/Skills, and Summary | `CLAUDE.md` §8 |
 | ⛔ **Rule 3 Lessons** | Issues encountered are documented in `lesson-learned.md` (4 fields each); skill-related lessons also propagated to the skill file; no orphan files from error recovery | `CLAUDE.md` Rule 3 |
@@ -56,7 +56,7 @@ For §6, actually run the checks rather than eyeballing:
 - Test each internal link resolves.
 - Grep image references; confirm each uses `/img/` and the file exists under `static/img/`.
 - Confirm no image files live under `docs/`.
-- Run `npm run build` and confirm zero errors.
+- **If Docusaurus is installed** (a `package.json` with docusaurus is present): run `npm run build` and confirm zero errors. Otherwise mark the build check **N/A** (docs-only project) and rely on the manual link/image checks above — do not treat the missing build as a failure.
 
 ### Step 3 — Generate Review Report
 
@@ -122,7 +122,7 @@ The deliverable of this skill is the **Review Report** above (not product docume
 ## 6. Completion Checklist
 
 - [ ] All DoD areas checked against their canonical `CLAUDE.md` Section (Step 1)
-- [ ] §6 technical checks actually run, including `npm run build` (Step 2)
+- [ ] §6 technical checks actually run, including `npm run build` if Docusaurus is installed (Step 2)
 - [ ] All blocking areas explicitly validated (§0, §1, §4, §6, §8, Rule 3, Rule 4)
 - [ ] Review report generated with per-area status and locations
 - [ ] Clear recommendation (approve / warnings / blocked) with required actions

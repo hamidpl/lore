@@ -10,15 +10,13 @@ Keep all generated files and your own messages in **English** (the *documentatio
 
 ## Step 0 — Locate the plugin scripts
 
-The bundled scripts live next to this command, under the plugin root. Resolve the plugin root and keep it in a variable, e.g.:
+The bundled scripts live under the plugin root. Resolve it in this order (do **not** use `$(dirname "$0")` — when you run a bash block, `$0` is the shell, not this markdown file):
 
-```bash
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
-# Fallback if the env var is not set: this command file is at <root>/commands/init.md
-[ -z "$PLUGIN_ROOT" ] && PLUGIN_ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
-```
+1. If `${CLAUDE_PLUGIN_ROOT}` is set in the environment, use it.
+2. Otherwise glob the installed plugin: `ls -d ~/.claude/plugins/marketplaces/*/plugins/lore 2>/dev/null | head -n1`.
+3. If neither resolves, ask the user for the plugin path.
 
-If you cannot resolve it from the env, find the installed plugin by globbing `~/.claude/plugins/marketplaces/*/plugins/lore` and use `scripts/` + `templates/` under it. You need `"$PLUGIN_ROOT/scripts/detect-project.sh"` and `"$PLUGIN_ROOT/scripts/scaffold.sh"`.
+You need `"$PLUGIN_ROOT/scripts/detect-project.sh"`, `"$PLUGIN_ROOT/scripts/scaffold.sh"`, and `"$PLUGIN_ROOT/templates/"`.
 
 ## Step 1 — Detect the project state
 
@@ -56,7 +54,22 @@ The Docusaurus viewer (and its RTL assets) is added separately in Step 5, becaus
 Edit the generated files to replace the essential placeholders only. The optional product-layer sections (§1 Trusted Sources, §3 User Roles, the Documentation Structure) ship as source-agnostic, role-agnostic default text with **no `{{...}}`** — leave them as-is and refine later (`/lore:config` for trusted sources / doc template / etc.; roles you add by hand if your product needs them). After this step, **no `{{...}}` should remain in `.claude/CLAUDE.md`**.
 
 - `.claude/CLAUDE.md`: `{{PRODUCT_NAME}}`, `{{DOC_LANGUAGE}}`, `{{LOCALE}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`.
+- `README.md`: `{{PRODUCT_NAME}}` (the project root README scaffolded by the docs layer).
 - `docs/intro.md`: rewrite the sample title/body in the chosen documentation language. **Never put `{{...}}` inside any file under `docs/`** — Docusaurus parses it as MDX and the build fails (`{...}` = JS). Use plain text.
+
+### Write the project marker
+
+Write `.claude/lore.json` so later commands (`/lore:config`, `/lore:add-docusaurus`) and `detect-project.sh` can recognize this as a Lore project and read its current settings. Set `docusaurus` to `false` here; Step 5 flips it to `true` if the viewer is installed.
+
+```json
+{
+  "scaffoldVersion": "<the plugin.json version>",
+  "language": "<DOC_LANGUAGE>",
+  "locale": "<LOCALE>",
+  "direction": "<DIRECTION>",
+  "docusaurus": false
+}
+```
 
 ## Step 5 — Add the Docusaurus viewer (only if chosen)
 
@@ -69,6 +82,7 @@ If the user chose **Yes**, run the install sequence from **`/lore:add-docusaurus
 3. Fill the Docusaurus placeholders with the answers you already have: `package.json` `{{PROJECT_SLUG}}` (kebab-case of the product name); `docusaurus.config.ts` `{{SITE_TITLE}}`, `{{SITE_TAGLINE}}`, `{{PROJECT_SLUG}}`, `{{ORG}}`, `{{COPYRIGHT}}`, and the i18n placeholders `{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`. **RTL:** set `customCss` to `['./src/css/custom.css', './src/css/custom-rtl.css']`; **LTR:** `['./src/css/custom.css']` and ensure no `custom-rtl.css`/fonts were copied.
 4. Wire `sidebars.ts` to the real `docs/` tree.
 5. Run `npm install && npm run build` from the project root and report green/red.
+6. After a green build, set `"docusaurus": true` in `.claude/lore.json`.
 
 Do not duplicate the `create-docusaurus` bash here — follow `/lore:add-docusaurus` for the fetch/import details.
 

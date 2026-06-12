@@ -60,7 +60,7 @@ If questions go unanswered, use `[CLARIFICATION NEEDED: ...]` placeholders in th
 
 ### Inferring Scenarios from User Stories
 
-Transform each `As a [role], I want [action], so that [benefit]` story into a complete scenario (Purpose, Roles, Preconditions, Flow, Postconditions — per `CLAUDE.md` §4). Example:
+Transform each `As a [role], I want [action], so that [benefit]` story into a complete scenario (Purpose, Roles, Preconditions, Flow, Postconditions — per `CLAUDE.md` §4). Example (shown for a Persian-language project — write in the project's documentation language, §7):
 
 ```markdown
 ## سناریو: فیلتر ویدیوها بر اساس وضعیت انتشار
@@ -88,7 +88,7 @@ Briefs lack UI detail. Strategies:
 1. **Reference existing patterns:** link to a similar already-documented feature.
 2. **Describe behavior, not appearance:** "Clicking 'Save' triggers form validation" — not "blue rounded button".
 3. **Request mockups if critical:** note that visual details await design.
-4. **Use placeholders:** `![توضیح تصویر - در انتظار طراحی](/img/my-videos/filter-placeholder.png)` with a note that the image will be added after design.
+4. **Use placeholders:** a placeholder image reference with alt text in the project's documentation language (§7), e.g. `![image description — pending design](/img/{section}/filter-placeholder.png)`, with a note that the image will be added after design.
 
 ### Creating Business Rules from Acceptance Criteria
 

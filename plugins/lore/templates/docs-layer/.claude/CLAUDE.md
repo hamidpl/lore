@@ -15,12 +15,7 @@ Before writing or editing any document, you must strictly follow the Documentati
 
 The documentation **methodology** — the four skills (`lore:figma-to-doc`, `lore:brief-to-doc`, `lore:site-to-doc`, `lore:doc-reviewer`), the supporting subagents (`lore:doc-validator`, `lore:figma-extractor`), and the BLOCKING-rule enforcement hooks — is provided by the shared **Lore** plugin, not by this repo. This file (CLAUDE.md) carries the always-on rules (DoD, image paths, general rules) plus the product-specific layer (trusted sources §1, user roles §3, documentation structure).
 
-The plugin is wired into this repo at project scope in `.claude/settings.json` (`extraKnownMarketplaces` → `hamidpl/lore`, `enabledPlugins` → `lore@lore-marketplace`), so anyone who clones and trusts this repo gets it automatically. To install manually:
-
-```bash
-claude plugin marketplace add hamidpl/lore
-claude plugin install lore@lore-marketplace --scope project
-```
+The plugin is wired into this repo at project scope in `.claude/settings.json` (`extraKnownMarketplaces` → `hamidpl/lore`, `enabledPlugins` → `lore@lore-marketplace`), so anyone who clones and trusts this repo gets it automatically. For manual install/enable/update steps, see the [Lore README](https://github.com/hamidpl/lore) — it is the single source of truth for those commands (Rule 4).
 
 ---
 

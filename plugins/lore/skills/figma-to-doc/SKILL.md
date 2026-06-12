@@ -34,7 +34,7 @@ Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUD
 | 3 | **Search configured trusted sources** | List of relevant material found (or "none configured") | Browse the trusted sources in `CLAUDE.md` §1 (e.g. Help Center, Blog, live product); skip if none are configured |
 | 4 | **Check lesson-learned.md** | Confirm no relevant unresolved issues | Read `.claude/lesson-learned.md` (per Rule 3) |
 
-⛔ **Blocking:** ALL 5 steps must be completed before Phase 2.
+⛔ **Blocking:** ALL 4 steps must be completed before Phase 2.
 
 :::warning Comments ≠ Annotations
 - **Comments** = discussion threads (via comments API)
@@ -46,10 +46,10 @@ Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUD
 
 | # | Step | How to Verify |
 |---|------|---------------|
-| 6 | **Navigate all frames** | Frame inventory with IDs and names |
-| 7 | **Identify [ignore] pages** | List of skipped pages (or "none") — any page whose name starts with `[ignore]` is out of scope |
-| 8 | **Extract images (individual FRAMEs only)** | Downloaded PNGs at 2x, one per frame (see §3) |
-| 9 | **Summarize findings** | Written summary of business rules from annotations + comments |
+| 5 | **Navigate all frames** | Frame inventory with IDs and names |
+| 6 | **Identify [ignore] pages** | List of skipped pages (or "none") — any page whose name starts with `[ignore]` is out of scope |
+| 7 | **Extract images (individual FRAMEs only)** | Downloaded PNGs at 2x, one per frame (see §3) |
+| 8 | **Summarize findings** | Written summary of business rules from annotations + comments |
 
 ⛔ **Blocking:** Do NOT start writing until Phase 2 is complete.
 
@@ -57,14 +57,18 @@ Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUD
 
 | # | Step | How to Verify |
 |---|------|---------------|
-| 10 | **Delete temporary/composite files** | No unreferenced images under `static/img/` |
-| 11 | **Update lesson-learned.md** | New entries added for any issues encountered (Rule 3) |
-| 12 | **Propagate lessons to skill files** | Relevant skill file updated, not just lesson-learned.md (Rule 3) |
-| 13 | **Run build** | `npm run build` passes with zero errors |
+| 9 | **Delete temporary/composite files** | No unreferenced images under `static/img/` |
+| 10 | **Update lesson-learned.md** | New entries added for any issues encountered (Rule 3) |
+| 11 | **Propagate lessons to skill files** | Relevant skill file updated, not just lesson-learned.md (Rule 3) |
+| 12 | **Run build** | `npm run build` passes with zero errors (only if Docusaurus is installed) |
 
 ---
 
 ## 3. Core Workflow (Figma-specific)
+
+### Credentials (Figma API)
+
+The Figma REST calls need a token. Read it from the **`FIGMA_TOKEN` environment variable** (sent as the `X-Figma-Token` header), or use a connected Figma MCP server if one is available. **Never** ask the user to paste the raw token into the chat, never echo it in a command you print, and never write it to any file (including `lesson-learned.md` or the final report). If `FIGMA_TOKEN` is unset and no Figma MCP server is connected, stop and ask the user to `export FIGMA_TOKEN=...` (or connect the MCP server) before continuing.
 
 > **Heavy extraction (large files):** the main agent may delegate steps 1–8 of the Pre-Flight to the `lore:figma-extractor` subagent (Task tool) to keep the main context clean. It returns a compact summary (business rules + frame inventory + image list + open questions). Writing prose and asking the user clarification questions stay in the main context — the subagent is autonomous and cannot ask questions.
 
@@ -110,7 +114,7 @@ Store extracted frames under `static/img/{section}/`, mirroring the documentatio
 ### Handling Figma Edge Cases
 
 - **Missing information:** Document what IS shown; mark gaps as `[CLARIFICATION NEEDED: ...]`; ask the user.
-- **Lorem Ipsum / placeholder text:** Ask for real content; if unavailable use `[محتوای واقعی در انتظار تایید تیم محتوا]`; flag in final report.
+- **Lorem Ipsum / placeholder text:** Ask for real content; if unavailable insert a placeholder **in the project's documentation language** (§7) — e.g. English: `[real content pending content-team approval]`, Persian: `[محتوای واقعی در انتظار تایید تیم محتوا]` — then flag it in the final report.
 - **Conflicting annotation vs comment:** Prefer the annotation (usually closer to current design); ask the user to confirm; note in final report.
 - **Multiple design versions:** Ask which to document; if the latest is clear, document it and note "Documented version X (most recent as of [date])".
 

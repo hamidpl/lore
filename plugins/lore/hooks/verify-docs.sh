@@ -1,36 +1,87 @@
 #!/bin/sh
-# Stop hook — fast integrity checks before a turn ends.
-# Non-fatal by design: prints warnings so the model notices, but does not hard-block
-# the Stop (a full `npm run build` is too slow to run on every Stop; run it manually
-# or in CI). To make a check blocking, change its `echo` branch to `exit 2`.
+# Stop hook — integrity checks before a turn ends.
+#
+# Checks 1 (image files under docs/) and 2 (/static/img/ references) are BLOCKING
+# (exit 2): on Stop this prevents Claude from stopping and feeds stderr back so it
+# fixes the violation. Check 3 (orphan images) stays a non-fatal WARNING — it is
+# heuristic and a full `npm run build` is the authoritative check (run it in CI).
+#
+# Loop guard: when this Stop is itself the result of a previous Stop-hook block
+# (stop_hook_active = true), exit 0 immediately so an unfixable violation cannot
+# loop forever.
 
-# 1) No image files committed under docs/
-bad_imgs=$(find docs -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.gif' -o -name '*.webp' \) 2>/dev/null)
+input=$(cat)
+
+# --- detect the loop-guard flag (jq → python3 → grep) ---
+stop_active=""
+if command -v jq >/dev/null 2>&1; then
+  stop_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // empty' 2>/dev/null)
+elif command -v python3 >/dev/null 2>&1; then
+  stop_active=$(printf '%s' "$input" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("stop_hook_active",""))
+except Exception: pass' 2>/dev/null)
+else
+  printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && stop_active="true"
+fi
+[ "$stop_active" = "true" ] && exit 0
+
+# --- run all checks from the project root ---
+root="${CLAUDE_PROJECT_DIR:-}"
+if [ -z "$root" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    root=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  elif command -v python3 >/dev/null 2>&1; then
+    root=$(printf '%s' "$input" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("cwd",""))
+except Exception: pass' 2>/dev/null)
+  fi
+fi
+[ -n "$root" ] && cd "$root" 2>/dev/null || true
+
+# Nothing to check without a docs/ tree.
+[ -d docs ] || exit 0
+
+blocked=0
+
+# 1) No image files committed under docs/ (BLOCKING) — extension set matches the
+#    write-time hook (check-image-path.sh Rule A).
+bad_imgs=$(find docs -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \
+  -o -name '*.gif' -o -name '*.webp' -o -name '*.svg' -o -name '*.ico' \) 2>/dev/null)
 if [ -n "$bad_imgs" ]; then
-  echo "WARNING: image files found under docs/ (should be in static/img/):" >&2
+  echo "BLOCKED: image files found under docs/ (must live in static/img/):" >&2
   echo "$bad_imgs" >&2
+  blocked=1
 fi
 
-# 2) No markdown image refs using /static/img/
-bad_refs=$(grep -rn '](/static/img/' docs/ 2>/dev/null)
+# 2) No markdown/MDX image refs using /static/img/ (BLOCKING)
+bad_refs=$(grep -rnE '\]\(/static/img/|src="/static/img/' docs/ 2>/dev/null)
 if [ -n "$bad_refs" ]; then
-  echo "WARNING: markdown references using /static/img/ (use /img/):" >&2
+  echo "BLOCKED: docs reference images via /static/img/ (use /img/):" >&2
   echo "$bad_refs" >&2
+  blocked=1
 fi
 
-# 3) Orphan images: files in static/img/ referenced by no doc, config, or source file.
-#    References come from docs/ (markdown, as /img/...) AND from site config/source
-#    (docusaurus.config.ts, sidebars.ts, src/) where assets are written as img/...
-#    (no leading slash) — e.g. navbar logo, favicon, social card. Both forms are
-#    matched by searching for the substring "img/<relative path>".
+[ "$blocked" -eq 1 ] && exit 2
+
+# 3) Orphan images (WARNING only): files in static/img/ referenced by no doc,
+#    config, or source file. References come from docs/ (as /img/...) and from
+#    site config/source (as img/...). Both forms are matched as the substring
+#    "img/<relative path>". Handles paths with spaces (no word-splitting) and
+#    both .ts and .js config variants.
 if [ -d static/img ]; then
-  haystack=$(cat \
-    $(find docs -type f -name '*.md' -o -name '*.mdx' 2>/dev/null) \
-    docusaurus.config.ts sidebars.ts \
-    $(find src -type f 2>/dev/null) \
-    2>/dev/null)
-  find static/img -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.gif' -o -name '*.webp' -o -name '*.svg' -o -name '*.ico' \) 2>/dev/null | while read -r f; do
+  haystack=$(
+    find docs -type f \( -name '*.md' -o -name '*.mdx' \) -exec cat {} + 2>/dev/null
+    [ -d src ] && find src -type f -exec cat {} + 2>/dev/null
+    for cfg in docusaurus.config.ts docusaurus.config.js sidebars.ts sidebars.js; do
+      [ -f "$cfg" ] && cat "$cfg"
+    done
+  )
+  find static/img -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \
+    -o -name '*.gif' -o -name '*.webp' -o -name '*.svg' -o -name '*.ico' \) 2>/dev/null |
+  while IFS= read -r f; do
     rel="img/${f#static/img/}"
     printf '%s' "$haystack" | grep -qF "$rel" || echo "WARNING: orphan image not referenced anywhere: $f" >&2
   done
 fi
+
+exit 0

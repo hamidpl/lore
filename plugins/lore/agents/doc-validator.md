@@ -16,11 +16,12 @@ You are an autonomous, **read-only** validator. You validate documentation again
    - Confirm image markdown references use `/img/` (not `/static/img/`).
    - Confirm referenced image files exist under `static/img/` and that no images live under `docs/`.
    - Detect orphan images and broken internal links.
-   - You may run `npm run build` to confirm a clean build if asked to do a full check.
+   - If Docusaurus is installed (a `package.json` with docusaurus is present), you may run `npm run build` to confirm a clean build when asked for a full check. For a docs-only project there is no build — mark it N/A and rely on the manual checks above; do not report the absent build as a failure.
 4. Return ONLY the structured Review Report (per the skill's report format), ending with a clear recommendation: APPROVED / APPROVED WITH WARNINGS / BLOCKED, and the list of blocking failures with their locations.
 
 ## Constraints
 
 - Read-only: never use Write/Edit. Your output is the report, not changes to the doc.
+- **Bash is granted solely for `npm run build` and read-only checks** (grep/find/test). Never run a command that modifies the filesystem — no output redirection to files, no `mv`/`rm`/`cp`, no `sed -i`. The document you validate must be byte-identical before and after your run.
 - Single Place of Truth: cite rules by their `CLAUDE.md` Section number; never paste rule text.
 - Be specific: every failure must include a file path and line/section.

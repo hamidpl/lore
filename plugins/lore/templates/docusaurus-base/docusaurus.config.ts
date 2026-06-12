@@ -9,7 +9,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 //   • RTL (e.g. Persian): direction 'rtl', and customCss includes custom-rtl.css
 //   • LTR (e.g. English): direction 'ltr', custom-rtl.css omitted
 // To add a logo/favicon later: drop files in static/img/ and re-add the
-// `favicon`, `navbar.logo`, and `themeConfig.image` fields (see SETUP.md).
+// `favicon`, `navbar.logo`, and `themeConfig.image` fields.
 // ---------------------------------------------------------------------------
 
 const config: Config = {

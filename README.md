@@ -1,21 +1,10 @@
 # Lore — Product Documentation Factory
 
-**Lore** is a [Claude Code plugin](https://code.claude.com/docs/en/plugins) that packages a reusable, product-agnostic **documentation factory**. Install it in any documentation repo and you get the same skills, review subagents, and BLOCKING-rule enforcement hooks — maintained once, consumed everywhere, with zero drift.
+> **Status: beta (pre-1.0).** Lore works end-to-end, but commands, templates, and conventions may still change before `1.0.0`. Pin to a git tag if you need stability (see [Versioning](#versioning)).
 
-This repository is **both** the plugin and its marketplace:
+**Lore** is a [Claude Code plugin](https://code.claude.com/docs/en/plugins) that packages a reusable, product-agnostic **documentation factory**. Install it in any documentation repo to get the same skills, review subagents, and BLOCKING-rule enforcement hooks — maintained once, consumed everywhere.
 
-```
-lore/
-├── .claude-plugin/marketplace.json     # marketplace catalog (name: lore-marketplace)
-└── plugins/lore/                        # the plugin (name: lore)
-    ├── .claude-plugin/plugin.json
-    ├── commands/                        # init, config, add-docusaurus (the scaffold wizard)
-    ├── skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
-    ├── agents/                          # doc-validator, figma-extractor (supporting subagents)
-    ├── hooks/                           # hooks.json + check-image-path.sh + check-frontmatter.sh + verify-docs.sh
-    ├── scripts/                         # detect-project.sh, scaffold.sh (used by the wizard)
-    └── templates/                       # docs-layer, docusaurus-base, rtl-assets + skill-template.md
-```
+This single repo is **both** the plugin (`plugins/lore/`) and its marketplace (`.claude-plugin/marketplace.json`).
 
 ## What's inside
 
@@ -30,7 +19,51 @@ lore/
 | Skill | `lore:doc-reviewer` | Validate docs against the Definition of Done |
 | Subagent | `lore:doc-validator` | Read-only DoD validator (run by producer skills before delivery) |
 | Subagent | `lore:figma-extractor` | Heavy Figma extraction worker (keeps main context clean) |
-| Hooks | `hooks/hooks.json` | BLOCKING enforcement: image paths (§6/Rule 1) + frontmatter (§2/§6) |
+| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter |
+
+## Install
+
+Installing is two steps, run **inside Claude Code** (both are idempotent):
+
+```text
+/plugin marketplace add hamidpl/lore       # 1. add the catalog
+/plugin install lore@lore-marketplace       # 2. install the plugin
+```
+
+For a team/CI repo, install at project scope so a clone is self-contained:
+
+```text
+/plugin install lore@lore-marketplace --scope project
+```
+
+**Installed ≠ enabled.** Installing caches the plugin on your machine; *enabling* turns it on for a project. If Lore is already installed, don't run `install` again — just enable it via the `/plugin` menu (**Installed** tab → `lore` → Enable), or add to your project's `.claude/settings.json`:
+
+```json
+{ "enabledPlugins": { "lore@lore-marketplace": true } }
+```
+
+**Update** when a new release ships:
+
+```text
+/plugin marketplace update lore-marketplace     # refresh the catalog
+claude plugin update lore@lore-marketplace       # update the plugin
+```
+
+## Quick start
+
+```text
+cd <your-empty-or-existing-project>
+/lore:init                                  # answer 3 questions
+```
+
+`/lore:init` asks 3 essentials — **product name**, **documentation language**, **install Docusaurus?** — then scaffolds the docs layer (`docs/` + `.claude/`) and, if chosen, a Docusaurus viewer.
+
+- **Docusaurus is optional.** Choose **No** for Markdown-only docs and add a browsable site later with `/lore:add-docusaurus`.
+- **Language drives styling.** An RTL language (Persian, Arabic, …) gets the self-hosted Vazirmatn font + right-to-left layout; LTR languages get stock Docusaurus styling.
+- **Nothing is locked in.** Run `/lore:config` anytime to edit the site URL, product description, trusted sources, doc template, brand color — even the 3 init answers.
+- **Safe in existing repos.** `/lore:init` only adds the documentation layer and never overwrites your files.
+
+Then build content with `lore:figma-to-doc` / `lore:brief-to-doc` / `lore:site-to-doc`, validate with `lore:doc-reviewer`, and deploy the static `build/` output to any host.
 
 ## Division of responsibility (the golden rule)
 
@@ -38,122 +71,19 @@ Lore carries **only the product-agnostic methodology**. Everything product-speci
 
 | Layer | Where it lives |
 |-------|----------------|
-| Skills, subagents, hooks, skill-authoring template | **This plugin** (changes once, propagates to all repos via `/plugin update`) |
-| Definition of Done, image-path rules, general rules | The consuming repo's `CLAUDE.md` (always-on context; a plugin cannot inject always-on context) |
-| Trusted sources, user roles, documentation structure, content | The consuming repo (per-product) |
+| Skills, subagents, hooks, authoring template | **This plugin** — change once, propagate to every repo via `/plugin update` |
+| Definition of Done, image-path rules, trusted sources, user roles, structure | The **consuming repo's `CLAUDE.md`** (per-product) |
 
-> Skills reference rules by `CLAUDE.md` Section number; they never restate or hard-code a product's sources, roles, or structure. That is the only thing that lets one skill serve every product.
+Skills reference rules by `CLAUDE.md` section number — they never restate or hard-code a product's sources, roles, or structure. That is what lets one skill serve every product.
 
-## Install
-
-Installing Lore is **two separate steps** — and a common point of confusion, so read this carefully:
-
-1. **Add the marketplace** (the catalog Lore is published in) — done once per machine.
-2. **Install the plugin** from that catalog — also once per machine.
-
-```text
-/plugin marketplace add hamidpl/lore       # step 1 — add the catalog
-/plugin install lore@lore-marketplace       # step 2 — install the plugin
-```
-
-Run all plugin commands **inside Claude Code** (they start with `/`). Both commands are idempotent — re-running `add` when the catalog already exists just succeeds silently.
-
-For a team/CI repo, install at project scope so the repo is self-contained:
-
-```text
-/plugin install lore@lore-marketplace --scope project
-```
-
-This writes `extraKnownMarketplaces` + `enabledPlugins` into the repo's `.claude/settings.json`, so anyone who clones and trusts the repo gets the plugin automatically.
-
-### Already installed? Enable it in a project
-
-> **Installed ≠ enabled.** Installing caches the plugin on your machine once. *Enabling* turns it on for a specific project. If you already installed Lore before, **do not** run `/plugin install` again (it will error — there's nothing new to install). Instead, just enable it:
-
-**The easy way — interactive menu:**
-
-```text
-/plugin
-```
-
-Press <kbd>Tab</kbd> to the **Installed** tab → select `lore` → <kbd>Enter</kbd> → **Enable** (for this project). The same menu lets you disable or uninstall, and the **Marketplaces** tab lets you add/update catalogs — all without typing settings by hand.
-
-**The manual way — edit `.claude/settings.json`** in your project root:
-
-```json
-{
-  "enabledPlugins": {
-    "lore@lore-marketplace": true
-  }
-}
-```
-
-Set it to `false` to disable Lore in that project. (Use `~/.claude/settings.json` instead to enable it for *all* your projects.)
-
-### Update to the latest version
-
-When a new Lore release ships, pull it in two steps:
-
-```text
-/plugin marketplace update lore-marketplace    # 1. refresh the catalog
-```
-```bash
-claude plugin update lore@lore-marketplace      # 2. update the installed plugin
-```
-
-You can also do both from the `/plugin` menu (**Marketplaces** tab → update). To see which version you have, open `/plugin` → **Installed** → `lore`.
-
-### Local development
-
-```text
-/plugin marketplace add /absolute/path/to/lore     # local path during development
-claude plugin validate ./plugins/lore              # validate before publishing
-```
-
-## Setting up a new product documentation repo
-
-The fastest path is the **`/lore:init` wizard** — two steps:
-
-```text
-claude plugin install lore@lore-marketplace          # once per machine
-cd <your-empty-or-existing-project>
-/lore:init                                            # answer 3 questions
-```
-
-`/lore:init` asks just 3 essentials (all required): **product name**, **documentation language**, and **install Docusaurus?**. It then generates the documentation layer (`docs/` + `.claude/`) and, if you chose it, a Docusaurus viewer — building a preview. Everything else is optional and deferred to `/lore:config`.
-
-- **Documentation is optional-Docusaurus by design.** Choose **No** and you get only the Markdown docs + `.claude/` config (write docs immediately, decide on output later). Add a browsable site anytime with **`/lore:add-docusaurus`**.
-- **Language drives styling.** An RTL language (Persian, Arabic, …) gets the self-hosted Vazirmatn font + right-to-left layout; an LTR language (English, …) gets stock Docusaurus styling. The generated `CLAUDE.md` is language-agnostic — no Persian is hard-coded.
-- **Nothing is locked in.** Run **`/lore:config`** anytime to fill or edit the project site URL, product description, trusted sources (§1), the document-writing template, the brand color — and even the 3 init answers (name / language / Docusaurus on-off). All `/lore:config` questions are skippable. (User roles live in §3 of the repo's `CLAUDE.md`; add them by hand if your product needs them.)
-- **Non-empty folders are safe.** Running `/lore:init` in an existing project adds only the documentation layer and never overwrites your files.
-
-Then build content with `lore:figma-to-doc` / `lore:brief-to-doc` / `lore:site-to-doc`; validate with `lore:doc-reviewer`; deploy the static `build/` output (`npm run build`) to any static host.
-
-## Skill Authoring Standard
-
-Every skill — new or updated — must follow the canonical structure in [`plugins/lore/templates/skill-template.md`](plugins/lore/templates/skill-template.md).
-
-**Golden rule (Rule 4 — Single Place of Truth):** a skill contains ONLY input-specific content. It must NOT restate any global rule (DoD, image paths, user roles, trusted sources, final-report structure) — reference the relevant `CLAUDE.md` Section instead.
-
-**Standard SKILL.md sections (in order):**
-
-1. **When to Use** — trigger and scope
-2. **Pre-Flight Checklist** — input-specific source gathering (references `CLAUDE.md` §0/§1)
-3. **Core Workflow** — the skill's unique value (the only detailed part)
-4. **DoD Additions** — only input-specific deltas (references §4/§6 for the rest)
-5. **Final Report Additions** — only skill-specific fields (references §8)
-6. **Completion Checklist** — ends with self-verification via the `lore:doc-validator` subagent
-7. **Reference Example**
+> New or updated skills must follow the canonical structure in [`plugins/lore/templates/skill-template.md`](plugins/lore/templates/skill-template.md). Contributor and maintenance details live in [`CLAUDE.md`](CLAUDE.md).
 
 ## Versioning
 
-Semantic versioning in `plugins/lore/.claude-plugin/plugin.json`. Bump on every release; consumers upgrade with `/plugin update lore`. Repos can pin a version for controlled rollout.
+Lore uses [semantic versioning](https://semver.org); the current version lives in [`plugins/lore/.claude-plugin/plugin.json`](plugins/lore/.claude-plugin/plugin.json) and changes are recorded in [CHANGELOG.md](CHANGELOG.md). It is **pre-1.0**, so minor releases may include breaking changes until `1.0.0`. To pin a version, add the marketplace at a fixed git tag — e.g. `/plugin marketplace add hamidpl/lore#v0.1.0`.
 
-## Maintenance notes
+> **Security note:** Lore ships hooks that run shell scripts automatically in your repo. Review plugin updates the way you would any dependency bump.
 
-- **Hook paths** must use `${CLAUDE_PLUGIN_ROOT}` (not `$CLAUDE_PROJECT_DIR/.claude/...`) so they resolve to the installed plugin location.
-- **Wizard scripts self-locate.** `scripts/scaffold.sh` and `detect-project.sh` resolve their own plugin root via the script path (`$(dirname "$0")`) rather than relying on `${CLAUDE_PLUGIN_ROOT}` being present in the model's Bash env, which is not guaranteed during command execution.
-- **Template layers** live under `templates/`: `docs-layer/` (always), `docusaurus-base/` (optional viewer **overlay** — config + sidebars + custom.css + .gitignore; the Docusaurus framework itself is fetched fresh via `create-docusaurus@latest`), `rtl-assets/` (RTL languages only). The `docs-layer/CLAUDE.md` is the canonical thin product CLAUDE.md and uses `{{...}}` placeholders (including `{{DOC_LANGUAGE}}`/`{{LOCALE}}`) the wizard fills.
-- **MDX caveat:** never put `{{...}}` in any file under `docs/` — Docusaurus evaluates `{...}` as JS and the build fails. Placeholders live only in non-MDX files.
-- **Subagent references** inside skills use the `lore:` namespace (`lore:doc-validator`, `lore:figma-extractor`).
-- The hook scripts operate on the consuming project's `docs/` and `static/img/` via paths relative to the project working directory.
+## License
+
+[MIT](LICENSE). The bundled Vazirmatn font is licensed separately under the SIL Open Font License 1.1 (see [`plugins/lore/templates/rtl-assets/static/fonts/LICENSE-Vazirmatn`](plugins/lore/templates/rtl-assets/static/fonts/LICENSE-Vazirmatn)).

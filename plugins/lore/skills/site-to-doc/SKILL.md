@@ -71,7 +71,7 @@ When live behavior differs from a Figma design or brief: document both versions 
 | **Different error handling** | Document actual error behavior |
 | **Additional features** | Document discovered features not in designs |
 
-**Documentation format for a discrepancy:**
+**Documentation format for a discrepancy** (shown for a Persian-language project — write in the project's documentation language, §7):
 
 ```markdown
 ## رفتار فعلی سیستم
@@ -94,7 +94,7 @@ When live behavior differs from a Figma design or brief: document both versions 
 
 ### Edge Case Walkthroughs
 
-- **Empty states:** Is there an empty-state message and a CTA? Capture exact text. Example:
+- **Empty states:** Is there an empty-state message and a CTA? Capture exact text. Example (Persian-language project; use the project's documentation language, §7):
 
   ```markdown
   ### حالت خالی (Empty State)
@@ -112,7 +112,7 @@ When live behavior differs from a Figma design or brief: document both versions 
 
 ### Browser Console Monitoring (for technical detail)
 
-Where relevant, capture: API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under an "اطلاعات فنی" subsection.
+Where relevant, capture: API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under a "Technical Details" subsection (heading written in the project's documentation language, §7 — e.g. Persian "اطلاعات فنی").
 
 ---
 

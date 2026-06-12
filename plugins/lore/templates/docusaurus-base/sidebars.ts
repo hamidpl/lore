@@ -3,7 +3,8 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 // ---------------------------------------------------------------------------
 // SETUP: this sidebar must mirror your docs/ folder structure.
 // Start minimal (just the intro page); add a category per docs/{section}/ as
-// you create content. See SETUP.md for the new-product procedure.
+// you create content. Mirror the Documentation Structure section in
+// .claude/CLAUDE.md (the single source of truth for the section hierarchy).
 // ---------------------------------------------------------------------------
 
 const sidebars: SidebarsConfig = {

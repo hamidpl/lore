@@ -5,8 +5,39 @@
  * into docusaurus.config.ts customCss as an array: [custom.css, custom-rtl.css]).
  */
 
-/* Import bundled fonts (served from static/css/fonts.css → /css/fonts.css) */
-@import url('/css/fonts.css');
+/* Self-hosted Vazirmatn — open-source Persian font.
+   https://github.com/rastikerdar/vazirmatn (weights 400/500/600/700).
+   Relative url()s resolve through webpack/css-loader, so the woff2 files are
+   hashed and rewritten per baseUrl — they work under a sub-path deploy
+   (e.g. GitHub Pages /repo/) where a root-absolute /fonts/... would 404. */
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-Regular.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-Medium.woff2') format('woff2');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-SemiBold.woff2') format('woff2');
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-Bold.woff2') format('woff2');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
 
 /* Persian font stack */
 body {
@@ -37,37 +68,6 @@ h4 {
 	font-size: 1.1rem;
 }
 
-/* Font weight mappings */
-.font-normal,
-[style*='font-weight: normal'],
-[style*='font-weight: 400'] {
-	font-family: 'Vazirmatn', sans-serif;
-	font-weight: normal;
-}
-
-.font-medium,
-[style*='font-weight: 500'],
-[style*='font-weight: medium'] {
-	font-family: 'Vazirmatn', sans-serif;
-	font-weight: 500;
-}
-
-.font-semibold,
-[style*='font-weight: 600'],
-[style*='font-weight: semibold'] {
-	font-family: 'Vazirmatn', sans-serif;
-	font-weight: 600;
-}
-
-strong,
-b,
-.font-bold,
-[style*='font-weight: bold'],
-[style*='font-weight: 700'] {
-	font-family: 'Vazirmatn', sans-serif;
-	font-weight: bold;
-}
-
 /* RTL adjustments */
 html[dir='rtl'] {
 	--ifm-navbar-padding-horizontal: 1rem;
@@ -96,10 +96,11 @@ html[dir='rtl'] .error-item {
 	border-radius: 0 8px 8px 0;
 }
 
-/* RTL admonition border */
-html[dir='rtl'] .admonition-note {
-	border-right-width: 4px;
-	border-left-width: 0;
+/* RTL admonition accent border (Docusaurus v3: .theme-admonition + Infima .alert).
+   Move Infima's left accent border to the right for all admonition types. */
+html[dir='rtl'] .theme-admonition {
+	border-left-width: var(--ifm-alert-border-width);
+	border-right-width: var(--ifm-alert-border-left-width);
 }
 
 /* Footer RTL styling */

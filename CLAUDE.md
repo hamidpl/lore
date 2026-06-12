@@ -20,6 +20,10 @@ plugins/lore/                      # the plugin itself
   hooks/                           # hooks.json + 3 shell scripts (BLOCKING enforcement)
   scripts/                         # scaffold.sh, detect-project.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
+tests/run-tests.sh                 # POSIX hook/script test harness (run before release)
+.github/workflows/ci.yml           # shellcheck + manifest + hook tests + scaffold smoke
+CHANGELOG.md                       # release notes (tagged vX.Y.Z)
+LICENSE                            # MIT (Vazirmatn font: separate OFL notice)
 ```
 
 ## Commands
@@ -27,6 +31,11 @@ plugins/lore/                      # the plugin itself
 **Validate the plugin:**
 ```bash
 claude plugin validate ./plugins/lore
+```
+
+**Run the test suite (before any release):**
+```bash
+sh tests/run-tests.sh
 ```
 
 **Local dev install (marketplace from local path):**
@@ -89,21 +98,23 @@ A skill must contain ONLY input-specific content. If something is already a glob
 
 Three hooks in `plugins/lore/hooks/hooks.json`:
 
-- **`check-image-path.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): images must be in `static/img/`, markdown refs must use `/img/` (never `/static/img/`), images must never be placed in `docs/`.
-- **`check-frontmatter.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): every `docs/` markdown must have YAML frontmatter with 4 keys: `sidebar_position`, `title`, `description`, `tags`.
-- **`verify-docs.sh`** (Stop, non-blocking): warns about orphan images and bad refs.
+- **`check-image-path.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): images must be in `static/img/`, markdown/MDX refs must use `/img/` (never `/static/img/`), images must never be placed in `docs/`.
+- **`check-frontmatter.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): every `docs/` markdown/MDX must have a closed YAML frontmatter block with 4 keys: `sidebar_position`, `title`, `description`, `tags` (tolerant of CRLF/BOM).
+- **`verify-docs.sh`** (Stop): BLOCKS (exit 2) on images under `docs/` and `/static/img/` refs; WARNS about orphan images. Honors `stop_hook_active` to avoid loops.
 
-**Scope carve-out:** hooks skip `.claude/`, `templates/`, and `_templates/` paths (intentional examples live there).
+**Path scoping:** hooks resolve each file relative to the project root (`$CLAUDE_PROJECT_DIR`, else payload `cwd`) and act only on `docs/` paths. **Scope carve-out:** `.claude/`, `templates/`, and `_templates/` are skipped (intentional examples live there). JSON parsing falls back jq → python3 → sed and warns loudly if none is available rather than silently passing.
 
-Hook paths in `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`. Scripts themselves self-locate via `$(dirname "$0")` because `${CLAUDE_PLUGIN_ROOT}` is not guaranteed in the model's Bash environment during command execution.
+Hook paths in `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`. The wizard *scripts* self-locate via `$(dirname "$0")`; the command *markdown* files must not (there `$0` is the shell) — they resolve the root via `${CLAUDE_PLUGIN_ROOT}` → glob → ask.
+
+The hooks are covered by `tests/run-tests.sh` and CI (`.github/workflows/ci.yml`) — run `sh tests/run-tests.sh` after changing any hook or script.
 
 ## Template Layer System
 
 Three independent, composable layers copied by `scripts/scaffold.sh`:
 
-- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `docs-template/`
+- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `docs-template/`, project `README.md`
 - **`docusaurus-base`** — optional viewer **overlay**: docusaurus.config.ts, sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus framework itself is fetched fresh via `create-docusaurus@latest` (always latest) by `/lore:add-docusaurus`, not bundled here.
-- **`rtl-assets`** — optional: Persian font (self-hosted Vazirmatn) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
+- **`rtl-assets`** — optional: Persian font (self-hosted Vazirmatn `@font-face` with webpack-relative URLs inside `custom-rtl.css`) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
 
 `scaffold.sh` never overwrites existing files (safe to re-run). Placeholder filling (`{{PRODUCT_NAME}}`, `{{LOCALE}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`, `{{DOC_LANGUAGE}}`) is the command's responsibility, not the script's.
 
@@ -115,4 +126,4 @@ All subagent and skill references use the `lore:` namespace prefix: `lore:doc-va
 
 ## Versioning
 
-Semantic versioning in `plugins/lore/.claude-plugin/plugin.json`. Bump on every release. Consumers upgrade with `/plugin update lore`.
+Semantic versioning in `plugins/lore/.claude-plugin/plugin.json`. Bump on every release, record changes in `CHANGELOG.md`, and tag (`vX.Y.Z`). The README is the single source of truth for consumer install/update/pin commands — don't restate them here (Rule 4).
