@@ -109,7 +109,7 @@ fi
 # 3) Every required key must be present at the top level (column 0).
 missing=""
 for key in sidebar_position title description tags; do
-  printf '%s\n' "$fm" | grep -qE "^$key[[:space:]]*:" || missing="$missing $key"
+  printf '%s\n' "$fm" | grep -qE "^${key}[[:space:]]*:" || missing="$missing $key"
 done
 
 if [ -n "$missing" ]; then

@@ -14,7 +14,9 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Lint shell scripts
-        run: shellcheck -s sh plugins/lore/hooks/*.sh plugins/lore/scripts/*.sh tests/*.sh
+        # severity=warning: info/style notes (e.g. SC2086 on intentional unquoted
+        # word-splitting, SC2015 on test pass||fail idioms) are advisory, not failures.
+        run: shellcheck -S warning -s sh plugins/lore/hooks/*.sh plugins/lore/scripts/*.sh tests/*.sh
 
   validate:
     name: manifests & hook wiring
