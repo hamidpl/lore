@@ -126,4 +126,11 @@ All subagent and skill references use the `lore:` namespace prefix: `lore:doc-va
 
 ## Versioning
 
-Semantic versioning in `plugins/lore/.claude-plugin/plugin.json`. Bump on every release, record changes in `CHANGELOG.md`, and tag (`vX.Y.Z`). The README is the single source of truth for consumer install/update/pin commands — don't restate them here (Rule 4).
+Semantic versioning in `plugins/lore/.claude-plugin/plugin.json`. The release checklist for every version:
+
+1. Bump the version in `plugins/lore/.claude-plugin/plugin.json`.
+2. Record the changes under a new `## X.Y.Z` section in `CHANGELOG.md`.
+3. Tag the release: annotated `vX.Y.Z` (`git tag -a vX.Y.Z -m "vX.Y.Z — <summary>"`), matching the existing tag style.
+4. **Publish a GitHub Release** for the tag, using that version's `CHANGELOG.md` section as the notes (`gh release create vX.Y.Z --title "Lore vX.Y.Z" --notes-file <section> --latest`). Every tag should have a corresponding published Release.
+
+The README is the single source of truth for consumer install/update/pin commands — don't restate them here (Rule 4).
