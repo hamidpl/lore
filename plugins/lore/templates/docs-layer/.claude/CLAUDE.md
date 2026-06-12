@@ -82,6 +82,15 @@ Every fact, rule, or definition must be written in **exactly one canonical locat
 
 **Carve-out for Rule 3:** `lesson-learned.md` is *reactive* (a lookup index) and a skill file is *proactive* (an execution rule). The full lesson text stays canonical in `lesson-learned.md`; a skill carries only a short operational rule + a reference.
 
+### Rule 5: Reader-Facing Output (BLOCKING)
+
+Everything under `docs/` is written for the product's readers. It must **never** mention the authoring tooling: no reference to Claude/Anthropic, to the Lore plugin or its skills/subagents (`lore:*`), to the Playwright/browser automation, or to any internal authoring artifact or path under `.claude/` (this `CLAUDE.md`, scenario scripts, observed-issues, `lesson-learned.md`, settings).
+
+When a published doc needs a fact that lives in a config section (e.g. trusted sources §1, user roles §3), **state the fact itself** — do not cite the section number or the `.claude/` path. Example: write "All users see the same behavior", not "no roles configured (see §3)".
+
+- ⛔ This rule is BLOCKING. A reader-facing reference to the tooling means the document is NOT done.
+- ℹ️ Boundary with Rule 4: Rule 4 governs how the *authoring/config* files (CLAUDE.md, skills) reference one another by path/section. Rule 5 governs the *reader-facing output* under `docs/`, which is self-contained and tool-agnostic. The in-chat Final Report (§8) is a process deliverable, not reader-facing output — it may still name the skill/subagents.
+
 ---
 
 ## Definition of Done (DoD)
@@ -132,7 +141,7 @@ tags: [section-name, feature-name]
 
 ### Section 3 — User Roles — PRODUCT LAYER
 
-Where a feature behaves differently depending on the user's role, document every relevant role and use the product's approved role names — don't invent new ones. If behavior is identical for all roles, state that explicitly.
+Where a feature behaves differently depending on the user's role, document every relevant role and use the product's approved role names — don't invent new ones. If behavior is identical for all roles, state that explicitly **in plain product language** in the document (e.g. "All users see the same behavior") — never by citing this section or the `.claude/CLAUDE.md` path in the reader-facing doc (Rule 5).
 
 If your product has distinct roles, add a roles table here (name + optional localized name + description); those become the approved names to use. If behavior is identical for all roles, leave this as-is.
 
@@ -156,6 +165,7 @@ Terminology must match existing docs; UI labels and behaviors must exactly match
 - All images stored in `static/img/{section}/` (physical location)
 - All markdown image references use `/img/{section}/` (NOT `/static/img/`)
 - **⛔ BLOCKING:** No images in `/docs/`
+- **⛔ BLOCKING:** No tooling/internal references in reader-facing docs (Rule 5) — no `lore:*`, no `.claude/` paths, no `CLAUDE.md` citation
 - Documentation builds in Docusaurus with no errors
 - Sidebar placement reflects product hierarchy; frontmatter YAML valid
 

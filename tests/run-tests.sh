@@ -104,6 +104,29 @@ mkdir -p "$P/static/img/s"
 printf 'PNG\n' >"$P/static/img/s/a.png"
 posttool "$HOOKS/check-image-path.sh" "$P" "$P/static/img/s/a.png"; check_exit 0 "$RC" "image under static/img passes"
 
+echo "== check-no-tooling-refs.sh =="
+printf -- '---\nx\n---\nAll users see the same behavior.\n' >"$P/docs/clean.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/docs/clean.md"; check_exit 0 "$RC" "clean doc passes"
+
+printf 'Scenario script: .claude/scenarios/search.yaml\n' >"$P/docs/leak-path.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/docs/leak-path.md"; check_exit 2 "$RC" ".claude/ path blocks"
+check_stderr "Rule 5" "tooling-ref message cites Rule 5"
+
+printf 'See .claude/CLAUDE.md (§3) for roles.\n' >"$P/docs/leak-claudemd.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/docs/leak-claudemd.md"; check_exit 2 "$RC" "CLAUDE.md citation blocks"
+
+printf 'Generated with the lore:site-to-doc skill.\n' >"$P/docs/leak-ns.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/docs/leak-ns.md"; check_exit 2 "$RC" "lore: namespace blocks"
+
+printf 'Folklore: a study of stories and traditions.\n' >"$P/docs/folklore.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/docs/folklore.md"; check_exit 0 "$RC" "folklore: is not a false positive"
+
+printf 'See .claude/CLAUDE.md and lore:doc-reviewer.\n' >"$P/.claude/leak.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/.claude/leak.md"; check_exit 0 "$RC" "carve-out: .claude/ ignored"
+
+printf 'Uses .claude/scenarios and lore:site-to-doc.\n' >"$P/templates/docs-layer/docs/leak.md"
+posttool "$HOOKS/check-no-tooling-refs.sh" "$P" "$P/templates/docs-layer/docs/leak.md"; check_exit 0 "$RC" "carve-out: templates/ ignored"
+
 echo "== jq/python3 fallback =="
 FB=$(mktemp -d)
 for t in sh sed grep awk head cat tr find ls wc dirname sort; do

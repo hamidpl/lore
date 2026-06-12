@@ -17,7 +17,7 @@ plugins/lore/                      # the plugin itself
   commands/                        # /lore:init, /lore:config, /lore:add-docusaurus
   skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
   agents/                          # doc-validator, figma-extractor, site-explorer (worker subagents)
-  hooks/                           # hooks.json + 3 shell scripts (BLOCKING enforcement)
+  hooks/                           # hooks.json + 4 shell scripts (BLOCKING enforcement)
   scripts/                         # scaffold.sh, detect-project.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
 tests/run-tests.sh                 # POSIX hook/script test harness (run before release)
@@ -100,6 +100,7 @@ Three hooks in `plugins/lore/hooks/hooks.json`:
 
 - **`check-image-path.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): images must be in `static/img/`, markdown/MDX refs must use `/img/` (never `/static/img/`), images must never be placed in `docs/`.
 - **`check-frontmatter.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): every `docs/` markdown/MDX must have a closed YAML frontmatter block with 4 keys: `sidebar_position`, `title`, `description`, `tags` (tolerant of CRLF/BOM).
+- **`check-no-tooling-refs.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): `docs/` markdown/MDX must not reference the authoring tooling — blocks `.claude/` paths, `CLAUDE.md` citations, and the `lore:` skill/subagent namespace (Rule 5 / §6). `lore:` requires a non-alphanumeric boundary so prose like "folklore:" is not a false positive.
 - **`verify-docs.sh`** (Stop): BLOCKS (exit 2) on images under `docs/` and `/static/img/` refs; WARNS about orphan images. Honors `stop_hook_active` to avoid loops.
 
 **Path scoping:** hooks resolve each file relative to the project root (`$CLAUDE_PROJECT_DIR`, else payload `cwd`) and act only on `docs/` paths. **Scope carve-out:** `.claude/`, `templates/`, and `_templates/` are skipped (intentional examples live there). JSON parsing falls back jq → python3 → sed and warns loudly if none is available rather than silently passing.

@@ -8,6 +8,52 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.3.1
+
+Keeps the **authoring tooling out of the published documentation** and lets a
+live run go **uninterrupted**. Both come from real `lore:site-to-doc` usage:
+generated docs were leaking internal references (scenario-script paths,
+observed-issue paths, a `CLAUDE.md §3` citation), and every browser step prompted
+for permission.
+
+### Rule 5 — Reader-Facing Output (new BLOCKING rule)
+
+- **No tooling leakage in `docs/`.** A new global rule in the template `CLAUDE.md`
+  forbids any reference to Claude/Anthropic, the Lore plugin or its `lore:*`
+  skills/subagents, the browser automation, or internal `.claude/` artifacts/paths
+  in reader-facing documentation. Config facts (trusted sources §1, roles §3) are
+  stated directly, never cited by section number or path. The in-chat Final Report
+  (§8) is a process deliverable for the user and is exempt — and is never written
+  into a doc file.
+- **New enforcement hook `check-no-tooling-refs.sh`** (PostToolUse: Write|Edit,
+  BLOCKING exit 2) deterministically blocks `docs/` markdown/MDX containing a
+  `.claude/` path, a `CLAUDE.md` citation, or the `lore:` namespace. It ships with
+  the plugin, so it reaches already-scaffolded repos on `/plugin update`. Same
+  project-root scoping and `.claude/`/`templates/`/`_templates/` carve-out as the
+  other hooks; `lore:` matching requires a non-alphanumeric boundary so "folklore:"
+  is not a false positive.
+- **Validator + reviewer gates.** `lore:doc-validator` greps produced docs for the
+  forbidden tokens and reports matches as a blocking §6/Rule 5 failure;
+  `lore:doc-reviewer` gains a Rule 5 row in its checklist, report, and blocking set.
+- **Cleaned the examples and the starter home page** that were modeling the leak:
+  the embedded Final Report is removed from the three skill examples (it belongs in
+  chat, not the doc), and `docs/intro.md` no longer cites `.claude/CLAUDE.md` or
+  lists `lore:*` skills.
+
+### site-to-doc
+
+- **Run mode (pre-flight).** Before any browsing, the skill asks once whether to
+  approve each browser action or run uninterrupted. For uninterrupted runs it
+  offers to allowlist the Playwright MCP server (`mcp__playwright`) in project
+  settings — one approval that also covers the delegated `lore:site-explorer`
+  subagent — removable later via `/permissions`.
+- **Scenario script is internal-only.** The skill now explicitly forbids surfacing
+  the scenario script, its `.claude/scenarios/...` path, or the
+  `.claude/observed-issues/...` sidecar anywhere in the published docs (Rule 5); the
+  flow reaches readers only as product-facing prose in the Scenarios section. The
+  pre-flight also names the two modes — full-page documentation (no user scenario)
+  and a specific scenario — and the script stays an internal re-run aid in both.
+
 ## 0.3.0
 
 Makes the live-observation run double as a **free QA pass**: the anomalies

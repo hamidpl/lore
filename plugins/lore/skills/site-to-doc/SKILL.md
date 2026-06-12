@@ -32,10 +32,19 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Secti
    claude mcp add playwright -- npx @playwright/mcp@latest
    ```
    (See the [Lore README](https://github.com/hamidpl/lore) — it is the single source of truth for setup commands, Rule 4. For a degraded path when the tools cannot be enabled, see "Fallback" in §3.)
-2. **Resolve the URL and scope.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope.
-3. **Login Checkpoint** — if any part of the scope is behind authentication, complete the login handshake in §3 before exploring.
-4. **Scenario script** — build or collect the step-by-step scenario(s) and finalize them with the user (format in §3).
-5. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
+2. **Run mode — ask once, before any browsing.** Each browser action (`browser_*`) otherwise triggers a per-step permission prompt — tedious across a multi-step scenario, and the run is delegated to the `lore:site-explorer` subagent so the prompts fire mid-run. Ask the user which they want:
+   - **Uninterrupted (recommended for real runs):** offer to add the Playwright MCP server to the project allowlist — `permissions.allow` in `.claude/settings.json` with the entry `mcp__playwright`. This one approval pre-authorizes every `browser_*` call **including the subagent's**, so the scenario runs end-to-end without further prompts. Tell the user it can be removed later via `/permissions`.
+   - **Approve each step:** keep the default — every browser action prompts. (Use when the user wants to watch each action.)
+
+   If the user doesn't choose, default to approve-each-step (the safe default). See the [Lore README](https://github.com/hamidpl/lore) for setup/permission specifics (Rule 4).
+3. **Resolve the URL and scope.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope.
+4. **Login Checkpoint** — if any part of the scope is behind authentication, complete the login handshake in §3 before exploring.
+5. **Plan the run (scenario optional).** This skill has two modes:
+   - **Full-page documentation** — the user has no specific scenario and just wants one or more pages documented completely. Build an internal exploration plan that systematically exercises each target page (happy path + validation + edge cases per §3).
+   - **Specific scenario** — the user has a particular flow to exercise. Build or collect the step-by-step scenario(s) and finalize them with the user (format in §3).
+
+   Either way, any scenario script you write is a **purely internal re-run artifact** (stored under `.claude/`, §3) — it is never named, linked, or surfaced in the published documentation (Rule 5).
+6. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
 ⛔ **Blocking:** Do NOT proceed to write until the feature has been systematically exercised in its live environment via the agreed scenarios.
 
@@ -65,6 +74,8 @@ steps:
 ```
 
 Each step is one action + one `shot` (the screenshot's descriptive name) + an optional `expect`. The on-disk image name follows `{feature}-{NN}-{state}.png` (NN = step number) so captures sort in flow order.
+
+⛔ **The scenario script is an internal authoring artifact — never surface it in the output (Rule 5).** Do not name it, link it, embed its YAML, or write its `.claude/scenarios/...` path anywhere in the published documentation. Readers see the flow only as product-facing prose in the document's **Scenarios** section (the standard Purpose / Preconditions / Main Flow / Postconditions structure) — written from the user's perspective, with no mention of the script, the browser tooling, or any `.claude/` path.
 
 ### Running the scenario (delegate the heavy part)
 
@@ -188,7 +199,7 @@ Documenting a live product is also a free QA pass: the run already surfaces real
 
 **If nothing qualifies:** note "No product anomalies observed" in the final report and skip this step entirely (no empty file).
 
-**Otherwise — write a sidecar file** at `.claude/observed-issues/{YYYY-MM-DD}-{slug}.md` (one file per run; under `.claude/`, so it is out of the hooks' scope and never mixed into the product docs). It is safe to commit (like scenario scripts — it is not a secret). One draft per defect, using this fixed template:
+**Otherwise — write a sidecar file** at `.claude/observed-issues/{YYYY-MM-DD}-{slug}.md` (one file per run; under `.claude/`, so it is out of the hooks' scope and never mixed into the product docs). ⛔ It is an internal artifact — never reference it, or its `.claude/observed-issues/...` path, anywhere in the published documentation (Rule 5). It is safe to commit (like scenario scripts — it is not a secret). One draft per defect, using this fixed template:
 
 ```markdown
 ### [Bug] {short title}
@@ -221,7 +232,7 @@ See [examples/observed-issues.md](examples/observed-issues.md) for a filled side
 
 ## 5. Final Report Additions (live-site-specific fields)
 
-The base final-report structure is defined in `CLAUDE.md` Section 8. In addition, a live-site report MUST include:
+The base final-report structure is defined in `CLAUDE.md` Section 8. The Final Report is delivered **in chat** at task completion — it is a process deliverable for the user and is **never written into a documentation file** (the reader-facing docs are governed by Rule 5; the report below may name the skill/subagents and internal `.claude/` paths because the user, not the product's readers, is its audience). In addition, a live-site report MUST include:
 
 - **URLs tested** + test environment (browser, viewport, OS, network, date).
 - **Scenario scripts** run (paths under `.claude/scenarios/`).
@@ -252,6 +263,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Discrepancies between design and reality flagged
 - [ ] Observed product anomalies consolidated into `.claude/observed-issues/…` (or "none observed" noted); no secrets/absolute paths in drafts
 - [ ] Final report includes URLs, scenarios, auth method, roles, screenshots, budget, discrepancies
+- [ ] No Claude/plugin/internal references in the published docs — no `.claude/` paths, no scenario-script mention, no `lore:*` names (Rule 5)
 - [ ] All BLOCKING rules from the global DoD satisfied
 
 ---

@@ -1,5 +1,5 @@
 {
-  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules. Paths are resolved relative to the project root (CLAUDE_PROJECT_DIR / payload cwd); JSON is parsed via jq → python3 → sed, warning loudly if none are available. check-image-path.sh blocks (exit 2) any docs/ markdown or MDX referencing /static/img/, or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown/MDX missing valid frontmatter keys (§2/§6). verify-docs.sh (Stop) blocks (exit 2) images under docs/ and /static/img/ refs, and warns about orphan images; it honors stop_hook_active to avoid loops. Scope carve-out: .claude/**, templates/**, and _templates/** intentional examples are ignored.",
+  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules. Paths are resolved relative to the project root (CLAUDE_PROJECT_DIR / payload cwd); JSON is parsed via jq → python3 → sed, warning loudly if none are available. check-image-path.sh blocks (exit 2) any docs/ markdown or MDX referencing /static/img/, or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown/MDX missing valid frontmatter keys (§2/§6). check-no-tooling-refs.sh blocks (exit 2) any docs/ markdown/MDX referencing the authoring tooling — .claude/ paths, CLAUDE.md citations, or lore:* skill/subagent names (Rule 5/§6). verify-docs.sh (Stop) blocks (exit 2) images under docs/ and /static/img/ refs, and warns about orphan images; it honors stop_hook_active to avoid loops. Scope carve-out: .claude/**, templates/**, and _templates/** intentional examples are ignored.",
   "hooks": {
     "PostToolUse": [
       {
@@ -12,6 +12,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-frontmatter.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-no-tooling-refs.sh"
           }
         ]
       }

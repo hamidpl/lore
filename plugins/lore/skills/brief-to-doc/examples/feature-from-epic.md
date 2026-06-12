@@ -101,27 +101,10 @@ Derived from the epic's acceptance criteria:
 
 - Source epic: *EPIC-214 Bulk Task Import* (v1.2). User stories US-214-1 … US-214-4.
 
----
+<!--
+The Final Report (CLAUDE.md §8) is delivered IN CHAT at task completion — it is a
+process deliverable for the user and is NEVER written into the documentation file.
+It names the skill, subagents, and internal paths, none of which may appear in
+reader-facing docs (Rule 5). It is intentionally omitted from this example file.
+-->
 
-# Final Report
-
-**1. Sources Used**
-
-- Primary input: epic *EPIC-214 Bulk Task Import*, v1.2, authored by the product team.
-- User stories addressed: US-214-1 through US-214-4. Acceptance criteria used: AC-1 … AC-4.
-- No images (no visual design provided).
-- Trusted sources: none configured for this example.
-
-**2. Tools and Skills Used**
-
-- Skill: `lore:brief-to-doc`. Subagent: `lore:doc-validator` (returned APPROVED WITH WARNINGS — see pending questions).
-- Files added: `docs/tasks/import.md`.
-
-**3. Summary**
-
-- Added the Bulk Task Import document with two scenarios and four acceptance-criteria-derived business rules.
-- No features were invented; every gap is marked `[CLARIFICATION NEEDED]`.
-
-**Clarifications log**
-
-- Pending: 500-row limit behavior (block vs. truncate); preview error-row cap; source-file retention; exact over-limit message. All four are reflected as `[CLARIFICATION NEEDED]` markers in the document and were sent to the product owner.

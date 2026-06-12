@@ -106,26 +106,10 @@ This document covers the Workspace **dashboard** only: its layout, the per-role 
 
 - Figma: *Project Workspace v3* — pages **Dashboard**, **Empty States** (page **[ignore] Exploration** was skipped).
 
----
+<!--
+The Final Report (CLAUDE.md §8) is delivered IN CHAT at task completion — it is a
+process deliverable for the user and is NEVER written into the documentation file.
+It names the skill, subagents, and internal paths, none of which may appear in
+reader-facing docs (Rule 5). It is intentionally omitted from this example file.
+-->
 
-# Final Report
-
-**1. Sources Used**
-
-- Primary input: Figma file *Project Workspace v3*.
-- Pages reviewed: Dashboard, Empty States. Pages skipped: *[ignore] Exploration*.
-- Annotations reviewed: 11. Comments reviewed: 4.
-- Images extracted: 3 → `static/img/projects/` (`workspace-initial.png`, `workspace-new-task.png`, `workspace-empty-state.png`), exported as individual frames at 2x.
-- Trusted sources: none configured for this example.
-
-**2. Tools and Skills Used**
-
-- Skill: `lore:figma-to-doc`. Subagent: `lore:doc-validator` (returned APPROVED).
-- Figma REST API: comments, node tree (TEXT nodes), image export.
-
-**3. Summary**
-
-- Added `docs/projects/overview.md` and 3 images under `static/img/projects/`.
-- Excluded the analytics panel (Phase 2) and the *[ignore]* page.
-- Open question raised with the user: exact activity-feed cap (documented as 20 per the annotation; awaiting confirmation).
-- No blocking issues at delivery.

@@ -120,28 +120,10 @@ Observed in the browser console while posting:
 
 - Compared against Figma *Comments v2* for the discrepancy section.
 
----
+<!--
+The Final Report (CLAUDE.md §8) is delivered IN CHAT at task completion — it is a
+process deliverable for the user and is NEVER written into the documentation file.
+It names the skill, subagents, and internal .claude/ paths, none of which may appear
+in reader-facing docs (Rule 5). It is intentionally omitted from this example file.
+-->
 
-# Final Report
-
-**1. Sources Used**
-
-- Primary input: live product observation (browser-driven via Playwright MCP).
-- URLs tested: the task detail page of a sample project.
-- Scenario scripts: `.claude/scenarios/comments.yaml`.
-- Images captured: 3 → `static/img/tasks/`.
-- Trusted sources: none configured for this example.
-
-**2. Tools and Skills Used**
-
-- Skill: `lore:site-to-doc`. Subagents: `lore:site-explorer` (ran the scenario, captured screenshots, collected console/network detail), `lore:doc-validator` (returned APPROVED WITH WARNINGS — one open discrepancy).
-
-**3. Summary**
-
-- URLs tested: task detail page. Test environment: Chromium, viewport 1280×720, macOS, normal + throttled network, observed on the documentation date.
-- Authentication: reused a persistent logged-in session (manual Login Checkpoint done once); no secret handled.
-- Roles tested: Owner, Editor. Could not fully test Viewer delete (no UI present) — noted.
-- Screenshots captured: 3 (`static/img/tasks/`), named `comments-NN-state.png`.
-- Budget used: 1 scenario / 3 pages (within the ~3-scenario / ~10-page default).
-- Discrepancy found: live comment length 2,000/silent vs. design 5,000/toast — flagged and sent to product.
-- Edge cases tested: empty state, max length, network timeout.

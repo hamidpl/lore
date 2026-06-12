@@ -24,7 +24,7 @@ You are auditing product documentation to ensure it meets the global Definition 
 
 ## 2. Pre-Flight Checklist
 
-- Load the complete Definition of Done from `CLAUDE.md` (Sections 0–8 + Rule 3 + Rule 4). Do not copy it here — read it from the source.
+- Load the complete Definition of Done from `CLAUDE.md` (Sections 0–8 + Rule 3 + Rule 4 + Rule 5). Do not copy it here — read it from the source.
 - Identify the document(s) under review and their expected place in the structure.
 
 ---
@@ -48,6 +48,7 @@ Validate each item against the **canonical rule in `CLAUDE.md`** (do not re-deri
 | ⛔ **§8 Final Report** | Final report present with Sources, Tools/Skills, and Summary | `CLAUDE.md` §8 |
 | ⛔ **Rule 3 Lessons** | Issues encountered are documented in `lesson-learned.md` (4 fields each); skill-related lessons also propagated to the skill file; no orphan files from error recovery | `CLAUDE.md` Rule 3 |
 | ⛔ **Rule 4 Single Truth** | No global rule restated inside skills/docs where a reference should be used; facts live in one canonical place | `CLAUDE.md` Rule 4 |
+| ⛔ **Rule 5 Reader-Facing** | No tooling references in `docs/`: no `.claude/` paths, no `CLAUDE.md` citation, no `lore:*` skill/subagent names; config facts (§1/§3) stated directly, not cited | `CLAUDE.md` Rule 5 |
 
 For each item record: ✅ PASS / ⚠️ WARNING / ❌ FAIL, with the specific location of any issue.
 
@@ -57,6 +58,7 @@ For §6, actually run the checks rather than eyeballing:
 - Test each internal link resolves.
 - Grep image references; confirm each uses `/img/` and the file exists under `static/img/`.
 - Confirm no image files live under `docs/`.
+- Grep `docs/` for tooling references (Rule 5): `.claude/`, `CLAUDE.md`, and the `lore:` namespace. Any match is a blocking failure.
 - **If Docusaurus is installed** (a `package.json` with docusaurus is present): run `npm run build` and confirm zero errors. Otherwise mark the build check **N/A** (docs-only project) and rely on the manual link/image checks above — do not treat the missing build as a failure.
 
 ### Step 3 — Generate Review Report
@@ -82,9 +84,10 @@ For §6, actually run the checks rather than eyeballing:
 | §8 Final Report | ✅/⚠️/❌ | ... |
 | Rule 3 Lessons | ✅/⚠️/❌ | ... |
 | Rule 4 Single Truth | ✅/⚠️/❌ | ... |
+| Rule 5 Reader-Facing | ✅/⚠️/❌ | ... |
 
 ## Blocking Failures: [count]
-(§0, §1, §4, §6, §8, Rule 3, Rule 4)
+(§0, §1, §4, §6, §8, Rule 3, Rule 4, Rule 5)
 
 ## Recommendation
 [✅ APPROVED FOR DELIVERY / ⚠️ APPROVED WITH WARNINGS / ❌ BLOCKED — DO NOT DELIVER]
@@ -124,7 +127,7 @@ The deliverable of this skill is the **Review Report** above (not product docume
 
 - [ ] All DoD areas checked against their canonical `CLAUDE.md` Section (Step 1)
 - [ ] §6 technical checks actually run, including `npm run build` if Docusaurus is installed (Step 2)
-- [ ] All blocking areas explicitly validated (§0, §1, §4, §6, §8, Rule 3, Rule 4)
+- [ ] All blocking areas explicitly validated (§0, §1, §4, §6, §8, Rule 3, Rule 4, Rule 5)
 - [ ] Review report generated with per-area status and locations
 - [ ] Clear recommendation (approve / warnings / blocked) with required actions
 
