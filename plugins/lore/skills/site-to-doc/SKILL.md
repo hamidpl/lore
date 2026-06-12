@@ -10,7 +10,7 @@ user-invocable: true
 
 > **GOLDEN RULE (Rule 4 — Single Place of Truth):** This skill contains ONLY live-site-specific content. It does NOT restate global rules (DoD, image paths, user roles, trusted sources, final-report structure) — it references the relevant Section in `CLAUDE.md`.
 
-You are documenting features by observing the live product. Approved sources, user roles, image-path rules, and document structure are defined globally in `CLAUDE.md` — this skill only adds what is unique to observing a running product.
+You document features by **driving a real browser** through the live product: you run a user-defined scenario step by step, capture a screenshot at each step, and read exact UI text from the page — then write documentation from what you observed. Approved sources, user roles, image-path rules, and document structure are defined globally in `CLAUDE.md` — this skill only adds what is unique to observing a running product.
 
 ---
 
@@ -18,34 +18,101 @@ You are documenting features by observing the live product. Approved sources, us
 
 - The user asks to document actual behavior, or mentions "live site", "production", "actual behavior", or the product URL.
 - The primary source is the running product (not a Figma design or a brief).
+- **Scope:** browser-based web products. Native mobile apps are out of scope for this skill (a mobile-web/responsive **viewport** of a web product is in scope — see §3 capture rules).
 
 ---
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources). Before writing:
+This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources). Complete IN ORDER before writing:
 
-1. **Access the live site** (URL from `CLAUDE.md` §1, or one provided by the user).
-2. **Navigate to the specific feature** being documented.
-3. **Test all user flows** systematically (happy path, errors, edge cases — see §3).
-4. **Capture screenshots** of each significant state.
-5. **Note exact UI text** — labels, buttons, error messages (capture verbatim, never paraphrase).
-6. **Test as different user roles** where possible (roles are defined in `CLAUDE.md` §3).
-7. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
+1. **Browser tooling available?** Confirm the **Playwright MCP** browser tools are reachable (look for a `browser_navigate` / `browser_snapshot` tool). If they are not, **stop** and give the user the one-line install command, then wait:
+   ```
+   claude mcp add playwright -- npx @playwright/mcp@latest
+   ```
+   (See the [Lore README](https://github.com/hamidpl/lore) — it is the single source of truth for setup commands, Rule 4. For a degraded path when the tools cannot be enabled, see "Fallback" in §3.)
+2. **Resolve the URL and scope.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope.
+3. **Login Checkpoint** — if any part of the scope is behind authentication, complete the login handshake in §3 before exploring.
+4. **Scenario script** — build or collect the step-by-step scenario(s) and finalize them with the user (format in §3).
+5. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
-⛔ **Blocking:** Do NOT proceed until the feature has been systematically tested in its live environment.
+⛔ **Blocking:** Do NOT proceed to write until the feature has been systematically exercised in its live environment via the agreed scenarios.
 
-**Site-specific source principle:** Document what **IS**, not what **SHOULD BE** — capture actual current behavior and exact UI text; never invent or assume behavior, test it.
+**Site-specific source principle:** Document what **IS**, not what **SHOULD BE** — capture actual current behavior and exact UI text; never invent or assume behavior, observe it.
 
 ---
 
 ## 3. Core Workflow (live-site-specific)
 
+### Scenario Script (canonical format — Rule 4)
+
+A scenario script is the **re-runnable artifact** that defines what to exercise and what to capture. Store it at `.claude/scenarios/{feature}.yaml` in the consuming repo (inside `.claude/`, so it is out of the hooks' scope). Because it is saved, **updating the docs after the product changes is cheap**: re-run the same script and only the changed screenshots/behaviors are refreshed.
+
+```yaml
+scenario: Upload a video
+section: upload          # → images go to static/img/upload/
+viewport: 1280x720       # optional; defaults to 1280x720
+steps:
+  - action: navigate to /upload
+    shot: upload-01-initial          # → static/img/upload/upload-01-initial.png
+    expect: "Drag your file here"    # optional: text/condition to wait for (no blind sleeps)
+  - action: choose a 4GB file
+    shot: upload-02-size-error
+    expect: "exceeds the maximum"
+  - action: click Publish with empty title
+    shot: upload-03-validation
+```
+
+Each step is one action + one `shot` (the screenshot's descriptive name) + an optional `expect`. The on-disk image name follows `{feature}-{NN}-{state}.png` (NN = step number) so captures sort in flow order.
+
+### Running the scenario (delegate the heavy part)
+
+Delegate the actual browser run to the **`lore:site-explorer`** subagent (Task tool) — it drives Playwright MCP, walks each step, captures screenshots to disk, and returns a compact summary (steps→images, verbatim UI strings, observed business rules, open questions). This keeps the heavy, context-bloating browsing out of the main context. Writing prose and asking the user clarifying questions stay here in the main context — the subagent is autonomous and cannot ask questions.
+
+Pass the subagent: the base URL, the scenario script(s), the viewport, the `static/img/{section}/` target, and the page budget. The subagent shares this session's MCP connection — so a session you logged into during the Login Checkpoint is already authenticated for it.
+
+> **Fallback (no subagent MCP access):** if the `lore:site-explorer` subagent cannot reach the browser tools in your environment, run the scenario **in the main context** using the same `browser_*` tools directly — but warn the user this consumes more tokens, and keep the page budget tight.
+
+### Capture rules
+
+- **Deterministic viewport:** resize to **1280×720** before capturing (`browser_resize`) so images are stable across runs and diffs between doc versions are meaningful. A **mobile preset** (`390×844`) is available for documenting the responsive/mobile-web view — use it only when the user asks.
+- **Naming:** `{feature}-{NN}-{state}.png` (e.g. `upload-01-initial.png`, `upload-02-size-error.png`, `my-videos-01-empty-state.png`).
+- **Shot type:** **viewport** shot by default; `fullPage` only for genuinely long pages where the whole scroll matters.
+- **Stability over sleeps:** wait on a text/element/condition (`browser_wait_for`), never a fixed delay.
+- **Read text from the snapshot, not the picture:** capture exact UI labels and messages from the accessibility snapshot (`browser_snapshot`) — it is exact and cheaper than reading pixels.
+- **Sensitive data:** before capturing, make sure no real sensitive data is on screen — use a **test account** with sample data. Screenshots are committed to the repo.
+- Storage/reference paths (`static/img/` on disk, `/img/` in markdown, never `/static/img/`, never under `docs/`) are global — see `CLAUDE.md` Section 6 + Rule 1.
+
+### Login Checkpoint (authentication-gated areas)
+
+The pattern is **"the human logs in once, automation continues."** A password is never typed into the chat or read by the model.
+
+1. Have the browser open the product's login page (headed — it is headed by default).
+2. Ask the user to **log in manually in that browser window** (2FA / SSO are fine — the user completes them in the browser).
+3. The user tells you they are done; confirm via `browser_snapshot` that an authenticated state is visible (e.g. the account menu) before continuing.
+4. Explore. Playwright MCP uses a **persistent browser profile by default**, so the login state and cookies **persist between runs** — later runs skip the login step automatically.
+
+**Optional — export the session for clean/isolated runs:** you may export the authenticated state with `browser_storage_state` to `.claude/.auth/{host}.json` and re-inject it (`browser_set_storage_state`, or start the server with `--isolated --storage-state=...`). If you do:
+
+- ⛔ **First ensure `.claude/.auth/` is git-ignored.** Check `.gitignore`; if the entry is missing, add `.claude/.auth/` before writing the file.
+- ⛔ A saved session file contains cookies/headers that can be used to **impersonate** the account — treat it as a secret. Never commit it, never paste its contents into chat, the docs, or the final report.
+- When the server-side session expires, repeat the Login Checkpoint.
+
+> Credentials are never the model's to hold: do not ask the user to paste a password, do not echo secrets, and do not write them anywhere. (Playwright MCP also supports a `--secrets` dotenv file for values the browser may need — credentials live there or in the user's hands, never in chat.)
+
+### Token economy (keep this skill cheap)
+
+- Navigate and read text from **accessibility snapshots**, not screenshots — the snapshot is structured text, far lighter than sending images to the model.
+- Screenshots are **saved to disk only**; do not pull captured images back into context (spot-check 1–2 at most for quality).
+- Push the heavy browsing into the **`lore:site-explorer`** subagent so its verbose tool traffic never enters the main context — only the compact summary returns.
+- **Default budget: ~3 scenarios / ~10 pages per run.** Going beyond needs explicit user confirmation.
+- **Update mode is cheap by design:** when the product changes, re-run only the affected saved scenario script(s); unchanged captures and prose stay as-is.
+
 ### Systematic Testing Approach
 
-Test each feature comprehensively across four dimensions:
+Exercise each feature across four dimensions (encode these as steps in the scenario script):
 
-**1. Happy Path (success flow)** — walk the intended successful journey end to end, screenshotting each significant state (initial → action → progress → success → result).
+**1. Happy Path** — walk the intended successful journey end to end, capturing each significant state (initial → action → progress → success → result).
 
 **2. Validation Errors** — empty required fields, invalid data (special chars, too long), wrong file type, oversized file, submit-with-errors. Record the **exact** error text for each.
 
@@ -55,9 +122,7 @@ Test each feature comprehensively across four dimensions:
 
 ### Screenshot Strategy
 
-Capture: initial state, each significant state change, all error states, success confirmations, empty states, loading states, and role variations. Store screenshots under `static/img/{section}/` with descriptive names (e.g. `upload-form-initial.png`, `upload-size-error.png`, `my-videos-empty-state.png`).
-
-> The image storage/reference path rule (`static/img/` on disk, `/img/` in markdown, never `/docs/`) is global — see `CLAUDE.md` Section 6 + Rule 1.
+Capture: initial state, each significant state change, all error states, success confirmations, empty states, loading states, and role variations — each as a numbered step in the script, stored under `static/img/{section}/`.
 
 ### Handling Discrepancies Between Design and Reality
 
@@ -99,7 +164,7 @@ When live behavior differs from a Figma design or brief: document both versions 
   ```markdown
   ### حالت خالی (Empty State)
 
-  ![حالت خالی ویدئوهای من](/img/my-videos/empty-state-newcomer.png)
+  ![حالت خالی ویدئوهای من](/img/my-videos/my-videos-01-empty-state.png)
 
   سیستم نمایش می‌دهد:
   - پیام: "هنوز ویدیویی آپلود نکرده‌اید"
@@ -110,16 +175,16 @@ When live behavior differs from a Figma design or brief: document both versions 
 - **Network failures:** error message shown, retry possibility, resume vs. restart.
 - **Rapid actions:** does the button disable after first click? are duplicate requests sent?
 
-### Browser Console Monitoring (for technical detail)
+### Technical Details (optional)
 
-Where relevant, capture: API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under a "Technical Details" subsection (heading written in the project's documentation language, §7 — e.g. Persian "اطلاعات فنی").
+Where the user wants technical depth, have the run also collect (via the MCP `browser_console_messages` / `browser_network_requests` tools): API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under a "Technical Details" subsection (heading in the project's documentation language, §7 — e.g. Persian "اطلاعات فنی").
 
 ---
 
 ## 4. DoD Additions (live-site-specific deltas only)
 
 - Screenshots are the live-site equivalent of Figma image extraction: place each inline at the scenario step it illustrates (the scenario/image rule is global — `CLAUDE.md` §4).
-- Capture all system messages verbatim to satisfy the accuracy requirement (`CLAUDE.md` §5).
+- Capture all system messages verbatim from the snapshot to satisfy the accuracy requirement (`CLAUDE.md` §5).
 
 ---
 
@@ -127,9 +192,12 @@ Where relevant, capture: API endpoints called (request/response shape), JavaScri
 
 The base final-report structure is defined in `CLAUDE.md` Section 8. In addition, a live-site report MUST include:
 
-- **URLs tested** + test environment (browser, OS, network, date).
+- **URLs tested** + test environment (browser, viewport, OS, network, date).
+- **Scenario scripts** run (paths under `.claude/scenarios/`).
+- **Authentication method** used (manual Login Checkpoint / reused persistent session / injected storage-state) — **never any secret or file contents**.
 - **User roles tested** vs. could-not-test (with reason).
 - **Screenshots captured** (count + storage directories).
+- **Budget used** (scenarios / pages) against the default.
 - **Discrepancies found** between design/brief and live site.
 - **Edge cases tested** and any unexpected/undocumented behaviors discovered.
 
@@ -140,13 +208,17 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 **Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure (§0/§1/§4/§6/§8, Rule 3, Rule 4), fix and re-run until it returns green. Only then write the final report (§8). This does not duplicate the DoD — it invokes the canonical validator.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
-- [ ] All URLs tested and listed
-- [ ] Happy path, validation errors, and edge cases tested
-- [ ] Exact UI text / error messages captured verbatim
-- [ ] Screenshots captured for all significant states, stored under `static/img/{section}/`
+- [ ] Playwright MCP tooling confirmed available (or install command given and resolved)
+- [ ] Crawl scope agreed with the user before exploring
+- [ ] Scenario script(s) saved under `.claude/scenarios/`
+- [ ] Happy path, validation errors, and edge cases exercised
+- [ ] Exact UI text / error messages captured verbatim (from snapshots)
+- [ ] Screenshots captured for all significant states, named `{feature}-{NN}-{state}.png` under `static/img/{section}/`
+- [ ] No screenshot images pulled into context beyond a 1–2 image spot-check
 - [ ] Role differences tested where possible (roles per `CLAUDE.md` §3)
+- [ ] If a session was exported, `.claude/.auth/` is git-ignored and no secret reached chat/docs/report
 - [ ] Discrepancies between design and reality flagged
-- [ ] Final report includes URLs, roles, screenshots, discrepancies
+- [ ] Final report includes URLs, scenarios, auth method, roles, screenshots, budget, discrepancies
 - [ ] All BLOCKING rules from the global DoD satisfied
 
 ---

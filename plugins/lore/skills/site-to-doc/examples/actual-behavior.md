@@ -60,13 +60,13 @@ Observed in the live product:
 
 1. The member opens a task and scrolls to the comment box.
 
-   ![Task detail with empty comment box](/img/tasks/comment-box-initial.png)
+   ![Task detail with empty comment box](/img/tasks/comments-01-initial.png)
 
 2. The member types a comment. The **Post** button enables.
 3. The member clicks **Post**.
 4. The system appends the comment to the thread with the author and a relative timestamp ("just now").
 
-   ![Comment posted and shown in the thread](/img/tasks/comment-posted.png)
+   ![Comment posted and shown in the thread](/img/tasks/comments-02-posted.png)
 
 **Postconditions:** the comment is visible to everyone with access to the task.
 
@@ -82,7 +82,7 @@ Observed in the live product:
 
 1. The member opens a task with no comments.
 
-   ![Task comment thread empty state](/img/tasks/comments-empty-state.png)
+   ![Task comment thread empty state](/img/tasks/comments-03-empty-state.png)
 
 2. The system shows the text **"No comments yet. Start the conversation."** Owner/Editor also see the comment box; Viewer sees only the message.
 
@@ -126,20 +126,22 @@ Observed in the browser console while posting:
 
 **1. Sources Used**
 
-- Primary input: live product observation.
+- Primary input: live product observation (browser-driven via Playwright MCP).
 - URLs tested: the task detail page of a sample project.
-- Images captured: 4 → `static/img/tasks/`.
+- Scenario scripts: `.claude/scenarios/comments.yaml`.
+- Images captured: 3 → `static/img/tasks/`.
 - Trusted sources: none configured for this example.
 
 **2. Tools and Skills Used**
 
-- Skill: `lore:site-to-doc`. Subagent: `lore:doc-validator` (returned APPROVED WITH WARNINGS — one open discrepancy).
-- Browser session + console monitoring.
+- Skill: `lore:site-to-doc`. Subagents: `lore:site-explorer` (ran the scenario, captured screenshots, collected console/network detail), `lore:doc-validator` (returned APPROVED WITH WARNINGS — one open discrepancy).
 
 **3. Summary**
 
-- URLs tested: task detail page. Test environment: Chrome, macOS, normal + throttled network, observed on the documentation date.
+- URLs tested: task detail page. Test environment: Chromium, viewport 1280×720, macOS, normal + throttled network, observed on the documentation date.
+- Authentication: reused a persistent logged-in session (manual Login Checkpoint done once); no secret handled.
 - Roles tested: Owner, Editor. Could not fully test Viewer delete (no UI present) — noted.
-- Screenshots captured: 4 (`static/img/tasks/`).
+- Screenshots captured: 3 (`static/img/tasks/`), named `comments-NN-state.png`.
+- Budget used: 1 scenario / 3 pages (within the ~3-scenario / ~10-page default).
 - Discrepancy found: live comment length 2,000/silent vs. design 5,000/toast — flagged and sent to product.
 - Edge cases tested: empty state, max length, network timeout.

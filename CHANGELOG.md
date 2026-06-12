@@ -8,6 +8,52 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.2.0
+
+Turns `lore:site-to-doc` from a manual checklist into an **executable scenario
+runner**. The skill now drives a real browser to walk a user-defined scenario
+step by step, capture a screenshot at each step, and read exact UI text from the
+page — instead of assuming the user navigates and screenshots by hand.
+
+### site-to-doc (rewrite)
+
+- **Browser automation via Playwright MCP.** The skill runs scenarios through the
+  `@playwright/mcp` server. Pre-Flight now blocks until the browser tools are
+  reachable and gives the one-line `claude mcp add playwright …` install command
+  if they are not. A degraded main-context fallback is documented for
+  environments where a subagent can't reach the tools.
+- **New `lore:site-explorer` subagent.** Mirrors `lore:figma-extractor`: it does
+  the heavy, context-bloating browsing (drives the browser, walks each step,
+  saves screenshots to disk, reads verbatim UI text from the accessibility
+  snapshot) and returns a compact summary, keeping the main context clean.
+- **Re-runnable scenario scripts.** Scenarios are saved as YAML under
+  `.claude/scenarios/{feature}.yaml`, so updating docs after the product changes
+  is a cheap targeted re-run rather than a fresh manual pass.
+- **Login Checkpoint (auth).** "Human logs in once, automation continues":
+  the user logs in manually in the headed browser (2FA/SSO fine), the session
+  persists in Playwright MCP's profile, and later runs skip login. Optional
+  storage-state export to `.claude/.auth/` (git-ignored), treated as a secret —
+  a password is never typed into the chat or read by the model.
+- **Token economy.** Navigation and text capture use the accessibility snapshot,
+  not screenshots; screenshots are saved to disk only (never returned to
+  context); heavy browsing is delegated to the subagent; a default budget of
+  ~3 scenarios / ~10 pages per run keeps cost predictable.
+- **Deterministic capture.** Fixed `1280×720` viewport (optional `390×844` mobile
+  preset for responsive web), `{feature}-{NN}-{state}.png` naming, viewport shots
+  by default, and stability waits instead of blind sleeps.
+
+### Templates / docs
+
+- Template `CLAUDE.md` lists `lore:site-explorer`; the §0 Live-Product row now
+  reads "browser automation, scenario scripts, screenshots".
+- `docusaurus-base/.gitignore` ignores `.claude/.auth/`.
+- README documents the Playwright MCP prerequisite and the new subagent.
+
+### Out of scope (noted)
+
+- Native mobile apps remain unsupported here (a future `app-to-doc` skill);
+  documenting a web product's mobile/responsive **viewport** is supported.
+
 ## 0.1.0
 
 First public (**beta**) release. Versioning was restarted at `0.x` to reflect

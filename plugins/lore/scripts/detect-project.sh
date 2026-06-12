@@ -35,7 +35,8 @@ if [ -d docs ] && [ -f .claude/CLAUDE.md ]; then
 fi
 
 # Count visible entries (exclude . .. and common noise dotfiles).
-count=$(ls -A 2>/dev/null | grep -vE '^(\.git|\.DS_Store|\.gitkeep)$' | wc -l | tr -d ' ')
+count=$(find . -maxdepth 1 -mindepth 1 \
+  ! -name '.git' ! -name '.DS_Store' ! -name '.gitkeep' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$count" = "0" ]; then
   echo "empty"
 else
