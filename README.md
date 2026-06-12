@@ -15,10 +15,11 @@ This single repo is **both** the plugin (`plugins/lore/`) and its marketplace (`
 | Command | `/lore:add-docusaurus` | Add the Docusaurus viewer to a docs-only project later |
 | Skill | `lore:figma-to-doc` | Generate docs from Figma design files |
 | Skill | `lore:brief-to-doc` | Generate docs from briefs / PRDs / user stories |
-| Skill | `lore:site-to-doc` | Document live product behavior |
+| Skill | `lore:site-to-doc` | Document live product behavior (scenario runner + screenshots) |
 | Skill | `lore:doc-reviewer` | Validate docs against the Definition of Done |
 | Subagent | `lore:doc-validator` | Read-only DoD validator (run by producer skills before delivery) |
 | Subagent | `lore:figma-extractor` | Heavy Figma extraction worker (keeps main context clean) |
+| Subagent | `lore:site-explorer` | Heavy live-site exploration worker — drives the browser, captures screenshots (keeps main context clean) |
 | Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter |
 
 ## Install
@@ -64,6 +65,12 @@ cd <your-empty-or-existing-project>
 - **Safe in existing repos.** `/lore:init` only adds the documentation layer and never overwrites your files.
 
 Then build content with `lore:figma-to-doc` / `lore:brief-to-doc` / `lore:site-to-doc`, validate with `lore:doc-reviewer`, and deploy the static `build/` output to any host.
+
+> **`lore:site-to-doc` needs a browser.** It drives a real browser to run scenarios and capture screenshots via the [Playwright MCP](https://github.com/microsoft/playwright-mcp) server. Add it once (the skill prompts you if it's missing):
+>
+> ```text
+> claude mcp add playwright -- npx @playwright/mcp@latest
+> ```
 
 ## Division of responsibility (the golden rule)
 

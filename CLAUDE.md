@@ -16,7 +16,7 @@ plugins/lore/                      # the plugin itself
   .claude-plugin/plugin.json       # plugin manifest (name, version, description)
   commands/                        # /lore:init, /lore:config, /lore:add-docusaurus
   skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
-  agents/                          # doc-validator, figma-extractor (read-only subagents)
+  agents/                          # doc-validator, figma-extractor, site-explorer (worker subagents)
   hooks/                           # hooks.json + 3 shell scripts (BLOCKING enforcement)
   scripts/                         # scaffold.sh, detect-project.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
@@ -122,7 +122,7 @@ Three independent, composable layers copied by `scripts/scaffold.sh`:
 
 ## Subagent Naming
 
-All subagent and skill references use the `lore:` namespace prefix: `lore:doc-validator`, `lore:figma-extractor`, `lore:figma-to-doc`, etc.
+All subagent and skill references use the `lore:` namespace prefix: `lore:doc-validator`, `lore:figma-extractor`, `lore:site-explorer`, `lore:figma-to-doc`, etc.
 
 ## Versioning
 
