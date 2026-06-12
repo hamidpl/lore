@@ -1,6 +1,7 @@
 ---
 name: brief-to-doc
 description: Generate product documentation from product briefs, epics, PRDs, or user stories. Use this when the user provides written requirements, feature descriptions, or textual specifications without visual designs.
+argument-hint: [brief-file-or-text]
 user-invocable: true
 ---
 

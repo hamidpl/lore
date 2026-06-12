@@ -1,6 +1,7 @@
 ---
 name: site-to-doc
 description: Generate or update documentation based on live product observation. Use this when documenting existing features, verifying actual behavior, or when the user mentions "live site", "production", "actual behavior", or asks to document how something currently works.
+argument-hint: [product-url]
 user-invocable: true
 ---
 
@@ -179,6 +180,36 @@ When live behavior differs from a Figma design or brief: document both versions 
 
 Where the user wants technical depth, have the run also collect (via the MCP `browser_console_messages` / `browser_network_requests` tools): API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under a "Technical Details" subsection (heading in the project's documentation language, §7 — e.g. Persian "اطلاعات فنی").
 
+### Surfacing Observed Issues (optional bug drafts)
+
+Documenting a live product is also a free QA pass: the run already surfaces real defects. After the scenario run, **consolidate** them into ready-to-file bug drafts — don't leave them buried as inline `⚠️` flags.
+
+**What qualifies (product defects only):** from the `lore:site-explorer` summary, take the **Unexpected / undocumented behavior**, the **discrepancies you flagged** (per "Handling Discrepancies Between Design and Reality"), and any **failed step that is a genuine product defect**. ⛔ **Exclude scenario-authoring failures** — a wrong selector, a navigation timeout on your side, or a budget stop is the explorer's own problem, not a product bug. When unsure whether a failed step is a defect or a script issue, leave it as an open question for the user, not a draft.
+
+**If nothing qualifies:** note "No product anomalies observed" in the final report and skip this step entirely (no empty file).
+
+**Otherwise — write a sidecar file** at `.claude/observed-issues/{YYYY-MM-DD}-{slug}.md` (one file per run; under `.claude/`, so it is out of the hooks' scope and never mixed into the product docs). It is safe to commit (like scenario scripts — it is not a secret). One draft per defect, using this fixed template:
+
+```markdown
+### [Bug] {short title}
+**Type:** bug | discrepancy
+**Severity (guess):** low | medium | high
+**Where:** {feature / route} — scenario step {NN}
+**Expected:** {intended behavior, or what the design/brief says}
+**Actual:** {observed behavior, with verbatim UI text}
+**Steps to reproduce:**
+1. ...
+**Screenshot:** static/img/{section}/{shot}.png
+**Environment:** {url, browser, viewport, date}
+**Source:** observed during site-to-doc run, {date}
+```
+
+⛔ **Privacy guard (same credential discipline as §3 Login Checkpoint):** a draft must never contain a password, token, storage-state content, or an absolute local path. Reference screenshots by their **repo-relative** `static/img/…` path only. If a verbatim string would leak sensitive data, redact it.
+
+**Then offer to file (never automatic).** Only when **all** of these hold — `gh` is on `PATH`, `gh auth status` exits 0, and the repo has a GitHub remote — ask **once**: *"Found N observed issues — file them in {owner/repo} as GitHub issues, or leave them as drafts in {path}?"* Default is **drafts only**; filing requires explicit confirmation **each run**. On confirm, create one issue per draft with `gh issue create --title … --body … [--label …]` and echo each returned issue URL. GitHub only (no `glab`). `gh` cannot upload the screenshot binary via the body, so keep the repo-relative path in the issue and tell the user they can drag-drop the image into the issue afterward. If `gh` is missing or unauthenticated, **don't offer** — leave the drafts on disk and tell the user where they are and that they can file them manually.
+
+See [examples/observed-issues.md](examples/observed-issues.md) for a filled sidecar file.
+
 ---
 
 ## 4. DoD Additions (live-site-specific deltas only)
@@ -200,6 +231,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - **Budget used** (scenarios / pages) against the default.
 - **Discrepancies found** between design/brief and live site.
 - **Edge cases tested** and any unexpected/undocumented behaviors discovered.
+- **Observed issues drafted** — count + sidecar path (`.claude/observed-issues/…`), or "none observed"; note whether any were filed to the tracker.
 
 ---
 
@@ -218,6 +250,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Role differences tested where possible (roles per `CLAUDE.md` §3)
 - [ ] If a session was exported, `.claude/.auth/` is git-ignored and no secret reached chat/docs/report
 - [ ] Discrepancies between design and reality flagged
+- [ ] Observed product anomalies consolidated into `.claude/observed-issues/…` (or "none observed" noted); no secrets/absolute paths in drafts
 - [ ] Final report includes URLs, scenarios, auth method, roles, screenshots, budget, discrepancies
 - [ ] All BLOCKING rules from the global DoD satisfied
 

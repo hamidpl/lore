@@ -8,6 +8,38 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.3.0
+
+Makes the live-observation run double as a **free QA pass**: the anomalies
+`lore:site-to-doc` already notices are now consolidated into ready-to-file bug
+drafts instead of staying buried as inline `⚠️` flags.
+
+### site-to-doc
+
+- **Observed-issue bug drafts.** After a scenario run, product defects from the
+  `lore:site-explorer` summary — unexpected/undocumented behavior, flagged
+  design-vs-reality discrepancies, and failed steps that are genuine defects — are
+  consolidated into a sidecar file `.claude/observed-issues/{date}-{slug}.md`,
+  one structured draft each (title, type, severity, expected/actual, repro,
+  screenshot ref, environment). Scenario-authoring failures (bad selector, your
+  own timeout) are explicitly excluded. If nothing qualifies, the run notes "none
+  observed" and writes no file.
+- **Optional GitHub filing.** When `gh` is installed, authenticated, and the repo
+  has a GitHub remote, the skill offers — once, never automatically — to file the
+  drafts as issues via `gh issue create`. Default stays drafts-only; filing needs
+  explicit confirmation each run. GitHub only; screenshots stay as repo-relative
+  paths (no binary upload). The sidecar lives under `.claude/`, inside the hooks'
+  existing scope carve-out, and carries the same credential discipline as the
+  Login Checkpoint (no secrets, tokens, or absolute paths in a draft).
+- **`lore:site-explorer`** now records expected-vs-actual + the originating step
+  for each unexpected behavior, and labels failed steps as product defect vs.
+  scenario/selector error, so drafting is accurate.
+
+### skills
+
+- Added `argument-hint` to all four skills (`figma-to-doc`, `brief-to-doc`,
+  `site-to-doc`, `doc-reviewer`) for input autocomplete.
+
 ## 0.2.0
 
 Turns `lore:site-to-doc` from a manual checklist into an **executable scenario

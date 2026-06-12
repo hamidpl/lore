@@ -1,6 +1,7 @@
 ---
 name: figma-to-doc
 description: Generate product documentation from Figma design files. Use this when the user provides Figma links, mentions "design files", "mockups", "Figma", or asks to document visual designs.
+argument-hint: [figma-url-or-file-key]
 user-invocable: true
 ---
 

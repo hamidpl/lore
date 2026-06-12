@@ -47,8 +47,8 @@ If no `browser_*` tools are available to you, stop immediately and report that t
 - **Steps → images:** a table of `scenario · step NN · state · image path`.
 - **Verbatim UI strings:** the exact labels, button text, and error/success/empty-state messages observed (grouped by scenario). This is the source of truth for the prose the main agent will write.
 - **Observed business rules** distilled from behavior (limits, required fields, role/permission differences seen). Deduplicated, grouped — not a raw event log.
-- **Unexpected / undocumented behavior** discovered while exploring.
-- **Failed steps + reason** (selector not found, navigation timeout, hit a login wall, budget exceeded).
+- **Unexpected / undocumented behavior** discovered while exploring. For each, record **expected vs. actual** and the **step + `shot`** it relates to, so the main agent can draft a bug report from it without re-deriving the context.
+- **Failed steps + reason** (selector not found, navigation timeout, hit a login wall, budget exceeded). Label each as either a **product defect** (the app misbehaved — e.g. a 500, a broken flow, a crash) or a **scenario/selector error** (your own script/automation issue), so the main agent only drafts issues for genuine defects.
 - **Open questions / ambiguities** for the main agent to raise with the user (you cannot ask the user yourself).
 
 ## Constraints

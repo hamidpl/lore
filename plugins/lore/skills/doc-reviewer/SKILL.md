@@ -1,6 +1,7 @@
 ---
 name: doc-reviewer
 description: Validate existing documentation against the Definition of Done. Use this to review docs before delivery, audit existing files, or when the user asks to "review", "validate", "check", or "audit" documentation.
+argument-hint: [doc-path]
 user-invocable: true
 ---
 
