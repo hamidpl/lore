@@ -1,0 +1,18 @@
+{
+  "title": {
+    "message": "Lore",
+    "description": "The title in the navbar"
+  },
+  "item.label.Documentation": {
+    "message": "مستندات",
+    "description": "Navbar item with label Documentation"
+  },
+  "item.label.v0.3.1": {
+    "message": "v0.3.1",
+    "description": "Navbar item with label v0.3.1"
+  },
+  "item.label.GitHub": {
+    "message": "گیت‌هاب",
+    "description": "Navbar item with label GitHub"
+  }
+}

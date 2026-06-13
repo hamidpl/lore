@@ -1,0 +1,113 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+import { t } from '../i18n/content';
+import { SITE } from '../config';
+import { getVersion } from '../lib/version';
+
+const version = getVersion();
+
+const links = [
+  { label: t.nav.docs, href: SITE.docsUrl, external: true },
+  { label: t.nav.github, href: SITE.githubUrl, external: true },
+  { label: t.nav.changelog, href: SITE.changelogUrl, external: true },
+];
+---
+
+<header class="nav">
+  <div class="container nav-inner">
+    <div class="brand-wrap">
+      <a class="brand" href="/" aria-label={SITE.name}>
+        <span class="brand-mark">Lore</span>
+        <span class="brand-dot" aria-hidden="true">.</span>
+      </a>
+      <a
+        class="brand-version"
+        href={SITE.changelogUrl}
+        target="_blank"
+        rel="noopener"
+        title={`v${version} — ${t.nav.changelog}`}
+      >v{version}</a>
+    </div>
+
+    <nav class="nav-links" aria-label="Primary">
+      {links.map((l) => (
+        <a href={l.href} {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}>{l.label}</a>
+      ))}
+    </nav>
+
+    <div class="nav-actions">
+      <ThemeToggle />
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--paper) 85%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-block-end: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-m);
+    block-size: 4rem;
+  }
+  .brand-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: baseline;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--ink);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+  .brand-dot { color: var(--accent); }
+  .brand-version {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-tint);
+    padding: 0.12rem 0.4rem;
+    border-radius: 0.35rem;
+    letter-spacing: 0;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+  }
+  .brand-version:hover {
+    border-color: var(--accent);
+  }
+  .nav-links {
+    display: flex;
+    gap: var(--space-m);
+    margin-inline-start: auto;
+    font-size: var(--step--1);
+    font-weight: 500;
+  }
+  .nav-links a {
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-inline-start: var(--space-m);
+  }
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .nav-actions { margin-inline-start: auto; }
+  }
+</style>

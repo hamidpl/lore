@@ -1,0 +1,355 @@
+---
+import CodeBlock from './CodeBlock.astro';
+import { t } from '../i18n/content';
+import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
+---
+
+<!-- ============================ HERO ============================ -->
+<section class="hero">
+  <div class="container hero-inner" data-reveal>
+    <p class="hero-wordmark">{t.hero.wordmark}<span class="brand-dot">.</span></p>
+    <p class="eyebrow">{t.hero.eyebrow}</p>
+    <h1 class="hero-title">
+      {t.hero.titleLead}{' '}
+      <em>{t.hero.titleEmph}</em>.
+    </h1>
+    <p class="hero-sub prose">{t.hero.subtitle}</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href={SITE.docsUrl}>{t.hero.ctaPrimary}</a>
+      <a class="btn btn-ghost" href={SITE.githubUrl} target="_blank" rel="noopener">{t.hero.ctaSecondary}</a>
+    </div>
+    <div class="hero-install">
+      <CodeBlock label={t.hero.installLabel} lines={INSTALL_COMMANDS} />
+    </div>
+  </div>
+  <div class="hero-rule container"><hr /></div>
+</section>
+
+<!-- ========================== PROBLEM ========================== -->
+<section class="section problem">
+  <div class="container narrow" data-reveal>
+    <p class="eyebrow">{t.problem.eyebrow}</p>
+    <h2 class="section-title">{t.problem.title}</h2>
+    <p class="lead drop">{t.problem.body}</p>
+  </div>
+</section>
+
+<!-- =========================== PATHS =========================== -->
+<section class="section paths">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">{t.paths.eyebrow}</p>
+      <h2 class="section-title">{t.paths.title}</h2>
+      <p class="section-intro prose">{t.paths.intro}</p>
+    </header>
+    <div class="path-grid">
+      {t.paths.items.map((item, i) => (
+        <article class="path-card" data-reveal style={`--reveal-delay:${i * 80}ms`}>
+          <span class="path-num">{String(i + 1).padStart(2, '0')}</span>
+          <code class="path-skill">{item.skill}</code>
+          <h3>{item.name}</h3>
+          <p>{item.desc}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- ========================= HOW IT WORKS ====================== -->
+<section class="section how">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">{t.how.eyebrow}</p>
+      <h2 class="section-title">{t.how.title}</h2>
+    </header>
+    <ol class="steps">
+      {t.how.steps.map((step, i) => (
+        <li class="step" data-reveal style={`--reveal-delay:${i * 70}ms`}>
+          <span class="step-num">{i + 1}</span>
+          <div class="step-body">
+            <code class="step-cmd">{step.cmd}</code>
+            <h3>{step.title}</h3>
+            <p>{step.desc}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<!-- ========================= FEATURES ========================== -->
+<section class="section features">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">{t.features.eyebrow}</p>
+      <h2 class="section-title">{t.features.title}</h2>
+    </header>
+    <div class="feature-grid">
+      {t.features.items.map((f, i) => (
+        <article class="feature-card" data-reveal style={`--reveal-delay:${i * 60}ms`}>
+          <h3>{f.title}</h3>
+          <p>{f.desc}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- ========================= QUICKSTART ======================== -->
+<section class="section quickstart">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">{t.quickstart.eyebrow}</p>
+      <h2 class="section-title">{t.quickstart.title}</h2>
+    </header>
+    <div class="qs-grid">
+      <div class="qs-item" data-reveal>
+        <h3>{t.quickstart.installTitle}</h3>
+        <CodeBlock lines={INSTALL_COMMANDS} />
+        <p class="qs-note">{t.quickstart.installNote}</p>
+      </div>
+      <div class="qs-item" data-reveal style="--reveal-delay:80ms">
+        <h3>{t.quickstart.initTitle}</h3>
+        <CodeBlock lines={[INIT_COMMAND]} />
+        <p class="qs-note">{t.quickstart.initNote}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== DOGFOOD ========================== -->
+<section class="section dogfood">
+  <div class="container dogfood-inner" data-reveal>
+    <p>{t.dogfood.text}</p>
+    <a class="btn btn-primary" href={SITE.docsUrl}>{t.dogfood.cta} →</a>
+  </div>
+</section>
+
+<style>
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 1.3rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: var(--step-0);
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+  .btn-ghost { color: var(--ink); border-color: var(--line-strong); background: var(--surface); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- Section scaffolding ---- */
+  .section { padding-block: var(--space-2xl); }
+  .container.narrow { max-width: 56rem; }
+  .section-head { max-width: var(--maxw-prose); margin-block-end: var(--space-xl); }
+  .section-title {
+    font-size: var(--step-3);
+    margin-block: 0.4rem 0;
+  }
+  .section-intro { margin-block-start: var(--space-s); color: var(--ink-soft); font-size: var(--step-1); }
+
+  /* ---- Hero ---- */
+  .hero { padding-block-start: var(--space-xl); }
+  .hero-inner { max-width: 54rem; }
+  .hero-wordmark {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 1.6rem + 1.6vw, 3rem);
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-block-end: var(--space-s);
+  }
+  .hero-wordmark .brand-dot { color: var(--accent); }
+  .hero-title {
+    font-size: var(--step-3);
+    font-weight: 500;
+    line-height: 1.15;
+    max-width: 22ch;
+    margin-block: var(--space-xs) 0;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .hero-sub {
+    margin-block-start: var(--space-m);
+    font-size: var(--step-1);
+    color: var(--ink-soft);
+  }
+  .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    margin-block-start: var(--space-l);
+  }
+  .hero-install { margin-block-start: var(--space-l); max-width: 40rem; }
+  .hero-rule { margin-block-start: var(--space-2xl); }
+  .hero-rule hr { border: 0; border-block-start: 1px solid var(--line); }
+
+  /* ---- Problem (editorial) ---- */
+  .problem .lead {
+    font-size: var(--step-1);
+    line-height: 1.7;
+    color: var(--ink-soft);
+    margin-block-start: var(--space-m);
+  }
+  .drop::first-letter {
+    font-family: var(--font-serif);
+    font-size: 3.4em;
+    float: inline-start;
+    line-height: 0.74;
+    padding-inline-end: 0.08em;
+    padding-block-start: 0.06em;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ---- Paths ---- */
+  .path-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-m);
+  }
+  .path-card {
+    position: relative;
+    padding: var(--space-l) var(--space-m) var(--space-m);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color 0.18s var(--ease), transform 0.18s var(--ease);
+  }
+  .path-card:hover { border-color: var(--line-strong); transform: translateY(-3px); }
+  .path-num {
+    position: absolute;
+    inset-block-start: 0.8rem;
+    inset-inline-end: 1rem;
+    font-family: var(--font-mono);
+    font-size: var(--step-2);
+    color: var(--accent-tint);
+    font-weight: 700;
+  }
+  :global(:root[data-theme='dark']) .path-num { color: var(--paper-3); }
+  .path-skill {
+    display: inline-block;
+    font-size: var(--step--1);
+    color: var(--accent);
+    background: var(--accent-tint);
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.35rem;
+    margin-block-end: 0.7rem;
+  }
+  .path-card h3 { font-size: var(--step-2); margin-block-end: 0.5rem; }
+  .path-card p { color: var(--ink-soft); }
+
+  /* ---- Steps ---- */
+  .steps {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-m);
+    padding-block: var(--space-m);
+    border-block-start: 1px solid var(--line);
+  }
+  .step:last-child { border-block-end: 1px solid var(--line); }
+  .step-num {
+    display: grid;
+    place-items: center;
+    inline-size: 2.6rem;
+    block-size: 2.6rem;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    color: var(--accent);
+  }
+  .step-cmd {
+    font-size: var(--step--1);
+    color: var(--ink-faint);
+    background: var(--paper-2);
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.3rem;
+  }
+  .step-body h3 { font-size: var(--step-2); margin-block: 0.45rem 0.35rem; }
+  .step-body p { color: var(--ink-soft); max-width: 60ch; }
+
+  /* ---- Features ---- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .feature-card {
+    background: var(--paper);
+    padding: var(--space-l) var(--space-m);
+  }
+  .feature-card h3 {
+    font-size: var(--step-1);
+    margin-block-end: 0.5rem;
+  }
+  .feature-card h3::before {
+    content: '';
+    display: block;
+    inline-size: 1.6rem;
+    block-size: 3px;
+    background: var(--accent);
+    margin-block-end: 0.9rem;
+    border-radius: 2px;
+  }
+  .feature-card p { color: var(--ink-soft); font-size: var(--step-0); }
+
+  /* ---- Quickstart ---- */
+  .qs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-l);
+  }
+  .qs-item h3 { font-size: var(--step-1); margin-block-end: var(--space-s); }
+  .qs-note { margin-block-start: var(--space-s); color: var(--ink-soft); font-size: var(--step--1); }
+
+  /* ---- Dogfood ---- */
+  .dogfood { padding-block: 0; }
+  .dogfood-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
+    padding: var(--space-l);
+    background: var(--accent-tint);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+  .dogfood-inner p {
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    color: var(--ink);
+    max-width: 30ch;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 880px) {
+    .path-grid { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr 1fr; }
+    .qs-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .feature-grid { grid-template-columns: 1fr; }
+  }
+</style>

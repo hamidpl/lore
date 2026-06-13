@@ -1,0 +1,46 @@
+{
+  "link.title.Documentation": {
+    "message": "مستندات",
+    "description": "The title of the footer links column with title=Documentation in the footer"
+  },
+  "link.title.Project": {
+    "message": "پروژه",
+    "description": "The title of the footer links column with title=Project in the footer"
+  },
+  "link.item.label.Introduction": {
+    "message": "معرفی",
+    "description": "The label of footer link with label=Introduction linking to /"
+  },
+  "link.item.label.Getting started": {
+    "message": "شروع به کار",
+    "description": "The label of footer link with label=Getting started linking to /getting-started/install"
+  },
+  "link.item.label.Guides": {
+    "message": "راهنماها",
+    "description": "The label of footer link with label=Guides linking to /guides/from-figma"
+  },
+  "link.item.label.Reference": {
+    "message": "مرجع",
+    "description": "The label of footer link with label=Reference linking to /reference/commands"
+  },
+  "link.item.label.Lorekit.net": {
+    "message": "Lorekit.net",
+    "description": "The label of footer link with label=Lorekit.net linking to https://lorekit.net"
+  },
+  "link.item.label.GitHub": {
+    "message": "گیت‌هاب",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/hamidpl/lore"
+  },
+  "link.item.label.Changelog": {
+    "message": "تغییرات",
+    "description": "The label of footer link with label=Changelog linking to https://github.com/hamidpl/lore/blob/main/CHANGELOG.md"
+  },
+  "link.item.label.License (MIT)": {
+    "message": "مجوز (MIT)",
+    "description": "The label of footer link with label=License (MIT) linking to https://github.com/hamidpl/lore/blob/main/LICENSE"
+  },
+  "copyright": {
+    "message": "© ۲۰۲۶ Lore — منتشرشده تحت مجوز MIT.",
+    "description": "The footer copyright"
+  }
+}

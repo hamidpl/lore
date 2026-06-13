@@ -1,0 +1,97 @@
+---
+import { t } from '../i18n/content';
+import { SITE } from '../config';
+
+const year = 2026;
+
+const productLinks = [
+  { label: t.footer.docs, href: SITE.docsUrl },
+  { label: t.footer.changelog, href: SITE.changelogUrl },
+];
+const resourceLinks = [
+  { label: t.footer.github, href: SITE.githubUrl },
+  { label: t.footer.license, href: SITE.licenseUrl },
+];
+---
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <span class="brand-mark">Lore<span class="brand-dot">.</span></span>
+      <p>{t.footer.tagline}</p>
+    </div>
+
+    <nav class="footer-col" aria-label={t.footer.product}>
+      <h2>{t.footer.product}</h2>
+      {productLinks.map((l) => <a href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+    </nav>
+
+    <nav class="footer-col" aria-label={t.footer.resources}>
+      <h2>{t.footer.resources}</h2>
+      {resourceLinks.map((l) => <a href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+    </nav>
+  </div>
+
+  <div class="container footer-base">
+    <p>© {year} {SITE.name}. {t.footer.rights}</p>
+    <p class="built">{t.footer.builtWith}</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    margin-block-start: var(--space-2xl);
+    border-block-start: 1px solid var(--line);
+    background: var(--paper-2);
+    padding-block: var(--space-xl) var(--space-l);
+  }
+  .footer-inner {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: var(--space-l);
+  }
+  .footer-brand .brand-mark {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .brand-dot { color: var(--accent); }
+  .footer-brand p {
+    margin-block-start: 0.5rem;
+    color: var(--ink-faint);
+    font-size: var(--step--1);
+    max-width: 26ch;
+  }
+  .footer-col { display: flex; flex-direction: column; gap: 0.6rem; }
+  .footer-col h2 {
+    font-family: var(--font-sans);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-block-end: 0.2rem;
+  }
+  .footer-col a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: var(--step--1);
+  }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-s);
+    margin-block-start: var(--space-l);
+    padding-block-start: var(--space-m);
+    border-block-start: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: var(--step--1);
+  }
+  @media (max-width: 640px) {
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .footer-brand { grid-column: 1 / -1; }
+  }
+</style>

@@ -1,0 +1,181 @@
+/**
+ * RTL + Persian styling layer (Vazirmatn font, RTL fixes, RTL footer).
+ * Added ONLY when the documentation language is RTL.
+ * Imported AFTER the generic src/css/custom.css (the wizard wires the import
+ * into docusaurus.config.ts customCss as an array: [custom.css, custom-rtl.css]).
+ */
+
+/* Self-hosted Vazirmatn — open-source Persian font.
+   https://github.com/rastikerdar/vazirmatn (weights 400/500/600/700).
+   Relative url()s resolve through webpack/css-loader, so the woff2 files are
+   hashed and rewritten per baseUrl — they work under a sub-path deploy
+   (e.g. GitHub Pages /repo/) where a root-absolute /fonts/... would 404. */
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-Regular.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-Medium.woff2') format('woff2');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-SemiBold.woff2') format('woff2');
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('../../static/fonts/Vazirmatn-Bold.woff2') format('woff2');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* Persian font stack */
+body {
+	font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana,
+		sans-serif;
+	font-weight: normal;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: 'Vazirmatn', sans-serif;
+	font-weight: bold;
+}
+h1 {
+	font-size: 2.2rem;
+}
+h2 {
+	font-size: 1.8rem;
+}
+h3 {
+	font-size: 1.3rem;
+}
+h4 {
+	font-size: 1.1rem;
+}
+
+/* RTL adjustments */
+html[dir='rtl'] {
+	--ifm-navbar-padding-horizontal: 1rem;
+}
+
+html[dir='rtl'] .menu__link {
+	padding-right: var(--ifm-menu-link-padding-horizontal);
+	padding-left: var(--ifm-menu-link-padding-horizontal);
+}
+
+/* RTL: tables read right-aligned */
+html[dir='rtl'] table th,
+html[dir='rtl'] table td {
+	text-align: right;
+}
+
+/* RTL: flow-step number sits to the right of the text */
+html[dir='rtl'] .flow-step-number {
+	margin-left: 1rem;
+}
+
+/* RTL: error item border on the right */
+html[dir='rtl'] .error-item {
+	border-left: 0;
+	border-right: 4px solid #ff9800;
+	border-radius: 0 8px 8px 0;
+}
+
+/* RTL admonition accent border (Docusaurus v3: .theme-admonition + Infima .alert).
+   Move Infima's left accent border to the right for all admonition types. */
+html[dir='rtl'] .theme-admonition {
+	border-left-width: var(--ifm-alert-border-width);
+	border-right-width: var(--ifm-alert-border-left-width);
+}
+
+/* Footer RTL styling */
+html[dir='rtl'] .footer {
+	padding: 3rem 1.5rem 1.5rem;
+}
+
+html[dir='rtl'] .footer__container {
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+html[dir='rtl'] .footer__links {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+	align-items: flex-start;
+	gap: 4rem;
+	flex-wrap: wrap;
+}
+
+html[dir='rtl'] .footer__link-item {
+	margin: 0;
+	padding: 0;
+	min-width: 150px;
+}
+
+html[dir='rtl'] .footer__title {
+	font-family: 'Vazirmatn', sans-serif;
+	font-weight: bold;
+	margin-bottom: 1rem;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: var(--ifm-footer-color);
+}
+
+html[dir='rtl'] .footer__item {
+	margin-bottom: 0.5rem;
+}
+
+html[dir='rtl'] .footer__link {
+	font-family: 'Vazirmatn', sans-serif;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	opacity: 0.8;
+	transition: opacity 0.2s ease;
+	display: inline-block;
+}
+
+html[dir='rtl'] .footer__link:hover {
+	opacity: 1;
+	text-decoration: none;
+}
+
+html[dir='rtl'] .footer__copyright {
+	font-family: 'Vazirmatn', sans-serif;
+	font-size: 0.875rem;
+	margin-top: 2.5rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	opacity: 0.7;
+}
+
+html[dir='rtl'] .footer__col {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+html[dir='rtl'] .footer__items {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: flex-start;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}

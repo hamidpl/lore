@@ -1,0 +1,22 @@
+{
+  "version.label": {
+    "message": "جاری",
+    "description": "The label for version current"
+  },
+  "sidebar.docs.category.Getting started": {
+    "message": "شروع به کار",
+    "description": "The label for category 'Getting started' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Authoring guides": {
+    "message": "راهنماهای نگارش",
+    "description": "The label for category 'Authoring guides' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Concepts": {
+    "message": "مفاهیم",
+    "description": "The label for category 'Concepts' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Reference": {
+    "message": "مرجع",
+    "description": "The label for category 'Reference' in sidebar 'docs'"
+  }
+}

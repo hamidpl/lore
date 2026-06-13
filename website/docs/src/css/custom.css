@@ -1,0 +1,55 @@
+/**
+ * Lore docs — brand styling. Warm terracotta accent to match the landing.
+ * RTL + Persian font rules live in custom-rtl.css (imported after this file,
+ * scoped to html[dir='rtl'] — the fa locale).
+ */
+
+:root {
+  --ifm-color-primary: #bd4f24;
+  --ifm-color-primary-dark: #aa471f;
+  --ifm-color-primary-darker: #a0431e;
+  --ifm-color-primary-darkest: #843718;
+  --ifm-color-primary-light: #c75f37;
+  --ifm-color-primary-lighter: #cb6841;
+  --ifm-color-primary-lightest: #d5805f;
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #e2774a;
+  --ifm-color-primary-dark: #de6533;
+  --ifm-color-primary-darker: #dc5c28;
+  --ifm-color-primary-darkest: #c44d1d;
+  --ifm-color-primary-light: #e68961;
+  --ifm-color-primary-lighter: #e8916c;
+  --ifm-color-primary-lightest: #efb091;
+
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Full-width readable tables */
+table {
+  display: table;
+  width: 100%;
+}
+
+/* Centered, framed images for screenshots/diagrams */
+.img-container {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.img-container img {
+  max-width: 100%;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.img-caption {
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-600);
+  margin-top: 0.5rem;
+}
