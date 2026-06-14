@@ -1,0 +1,48 @@
+name: Deploy docs
+
+# Builds the bilingual Docusaurus docs and deploys them to docs.lorekit.net over FTPS.
+# Runs on push to main when the docs change, or manually.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/docs/**'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-docs
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: website/docs
+
+      - name: Build
+        run: npm run build
+        working-directory: website/docs
+
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./website/docs/build/
+          server-dir: ${{ vars.FTP_SERVER_DIR_DOCS }}
+          exclude: |
+            **/.well-known/**
+            cgi-bin/**
