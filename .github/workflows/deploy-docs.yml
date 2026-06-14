@@ -40,7 +40,13 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
+          # Plain FTP + long timeout: the docs site has ~244 small files, and the
+          # shared host drops long FTPS sessions ("FIN packet") under that many
+          # passive data connections. Plain FTP tolerates the volume better here.
+          # (Trade-off: the password is sent in clear text. Prefer SFTP/SSH if the
+          # host offers it — a single encrypted connection avoids this entirely.)
+          protocol: ftp
+          timeout: 600000
           local-dir: ./website/docs/build/
           server-dir: ${{ vars.FTP_SERVER_DIR_DOCS }}
           exclude: |
