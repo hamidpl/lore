@@ -8,7 +8,7 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
-## 0.4.0
+## 0.3.2
 
 Fixes a real `lore:figma-to-doc` defect — **Dev-Mode annotations were silently
 skipped** — and adds a structural rule for **splitting oversized pages**, plus
