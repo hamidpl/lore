@@ -8,6 +8,31 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.3.3
+
+Fixes a visible **RTL styling bug** in the Docusaurus viewer for right-to-left
+locales (e.g. Persian).
+
+### RTL: stop `rtlcss` from double-flipping `custom-rtl.css`
+
+- **The bug.** For RTL locales Docusaurus runs the `rtlcss` PostCSS plugin over
+  the whole CSS bundle, auto-mirroring physical `left`/`right` values. But
+  `templates/rtl-assets/src/css/custom-rtl.css` already authored its rules with
+  the **final, post-RTL** physical values inside `html[dir='rtl']` selectors — so
+  `rtlcss` flipped them a second time and broke them. Observed in a built RTL
+  project: table cells went `text-align:left`, admonition accent borders landed
+  on the wrong (left) side, and `.flow-step-number` / `.error-item` offsets
+  mirrored incorrectly.
+- **The fix.** All directional `html[dir='rtl']` rules are now wrapped in a
+  `/*rtl:begin:ignore*/ … /*rtl:end:ignore*/` block so `rtlcss` leaves them
+  exactly as authored. The non-directional parts (font-face, fonts, font-size)
+  stay outside the block. A header comment documents the gotcha inline so it
+  travels with the template to every consuming project.
+- **Verified** against a real `fa` build: `table th/td → text-align:right`,
+  `.flow-step-number → margin-left:1rem`, `.theme-admonition` accent on
+  `border-right-width`, `.error-item → border-right` — all correct, whole site
+  builds clean.
+
 ## 0.3.2
 
 Fixes a real `lore:figma-to-doc` defect — **Dev-Mode annotations were silently

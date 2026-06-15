@@ -2,7 +2,7 @@
 
 export const SITE = {
   name: 'Lore',
-  version: '0.3.2',
+  version: '0.3.3',
   domain: 'lorekit.net',
   docsUrl: 'https://docs.lorekit.net',
   githubUrl: 'https://github.com/hamidpl/lore',
