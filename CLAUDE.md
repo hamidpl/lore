@@ -130,8 +130,9 @@ All subagent and skill references use the `lore:` namespace prefix: `lore:doc-va
 Semantic versioning in `plugins/lore/.claude-plugin/plugin.json`. The release checklist for every version:
 
 1. Bump the version in `plugins/lore/.claude-plugin/plugin.json`.
-2. Record the changes under a new `## X.Y.Z` section in `CHANGELOG.md`.
-3. Tag the release: annotated `vX.Y.Z` (`git tag -a vX.Y.Z -m "vX.Y.Z — <summary>"`), matching the existing tag style.
-4. **Publish a GitHub Release** for the tag, using that version's `CHANGELOG.md` section as the notes (`gh release create vX.Y.Z --title "Lore vX.Y.Z" --notes-file <section> --latest`). Every tag should have a corresponding published Release.
+2. Bump every other hardcoded version string so they all match: the README version badge (`README.md`, the `img.shields.io/badge/version-X.Y.Z` URL) and `website/landing/src/config.ts` (`SITE.version`). The site header badges resolve from the git tag at build time, so they need no manual edit — but they only update on a redeploy that runs *after* the tag is pushed (see step 5).
+3. Record the changes under a new `## X.Y.Z` section in `CHANGELOG.md`.
+4. Tag the release: annotated `vX.Y.Z` (`git tag -a vX.Y.Z -m "vX.Y.Z — <summary>"`), matching the existing tag style.
+5. **Publish a GitHub Release** for the tag, using that version's `CHANGELOG.md` section as the notes (`gh release create vX.Y.Z --title "Lore vX.Y.Z" --notes-file <section> --latest`). Every tag should have a corresponding published Release. The deploy workflows trigger on pushes to `main`, not on tags, so the merge-commit deploy builds the badge from the *previous* tag — re-run `deploy-landing.yml` / `deploy-docs.yml` (`workflow_dispatch`) after the tag exists, then verify the live badge.
 
 The README is the single source of truth for consumer install/update/pin commands — don't restate them here (Rule 4).
