@@ -37,9 +37,9 @@ Validate each item against the **canonical rule in `CLAUDE.md`** (do not re-deri
 
 | DoD area | What to check (compliance) | Canonical rule |
 |----------|----------------------------|----------------|
-| ⛔ **§0 Pre-Writing** | Evidence that the available inputs were reviewed; every configured trusted source searched (or "none configured"); for Figma, annotations checked separately from comments | `CLAUDE.md` §0 |
+| ⛔ **§0 Pre-Writing** | Evidence that the available inputs were reviewed; every configured trusted source searched (or "none configured"). **For Figma** (Sources name a Figma file or `.claude/sources/figma-*-census.md` exists): the census MUST exist with explicit counts; if counts > 0, every annotation/comment business rule in its Coverage map MUST resolve to a real doc file+section — a missing census or an uncovered rule is a **blocking** §0 failure | `CLAUDE.md` §0 |
 | ⛔ **§1 Trusted Sources** | No fabricated facts or unverified third-party sources; where trusted sources are configured, claims are consistent with them; missing info marked `[CLARIFICATION NEEDED]` | `CLAUDE.md` §1 |
-| **§2 Scope & Structure** | Valid frontmatter (sidebar_position, title, description, tags); all sections defined in the document template present with content | `CLAUDE.md` §2 + template |
+| **§2 Scope & Structure** | Valid frontmatter (sidebar_position, title, description, tags); all sections defined in the document template present with content; an oversized page past the §2 split threshold (>6 scenarios or >3000 words) that was not split into an overview + sibling pages is a **warning**, and split pages must be mirrored in `sidebars.ts` and cross-linked | `CLAUDE.md` §2 + template |
 | **§3 User Roles** | Relevant roles documented using approved names; role differences explained | `CLAUDE.md` §3 |
 | ⛔ **§4 Scenarios** | Each has Purpose/Preconditions/Flow/Postconditions; images inline at the right step (not grouped); options, validations, exact messages, edge cases present | `CLAUDE.md` §4 |
 | **§5 Accuracy** | Consistent terminology; UI labels match source; explicit (not vague) rules; KPIs where applicable | `CLAUDE.md` §5 |
@@ -128,6 +128,7 @@ The deliverable of this skill is the **Review Report** above (not product docume
 - [ ] All DoD areas checked against their canonical `CLAUDE.md` Section (Step 1)
 - [ ] §6 technical checks actually run, including `npm run build` if Docusaurus is installed (Step 2)
 - [ ] All blocking areas explicitly validated (§0, §1, §4, §6, §8, Rule 3, Rule 4, Rule 5)
+- [ ] Figma census cross-checked when input was Figma (§0); oversized pages flagged per the §2 split rule
 - [ ] Review report generated with per-area status and locations
 - [ ] Clear recommendation (approve / warnings / blocked) with required actions
 

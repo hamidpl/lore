@@ -108,10 +108,12 @@ Before writing or editing any documentation:
 
 | Input Type | Skill to Use | Sources to Review |
 |------------|--------------|-------------------|
-| **Figma designs** | `lore:figma-to-doc` | Figma files, annotations, comments, frames |
+| **Figma designs** | `lore:figma-to-doc` | Figma files, Dev-Mode annotations, comments, frames |
 | **Briefs/Epics** | `lore:brief-to-doc` | Product briefs, PRDs, user stories, acceptance criteria |
 | **Live Product** | `lore:site-to-doc` | Live site via browser automation, scenario scripts, screenshots |
 | **All types** | - | Configured trusted sources (§1) + user clarifications |
+
+> For Figma input, both **comments** and **Dev-Mode annotations** are separate required sources, and a source-census evidence artifact under `.claude/sources/` is mandatory (the Figma skill defines its format). Reviewing without it is a §0 failure.
 
 ### Section 1 — Trusted Sources — PRODUCT LAYER
 
@@ -138,6 +140,15 @@ description: [Short description]
 tags: [section-name, feature-name]
 ---
 ```
+
+**Multi-Page Sections (split rule).** A single page that grows too large stops being readable. **Split a section when its `index.md` would exceed more than 6 documented scenarios OR more than 3000 words — whichever comes first.** When that happens:
+
+- Convert `docs/{section}/index.md` into an **overview / hub page** (`sidebar_position: 1`): keep the Summary/Introduction, Scope, and a consolidated Business-Rules overview, plus a linked list of the sub-pages with a one-line description of each.
+- Move each cohesive cluster (e.g. one group of scenarios) into a **sibling sub-page** `docs/{section}/{sub-topic}.md`, each with its own frontmatter (`sidebar_position: 2, 3, …`, own `title`/`description`/`tags`).
+- **Stay cohesive, not fragmented:** the index links every child; each child links back to the index; related siblings cross-link where their flows connect.
+- Images stay under `static/img/{section}/` (§6). Mirror the split in `sidebars.ts`: the section becomes a `category` with `index` first, then the siblings.
+
+This threshold is the single source of truth; reviewers and the validator reference "§2 split rule" rather than restating the number. An oversized page that was **not** split is a **warning** (not blocking) — over-splitting is also a failure, so use judgement.
 
 ### Section 3 — User Roles — PRODUCT LAYER
 
@@ -204,12 +215,14 @@ Before delivering, validate against this DoD. If any blocking section (0, 1, 4, 
 docs/
 ├── intro.md                     # Home page
 ├── section-name/
-│   └── index.md
-└── another-section/
-    └── index.md
+│   └── index.md                 # single-page section
+└── large-section/               # split per §2 split rule
+    ├── index.md                 # overview/hub (sidebar_position: 1)
+    ├── sub-topic-a.md           # sibling sub-page (sidebar_position: 2)
+    └── sub-topic-b.md           # sibling sub-page (sidebar_position: 3)
 ```
 
-Image storage mirrors docs: `static/img/section-name/`, `static/img/another-section/`, …
+Image storage mirrors docs: `static/img/section-name/`, `static/img/large-section/`, …
 
 ---
 

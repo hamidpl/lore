@@ -36,7 +36,7 @@ jobs:
       - name: hook scripts referenced by hooks.json exist and are executable
         run: |
           fail=0
-          for s in check-image-path.sh check-frontmatter.sh verify-docs.sh; do
+          for s in check-image-path.sh check-frontmatter.sh check-no-tooling-refs.sh verify-docs.sh; do
             p="plugins/lore/hooks/$s"
             grep -q "$s" plugins/lore/hooks/hooks.json || { echo "hooks.json does not reference $s"; fail=1; }
             test -x "$p" || { echo "not executable: $p"; fail=1; }

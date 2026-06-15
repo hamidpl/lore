@@ -113,6 +113,7 @@ When clarification isn't available, document the ambiguity explicitly in the doc
 
 - Scenarios are inferred from user stories but must still meet the full scenario rule in `CLAUDE.md` §4 (Purpose, Preconditions, Flow, Postconditions; inline images when available).
 - Business rules must be explicit and specific per `CLAUDE.md` §5 — convert vague brief language into concrete rules or mark as `[CLARIFICATION NEEDED]`.
+- After enumerating the user stories/scenarios, if a section will exceed the §2 split threshold, split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule.
 
 ---
 

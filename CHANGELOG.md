@@ -8,6 +8,48 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.4.0
+
+Fixes a real `lore:figma-to-doc` defect — **Dev-Mode annotations were silently
+skipped** — and adds a structural rule for **splitting oversized pages**, plus
+speed/quality improvements to the Figma pipeline.
+
+### Figma annotations: correct source + non-skippable evidence
+
+- **Read the real annotations.** Lore previously treated "annotations" as a scan
+  for `type: "TEXT"` nodes — but those are design copy. Figma's actual Dev-Mode
+  annotations are a first-class **`annotations` property on a node** (`notes` /
+  `pinned`), returned by `GET /v1/files/{key}/nodes` with the `file_content:read`
+  scope. On files using the real feature, the old approach found nothing and moved
+  on. `lore:figma-to-doc` and `lore:figma-extractor` now read the `annotations`
+  property; the TEXT-node scan remains only as a clearly-labelled legacy fallback.
+- **Annotation & Comment Census (auditable evidence).** The skill now writes a
+  census to `.claude/sources/figma-{key}-census.md` — counts, the raw comments and
+  annotations, and a coverage map linking each extracted business rule to the doc
+  file+section that reflects it. The zero case is explicit ("confirmed none
+  present"), so a skipped fetch can't hide as "nothing found."
+- **Double-checked in the validator and reviewer.** `lore:doc-validator` and
+  `lore:doc-reviewer` now BLOCK (§0) when Figma was the source but the census is
+  missing, or when any annotation/comment business rule in the coverage map isn't
+  reflected in the docs.
+
+### Multi-page section split rule (§2)
+
+- A new template-`CLAUDE.md` §2 rule: split a section into an overview `index.md` +
+  cross-linked sibling sub-pages when it would exceed **more than 6 scenarios or
+  more than 3000 words** (whichever first). The validator/reviewer flag an un-split
+  oversized page as a **warning**. The `sidebars.ts` template, the document template,
+  and all three producer skills reference the rule by section number (Rule 4).
+
+### figma-to-doc speed & quality
+
+- **Scoped node fetches** (explicit `ids=` + deliberate `depth`) instead of
+  whole-file walks — the same scoped call returns the `annotations` property and the
+  frames, so one fetch serves both.
+- **Batched multi-id image export** (`/v1/images/{key}?ids=a,b,c`) with concurrent
+  downloads; **cheap re-runs** by reading the existing census first; **dedup with
+  preserved provenance** so source refs survive into the coverage map.
+
 ## 0.3.1
 
 Keeps the **authoring tooling out of the published documentation** and lets a

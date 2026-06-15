@@ -1,3 +1,9 @@
+<!-- This template describes a single documented section. When a section grows past the
+§2 split threshold (more than 6 scenarios or more than 3000 words), keep this same
+structure but distribute it across an overview `index.md` + sibling sub-pages: the index
+keeps Summary/Scope/Business-Rules overview and links to the children; each sub-page carries
+one cohesive cluster of Scenarios. See the `.claude/CLAUDE.md` §2 split rule. -->
+
 # **Summary & Introduction**
 
 ## **Title**

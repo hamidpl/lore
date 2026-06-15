@@ -43,7 +43,7 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Secti
    - **Full-page documentation** — the user has no specific scenario and just wants one or more pages documented completely. Build an internal exploration plan that systematically exercises each target page (happy path + validation + edge cases per §3).
    - **Specific scenario** — the user has a particular flow to exercise. Build or collect the step-by-step scenario(s) and finalize them with the user (format in §3).
 
-   Either way, any scenario script you write is a **purely internal re-run artifact** (stored under `.claude/`, §3) — it is never named, linked, or surfaced in the published documentation (Rule 5).
+   Either way, any scenario script you write is a **purely internal re-run artifact** (stored under `.claude/`, §3) — it is never named, linked, or surfaced in the published documentation (Rule 5). When planning, if a target page's scenarios will exceed the §2 split threshold, plan it as a multi-page section (overview `index.md` + sibling sub-pages) per the `CLAUDE.md` §2 split rule.
 6. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
 ⛔ **Blocking:** Do NOT proceed to write until the feature has been systematically exercised in its live environment via the agreed scenarios.

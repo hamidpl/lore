@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: Document from Figma
-description: Use lore:figma-to-doc to turn Figma design files, annotations, and comments into documented flows and business rules with inline screenshots.
+description: Use lore:figma-to-doc to turn Figma design files, Dev-Mode annotations, and comments into documented flows and business rules with inline screenshots.
 tags: [guides, figma]
 ---
 
@@ -15,7 +15,7 @@ lore:figma-to-doc <figma-url-or-file-key>
 
 ## What it does
 
-1. **Collects sources.** Fetches the file's discussion **comments** and its **annotations** (text notes in the design tree) — these are two different things, and both are read. It also searches your configured trusted sources.
+1. **Collects sources.** Fetches the file's discussion **comments** and its **Dev-Mode annotations** (the `annotations` property on nodes — Figma's real annotation feature, distinct from ordinary design text) — these are two separate sources, and both are read. It records them in an auditable source census so nothing is silently skipped, and also searches your configured trusted sources.
 2. **Reviews the design.** Navigates every frame, skips pages marked out of scope, and summarizes the business rules expressed in annotations and comments.
 3. **Extracts images.** Exports **individual frames** (never whole-section composites) at 2× resolution and stores them under the static image directory, named by feature and state.
 4. **Writes the documentation.** Maps Figma pages to doc sections, frame groups to scenarios, annotations to business rules, and component variants to role differences.

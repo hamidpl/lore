@@ -10,13 +10,17 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   docsSidebar: [
     'intro',
-    // Example of a content section — uncomment and adapt once you add docs/{section}/:
+    // Example of a content section — uncomment and adapt once you add docs/{section}/.
+    // A multi-page section (split per the CLAUDE.md §2 split rule) lists the overview
+    // `index` first, then the sibling sub-pages. See website/docs/sidebars.ts for a
+    // real working multi-page category.
     // {
     //   type: 'category',
     //   label: '{{SECTION_LABEL}}',
     //   collapsed: false,
     //   items: [
-    //     '{{section}}/index',
+    //     '{{section}}/index',       // overview / hub page
+    //     '{{section}}/{{sub-topic}}', // sibling sub-page (when the section is split)
     //   ],
     // },
   ],
