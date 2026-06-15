@@ -1,10 +1,25 @@
 # Lore — Product Documentation Factory
 
+**Turn designs, briefs, and living products into documentation that lasts.**
+
+[![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Claude Code Plugin](https://img.shields.io/badge/plugin-Claude%20Code-purple.svg)](https://code.claude.com/docs/en/plugins)
+[![Website](https://img.shields.io/badge/website-lorekit.net-ff7a59.svg)](https://lorekit.net)
+
+> 🌐 **Website:** [lorekit.net](https://lorekit.net) · **Docs:** [docs.lorekit.net](https://docs.lorekit.net)
+
 > **Status: beta (pre-1.0).** Lore works end-to-end, but commands, templates, and conventions may still change before `1.0.0`. Pin to a git tag if you need stability (see [Versioning](#versioning)).
 
 **Lore** is a [Claude Code plugin](https://code.claude.com/docs/en/plugins) that packages a reusable, product-agnostic **documentation factory**. Install it in any documentation repo to get the same skills, review subagents, and BLOCKING-rule enforcement hooks — maintained once, consumed everywhere.
 
 This single repo is **both** the plugin (`plugins/lore/`) and its marketplace (`.claude-plugin/marketplace.json`).
+
+## What is "lore"?
+
+*Lore* is the accumulated knowledge of a community — its facts, rules, and stories — kept alive and passed on so nothing has to be relearned from scratch.
+
+That is exactly what product documentation should be. Documentation rots, and every team rebuilds the same writing process from zero. **Lore** packages that process once: install the plugin and every repo inherits the same skills, the same Definition of Done, and the same guardrails — so a product's knowledge is captured, validated, and kept.
 
 ## What's inside
 
@@ -21,6 +36,21 @@ This single repo is **both** the plugin (`plugins/lore/`) and its marketplace (`
 | Subagent | `lore:figma-extractor` | Heavy Figma extraction worker (keeps main context clean) |
 | Subagent | `lore:site-explorer` | Heavy live-site exploration worker — drives the browser, captures screenshots (keeps main context clean) |
 | Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter |
+
+## How it works
+
+Three input paths, one consistent pipeline:
+
+```
+ Figma design ─┐
+ Brief / PRD  ─┼─▶  lore skill  ─▶  lore:doc-reviewer  ─▶  Markdown or static site
+ Live product ─┘     (generate)      (validate vs DoD)        (deploy anywhere)
+```
+
+1. **Scaffold** — `/lore:init` lays down the docs layer (and an optional Docusaurus viewer).
+2. **Generate** — pick the skill that matches your input: `figma-to-doc`, `brief-to-doc`, or `site-to-doc`.
+3. **Review** — `lore:doc-reviewer` checks the result against your product's Definition of Done.
+4. **Deploy** — ship Markdown as-is, or build the static site and host it anywhere.
 
 ## Install
 
@@ -84,6 +114,13 @@ Lore carries **only the product-agnostic methodology**. Everything product-speci
 Skills reference rules by `CLAUDE.md` section number — they never restate or hard-code a product's sources, roles, or structure. That is what lets one skill serve every product.
 
 > New or updated skills must follow the canonical structure in [`plugins/lore/templates/skill-template.md`](plugins/lore/templates/skill-template.md). Contributor and maintenance details live in [`CLAUDE.md`](CLAUDE.md).
+
+## Documentation
+
+Full guides, the skill reference, and walkthroughs live on the website:
+
+- **Landing page:** [lorekit.net](https://lorekit.net)
+- **Documentation (EN & FA):** [docs.lorekit.net](https://docs.lorekit.net)
 
 ## Versioning
 
