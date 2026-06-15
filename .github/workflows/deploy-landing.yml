@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags so `git describe --tags` resolves the version badge
 
       - uses: actions/setup-node@v4
         with:
