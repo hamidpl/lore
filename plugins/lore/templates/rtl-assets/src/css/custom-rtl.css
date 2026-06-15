@@ -68,7 +68,15 @@ h4 {
 	font-size: 1.1rem;
 }
 
-/* RTL adjustments */
+/* RTL adjustments.
+   IMPORTANT: everything below is written with FINAL, post-RTL physical values
+   (left/right/margin/padding/border already mirrored for right-to-left) inside
+   html[dir='rtl'] selectors. Docusaurus runs the rtlcss PostCSS plugin over the
+   whole bundle for RTL locales, which auto-flips physical left/right — that would
+   DOUBLE-FLIP these rules and break them (e.g. table cells would left-align,
+   admonition accents would land on the wrong side). The rtl:ignore block tells
+   rtlcss to leave these declarations exactly as authored. */
+/*rtl:begin:ignore*/
 html[dir='rtl'] {
 	--ifm-navbar-padding-horizontal: 1rem;
 }
@@ -179,3 +187,4 @@ html[dir='rtl'] .footer__items {
 	padding: 0;
 	margin: 0;
 }
+/*rtl:end:ignore*/
