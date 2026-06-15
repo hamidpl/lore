@@ -26,7 +26,9 @@ jobs:
       - name: Validate JSON
         run: |
           fail=0
-          for f in $(find . -path ./node_modules -prune -o -name '*.json' -print); do
+          # Prune node_modules and the website (its Docusaurus tsconfig.json is JSONC
+          # with comments — validated by the site's own build, not this plugin CI).
+          for f in $(find . \( -path ./node_modules -o -path ./website \) -prune -o -name '*.json' -print); do
             jq empty "$f" || { echo "invalid JSON: $f"; fail=1; }
           done
           exit $fail
