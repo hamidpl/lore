@@ -2,7 +2,7 @@
 
 **Turn designs, briefs, and living products into documentation that lasts.**
 
-[![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-0.3.2-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/plugin-Claude%20Code-purple.svg)](https://code.claude.com/docs/en/plugins)
 [![Website](https://img.shields.io/badge/website-lorekit.net-ff7a59.svg)](https://lorekit.net)
