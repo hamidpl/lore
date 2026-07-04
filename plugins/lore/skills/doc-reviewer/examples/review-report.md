@@ -17,9 +17,9 @@ two ⛔ failures. Locations are illustrative.
 |----------|--------|------------------|
 | §0 Pre-Writing | ✅ | Inputs reviewed; no trusted sources configured (not required). |
 | §1 Trusted Sources | ✅ | No fabricated facts; gaps marked `[CLARIFICATION NEEDED]`. |
-| §2 Scope & Structure | ⚠️ | Frontmatter valid, but the **Dependencies & Prerequisites** template section is missing. |
+| §2 Scope & Structure | ⚠️ | Frontmatter valid and the Document Info block is present, but the required **Changelog** section is missing. |
 | §3 User Roles | ✅ | Owner/Editor/Viewer documented with approved names. |
-| §4 Scenarios | ❌ | "Import a CSV with some invalid rows" scenario has no **Postconditions** (line ~58). ⛔ |
+| §4 Scenarios | ❌ | "Import tasks from a CSV file" scenario has no **Postconditions** (line ~58), and its oversized-file case is written as a Main Flow step instead of an **Extension**. ⛔ |
 | §5 Accuracy | ⚠️ | "around 500 rows" is vague — state the exact limit or mark it `[CLARIFICATION NEEDED]` (line ~33). |
 | §6 Technical Validity | ❌ | Image reference uses `/static/img/tasks/import-preview.png` (line ~52); must be `/img/...`. ⛔ |
 | §7 Language & Style | ✅ | Content language consistent; file/dir names are English kebab-case. |
@@ -31,7 +31,7 @@ two ⛔ failures. Locations are illustrative.
 
 (§0, §1, §4, §6, §8, Rule 3, Rule 4)
 
-- **§4 Scenarios** — a scenario is missing Postconditions.
+- **§4 Scenarios** — a scenario is missing Postconditions (and an exception case is not captured as an Extension).
 - **§6 Technical Validity** — an image is referenced via `/static/img/`.
 
 ## Recommendation
@@ -40,12 +40,12 @@ two ⛔ failures. Locations are illustrative.
 
 ## Required Actions (if blocked)
 
-1. **§4 Scenario** — Location: "Import a CSV with some invalid rows", end of Main Flow (~line 58) — Fix: add a **Postconditions** block stating that valid tasks are created and skipped rows are not.
+1. **§4 Scenario** — Location: "Import tasks from a CSV file", end of Main Flow (~line 58) — Fix: add a **Postconditions** block stating that valid tasks are created and skipped rows are not; move the oversized-file case into an **Extensions** block anchored to the upload step.
 2. **§6 Image path** — Location: line ~52 — Fix: change `![preview](/static/img/tasks/import-preview.png)` to `![preview](/img/tasks/import-preview.png)`. The physical file stays at `static/img/tasks/import-preview.png`.
 
 ## Non-blocking warnings (address before next release)
 
-- **§2** — add the missing **Dependencies & Prerequisites** section from the template.
+- **§2** — add the missing **Changelog** section from the template.
 - **§5** — replace "around 500 rows" with the exact, confirmed limit.
 
 > Note: this project has Docusaurus installed, so `npm run build` was run as part of §6 — it surfaced the `/static/img/` reference as a broken asset path, confirming finding 2. For a docs-only project the build step would be marked **N/A** and the same reference caught by the manual grep check instead.
