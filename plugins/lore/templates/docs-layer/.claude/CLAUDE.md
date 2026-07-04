@@ -158,13 +158,15 @@ If your product has distinct roles, add a roles table here (name + optional loca
 
 ### Section 4 — Scenario Writing Rules (Blocking)
 
-Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Preconditions**, **Detailed flow** (steps with system reactions), and **Postconditions**.
+Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Preconditions**, **Main Flow** (steps with system reactions), **Extensions** (alternative & exception flows), and **Postconditions** — following the scenario structure in `docs-template/Product Document Template.md`.
+
+**Errors, validation failures, empty states, and edge cases belong in the scenario's Extensions section** — anchored to the Main Flow step they depart from (step-letter numbering: `3a`, `3a1`, …), not scattered through the happy-path steps and not omitted. The template defines the exact format; do not restate it here (Rule 4).
 
 **Images must** be placed inline at the correct scenario step, directly matching that step, appearing between steps.
 
 **⛔ BLOCKING:** Images grouped at the end of a scenario or in a separate "Images" section is NOT acceptable.
 
-Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases (empty states, maximum values, errors).
+Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases (empty states, maximum values, errors) — the latter documented as Extensions.
 
 ### Section 5 — Accuracy & Consistency
 

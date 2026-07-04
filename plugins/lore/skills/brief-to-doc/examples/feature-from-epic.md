@@ -15,6 +15,12 @@ the project's documentation language (§7).
 
 # Bulk Task Import
 
+| Field | Value |
+|-------|-------|
+| **Status** | Draft |
+| **Owner** | Tasks team |
+| **Last verified** | 2025-05-20 — against epic *EPIC-214 Bulk Task Import* (v1.2) |
+
 ## Introduction & Purpose
 
 **Bulk Task Import** lets an Editor or Owner create many tasks at once by uploading a CSV file, instead of adding them one by one.
@@ -23,7 +29,9 @@ the project's documentation language (§7).
 
 ## Scope
 
-Covers uploading a CSV, mapping its columns to task fields, validating rows, and committing the import. Out of scope (stated in the epic): recurring/scheduled imports and imports from external tools' APIs.
+Covers uploading a CSV, mapping its columns to task fields, validating rows, and committing the import.
+
+**Out of scope** (stated in the epic): recurring/scheduled imports and imports from external tools' APIs.
 
 ## Audiences & Roles
 
@@ -47,16 +55,16 @@ Covers uploading a CSV, mapping its columns to task fields, validating rows, and
 
 Derived from the epic's acceptance criteria:
 
-- **AC-1 → Rule:** the **title** column is required; a row with an empty title is a row error and is not imported.
-- **AC-2 → Rule:** an import accepts at most **500** rows per file. [CLARIFICATION NEEDED: is 500 a hard limit that blocks the upload, or are the first 500 imported and the rest reported?]
-- **AC-3 → Rule:** a status value that is not one of the project's defined statuses is a row error; the row is excluded and reported.
-- **AC-4 → Rule:** the import is **all-or-nothing per valid row** — valid rows commit even if some rows have errors; the user sees a summary of imported vs. excluded counts.
+- **BR-1** (AC-1) — the **title** column is required; a row with an empty title is a row error and is not imported.
+- **BR-2** (AC-2) — an import accepts at most **500** rows per file. (See Open Questions — hard block vs. truncate.)
+- **BR-3** (AC-3) — a status value that is not one of the project's defined statuses is a row error; the row is excluded and reported.
+- **BR-4** (AC-4) — the import is **all-or-nothing per valid row**: valid rows commit even if some rows have errors; the user sees a summary of imported vs. excluded counts.
 
 # Scenarios
 
-## Scenario: Import a CSV with some invalid rows
+## Scenario: Import tasks from a CSV file
 
-**Purpose:** an Editor uploads a CSV in which most rows are valid and a few fail validation.
+**Purpose:** an Editor uploads a CSV to create many tasks at once.
 
 **Roles Involved:** Owner, Editor.
 
@@ -67,35 +75,42 @@ Derived from the epic's acceptance criteria:
 1. The member opens **Tasks → Import** and selects a CSV file.
 2. The system reads the header and asks the member to map columns to fields (title, status, assignee).
 3. The member confirms the mapping and clicks **Validate**.
-4. The system shows a preview: count of valid rows and a list of row errors with reasons. [CLARIFICATION NEEDED: does the preview show all error rows, or only the first N?]
+4. The system shows a preview: the count of valid rows and any row errors with reasons.
 5. The member clicks **Import valid rows**.
-6. The system creates the valid tasks and shows a summary: "X tasks imported, Y rows skipped".
+6. The system creates the valid tasks and shows a summary: "X tasks imported, Y rows skipped" (BR-4).
 
-**Postconditions:** the valid tasks exist in the project; skipped rows are not created. The uploaded file is not retained. [CLARIFICATION NEEDED: is the source file stored, or discarded after import?]
+**Extensions — Alternative & Exception Flows:**
 
-## Scenario: Upload exceeds the row limit
+- **1a.** The selected file exceeds the per-import limit (more than 500 data rows — BR-2):
+  - **1a1.** The system reports that the file exceeds the limit and does not proceed. (See Open Questions — exact wording and block-vs-truncate.)
+- **4a.** Some rows fail validation (empty title — BR-1, or an unknown status — BR-3):
+  - **4a1.** The system lists the row errors with reasons in the preview and still offers **Import valid rows**. (See Open Questions — show all error rows or first N.)
+- **5a.** Every row failed validation:
+  - **5a1.** No valid rows remain; the system disables **Import valid rows** and prompts the member to fix the file.
 
-**Purpose:** document what happens when the file has more rows than allowed.
+**Postconditions:** the valid tasks exist in the project; skipped rows are not created.
 
-**Roles Involved:** Owner, Editor.
+# Open Questions
 
-**Preconditions:** the member selects a CSV with more than 500 data rows.
-
-**Main Flow:**
-
-1. The member selects the oversized file.
-2. The system reports that the file exceeds the per-import limit. [CLARIFICATION NEEDED: exact message wording and whether the upload is blocked or truncated — see Rule AC-2.]
-
-**Postconditions:** no tasks are created until the member uploads a file within the limit.
+- 2025-05-20 — BR-2: is 500 a hard limit that blocks the upload, or are the first 500 imported and the rest reported? — waiting on product.
+- 2025-05-20 — Extension 1a: exact message wording for the oversized-file case. — waiting on content.
+- 2025-05-20 — Extension 4a: does the preview show all error rows, or only the first N? — waiting on design.
+- 2025-05-20 — Is the uploaded source file retained after import, or discarded? — waiting on engineering.
 
 # Dependencies & Prerequisites
 
-- Requires the project's **status set** to be defined (AC-3 validates against it).
+- Requires the project's **status set** to be defined (BR-3 validates against it).
 - Depends on the **Tasks** service to create tasks transactionally per valid row.
 
 # Roadmap
 
 - A later phase may add scheduled/recurring imports (explicitly deferred by the epic).
+
+# Changelog
+
+| Date | Change | Source |
+|------|--------|--------|
+| 2025-05-20 | Initial version from the epic and its acceptance criteria | EPIC-214 (v1.2) |
 
 # Appendix & Resources
 
@@ -107,4 +122,3 @@ process deliverable for the user and is NEVER written into the documentation fil
 It names the skill, subagents, and internal paths, none of which may appear in
 reader-facing docs (Rule 5). It is intentionally omitted from this example file.
 -->
-

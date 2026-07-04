@@ -203,7 +203,7 @@ flowchart TD
 | **TEXT nodes (design copy, fallback)** | Treat as design copy, not a business rule, unless used as on-canvas notes | Headline/body copy → page content; an on-canvas note → fallback business rule |
 | **Comments** | Context for "why" decisions | Comment explaining rationale → Overview section |
 | **Component variants** | User role differences | Button states per user type → role-based behavior |
-| **Empty states** | Edge case documentation | Empty list frame → empty state scenario |
+| **Empty states** | Edge case documentation (Extensions) | Empty list frame → an Extension of the relevant scenario |
 
 > **Large sections:** once the frame inventory and scenario count are known, if a Figma page maps to a section that will exceed the §2 split threshold (many frame-groups → many scenarios), split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule. Decide this before writing.
 

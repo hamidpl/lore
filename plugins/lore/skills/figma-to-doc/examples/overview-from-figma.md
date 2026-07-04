@@ -14,6 +14,12 @@ its own template. Image paths use /img/ (physical files live in static/img/).
 
 # Project Workspace Overview
 
+| Field | Value |
+|-------|-------|
+| **Status** | Current |
+| **Owner** | Projects team |
+| **Last verified** | 2025-05-18 — against Figma *Project Workspace v3* |
+
 ## Introduction & Purpose
 
 The **Project Workspace** is the landing surface a member sees after selecting a project. It exists to give the team a single place to see status, recent activity, and the actions available for their role.
@@ -22,7 +28,9 @@ The **Project Workspace** is the landing surface a member sees after selecting a
 
 ## Scope
 
-This document covers the Workspace **dashboard** only: its layout, the per-role action set, and the empty state. It does **not** cover task editing, billing, or notification settings (each documented separately). The Workspace is shipping in **Phase 1**; the analytics panel shown greyed-out in the design is Phase 2 and is out of scope here.
+This document covers the Workspace **dashboard** only: its layout, the per-role action set, and the empty state. The Workspace is shipping in **Phase 1**.
+
+**Out of scope:** task editing, billing, and notification settings (each documented separately); the analytics panel shown greyed-out in the design is Phase 2.
 
 ## Audiences & Roles
 
@@ -44,14 +52,14 @@ This document covers the Workspace **dashboard** only: its layout, the per-role 
 
 # Business Rules
 
-- The **New task** quick action is visible only to Owner and Editor roles; Viewers do not see it (annotation: *"Hide create actions for read-only members"*).
-- The activity feed shows at most the **20** most recent events; older events are reachable from the full History page.
-- An archived project renders the dashboard in read-only mode for **all** roles, including the Owner, until it is restored.
+- **BR-1** — The **New task** quick action is visible only to Owner and Editor roles; Viewers do not see it (annotation: *"Hide create actions for read-only members"*).
+- **BR-2** — The activity feed shows at most the **20** most recent events; older events are reachable from the full History page.
+- **BR-3** — An archived project renders the dashboard in read-only mode for **all** roles, including the Owner, until it is restored.
 
 # Scenarios
 
-The prototype wiring in the design defines two flows from the dashboard. This chart
-maps them (solid = navigation, dashed = dialog/overlay):
+The prototype wiring in the design defines the flow from the dashboard. This chart
+maps it (solid = navigation, dashed = dialog/overlay):
 
 ```mermaid
 flowchart TD
@@ -84,25 +92,17 @@ flowchart TD
 5. The member enters a title and clicks **Create**.
 6. The system creates the task, closes the dialog, and prepends a "Task created" entry to the activity feed.
 
-**Postconditions:** the new task exists in the project and appears at the top of the activity feed.
+**Extensions — Alternative & Exception Flows:**
 
-## Scenario: Empty project (no tasks yet)
+- **2a.** The project has no tasks yet (empty state):
+  - **2a1.** The system shows the message **"No tasks yet"** and, for Owner/Editor, a **Create your first task** button. Viewers see the message without the button.
 
-**Purpose:** document what a brand-new project shows before any task exists.
+    ![Empty Project Workspace with onboarding call-to-action](/img/projects/workspace-empty-state.png)
 
-**Roles Involved:** Owner, Editor, Viewer.
+- **5a.** The title field is empty when the member clicks **Create**:
+  - **5a1.** The **Create** button stays disabled and the dialog remains open; the title field keeps focus. No task is created.
 
-**Preconditions:** the project has zero tasks.
-
-**Main Flow:**
-
-1. The member opens a project that has no tasks.
-
-   ![Empty Project Workspace with onboarding call-to-action](/img/projects/workspace-empty-state.png)
-
-2. The system shows an empty state: the message "No tasks yet" and, for Owner/Editor, a **Create your first task** button. Viewers see the message without the button.
-
-**Postconditions:** none (no state change). The empty state persists until the first task is created.
+**Postconditions:** the new task exists in the project and appears at the top of the activity feed. (In extension 2a, no state change: the empty state persists until the first task is created.)
 
 # Dependencies & Prerequisites
 
@@ -112,6 +112,12 @@ flowchart TD
 # Roadmap
 
 - **Phase 2:** the analytics panel (shown disabled in the design) adds per-project throughput charts.
+
+# Changelog
+
+| Date | Change | Source |
+|------|--------|--------|
+| 2025-05-18 | Initial version — dashboard, roles, first-action and empty-state flows | Figma *Project Workspace v3* |
 
 # Appendix & Resources
 
@@ -123,4 +129,3 @@ process deliverable for the user and is NEVER written into the documentation fil
 It names the skill, subagents, and internal paths, none of which may appear in
 reader-facing docs (Rule 5). It is intentionally omitted from this example file.
 -->
-
