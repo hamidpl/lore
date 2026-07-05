@@ -9,10 +9,10 @@ tags: [tasks, comments]
 EXAMPLE OUTPUT for the lore:site-to-doc skill.
 Shown for an English-language project documenting a generic project-management
 product by observing the running site. UI text is captured verbatim. Your real
-output follows the project's documentation language (§7).
+output follows the project's documentation language (§7). The page title comes
+from the frontmatter `title` above — the body starts at the Document Info block,
+with no `#` (H1) heading.
 -->
-
-# Task Comments (Current Behavior)
 
 | Field | Value |
 |-------|-------|
@@ -38,7 +38,7 @@ Covers posting, editing, and deleting a comment on a task, plus the empty state 
 | Editor | Post, edit own, delete own comment. |
 | Viewer | Read comments only; no comment box shown. (Could not test Viewer for delete — no UI present.) |
 
-## Key Performance Indicators (KPIs)
+## Success signals (KPIs)
 
 - Share of tasks that receive at least one comment.
 
@@ -46,7 +46,7 @@ Covers posting, editing, and deleting a comment on a task, plus the empty state 
 
 - **Comment box** — the multi-line input at the bottom of a task's detail panel.
 
-# Business Rules
+## Business Rules
 
 Observed in the live product:
 
@@ -54,9 +54,11 @@ Observed in the live product:
 - **BR-2** — An empty comment cannot be posted: the **Post** button stays disabled until the box is non-empty.
 - **BR-3** — A comment longer than the limit is blocked at input — typing stops at **2,000** characters and a counter turns red as it approaches the limit.
 
-# Scenarios
+## Scenarios
 
-## Scenario: Post a comment
+- **Post a comment** — add a comment to a task, including the empty state and validation.
+
+### Post a comment
 
 **Purpose:** an Editor adds a comment to a task.
 
@@ -112,21 +114,21 @@ Observed in the browser console while posting:
 - Endpoint: `POST /api/tasks/{id}/comments`, request `{ "body": "..." }`, response `201` with the created comment.
 - No console errors on the happy path. Posting with the network throttled reproduced extension 3a (spinner → "Couldn't post comment. Retry.").
 
-# Dependencies & Prerequisites
+## Dependencies & Prerequisites
 
 - Depends on the **Comments** API; the thread degrades to a read-only "Comments are temporarily unavailable" notice when the API errors.
 
-# Roadmap
+## Roadmap
 
 - The 5,000-character design (see discrepancy) is a candidate for a later release, pending product confirmation.
 
-# Changelog
+## Changelog
 
 | Date | Change | Source |
 |------|--------|--------|
 | 2025-05-22 | Initial version — posting, empty state, validation, and the live-vs-design length discrepancy | Live product (observed) + Figma *Comments v2* |
 
-# Appendix & Resources
+## Appendix & Resources
 
 - Compared against Figma *Comments v2* for the discrepancy section.
 

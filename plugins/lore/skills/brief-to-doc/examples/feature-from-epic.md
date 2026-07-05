@@ -10,10 +10,10 @@ EXAMPLE OUTPUT for the lore:brief-to-doc skill.
 Shown for an English-language project documenting a generic project-management
 product, generated from a written epic (no visual design). [CLARIFICATION NEEDED]
 markers stand in for details the brief did not specify. Your real output follows
-the project's documentation language (§7).
+the project's documentation language (§7). The page title comes from the
+frontmatter `title` above — the body starts at the Document Info block, with no
+`#` (H1) heading.
 -->
-
-# Bulk Task Import
 
 | Field | Value |
 |-------|-------|
@@ -23,15 +23,15 @@ the project's documentation language (§7).
 
 ## Introduction & Purpose
 
-**Bulk Task Import** lets an Editor or Owner create many tasks at once by uploading a CSV file, instead of adding them one by one.
+Before this existed, a team migrating from spreadsheets had to re-enter its whole backlog one task at a time — the epic identifies this as their top friction point. **Bulk Task Import** lets an Editor or Owner create many tasks at once by uploading a CSV file.
 
-**Business goal:** lower the effort of moving an existing backlog into the product, which the epic identifies as the top friction point for teams migrating from spreadsheets.
+**Business goal:** lower the effort of moving an existing backlog into the product, to reduce drop-off during team migration.
 
 ## Scope
 
 Covers uploading a CSV, mapping its columns to task fields, validating rows, and committing the import.
 
-**Out of scope** (stated in the epic): recurring/scheduled imports and imports from external tools' APIs.
+**Out of scope (non-goals)** — stated in the epic: recurring/scheduled imports and imports from external tools' APIs.
 
 ## Audiences & Roles
 
@@ -41,7 +41,7 @@ Covers uploading a CSV, mapping its columns to task fields, validating rows, and
 | Editor | Can import. |
 | Viewer | Cannot import (no access to the action). |
 
-## Key Performance Indicators (KPIs)
+## Success signals (KPIs)
 
 - Share of new projects that use import within their first week.
 - Median rows per successful import.
@@ -51,7 +51,7 @@ Covers uploading a CSV, mapping its columns to task fields, validating rows, and
 - **Mapping** — the association between a CSV column and a task field (title, status, assignee).
 - **Row error** — a CSV row that fails validation and is excluded from the committed import.
 
-# Business Rules
+## Business Rules
 
 Derived from the epic's acceptance criteria:
 
@@ -60,9 +60,11 @@ Derived from the epic's acceptance criteria:
 - **BR-3** (AC-3) — a status value that is not one of the project's defined statuses is a row error; the row is excluded and reported.
 - **BR-4** (AC-4) — the import is **all-or-nothing per valid row**: valid rows commit even if some rows have errors; the user sees a summary of imported vs. excluded counts.
 
-# Scenarios
+## Scenarios
 
-## Scenario: Import tasks from a CSV file
+- **Import tasks from a CSV file** — upload, map, validate, and commit an import.
+
+### Import tasks from a CSV file
 
 **Purpose:** an Editor uploads a CSV to create many tasks at once.
 
@@ -90,29 +92,29 @@ Derived from the epic's acceptance criteria:
 
 **Postconditions:** the valid tasks exist in the project; skipped rows are not created.
 
-# Open Questions
+## Open Questions
 
 - 2025-05-20 — BR-2: is 500 a hard limit that blocks the upload, or are the first 500 imported and the rest reported? — waiting on product.
 - 2025-05-20 — Extension 1a: exact message wording for the oversized-file case. — waiting on content.
 - 2025-05-20 — Extension 4a: does the preview show all error rows, or only the first N? — waiting on design.
 - 2025-05-20 — Is the uploaded source file retained after import, or discarded? — waiting on engineering.
 
-# Dependencies & Prerequisites
+## Dependencies & Prerequisites
 
 - Requires the project's **status set** to be defined (BR-3 validates against it).
 - Depends on the **Tasks** service to create tasks transactionally per valid row.
 
-# Roadmap
+## Roadmap
 
 - A later phase may add scheduled/recurring imports (explicitly deferred by the epic).
 
-# Changelog
+## Changelog
 
 | Date | Change | Source |
 |------|--------|--------|
 | 2025-05-20 | Initial version from the epic and its acceptance criteria | EPIC-214 (v1.2) |
 
-# Appendix & Resources
+## Appendix & Resources
 
 - Source epic: *EPIC-214 Bulk Task Import* (v1.2). User stories US-214-1 … US-214-4.
 

@@ -10,9 +10,9 @@ EXAMPLE OUTPUT for the lore:figma-to-doc skill.
 Shown for an English-language project documenting a generic project-management
 product. Your real output follows the project's documentation language (§7) and
 its own template. Image paths use /img/ (physical files live in static/img/).
+The page title comes from the frontmatter `title` above — the body starts at the
+Document Info block, with no `#` (H1) heading.
 -->
-
-# Project Workspace Overview
 
 | Field | Value |
 |-------|-------|
@@ -40,7 +40,7 @@ This document covers the Workspace **dashboard** only: its layout, the per-role 
 | Editor | Can create and edit tasks; cannot archive or manage members. |
 | Viewer | Read-only; sees the dashboard but no create/edit actions. |
 
-## Key Performance Indicators (KPIs)
+## Success signals (KPIs)
 
 - Time-to-first-action for a newly added member (target: under 30 seconds).
 - Share of sessions that use a dashboard quick action (target: ≥ 60%).
@@ -50,13 +50,15 @@ This document covers the Workspace **dashboard** only: its layout, the per-role 
 - **Quick action** — a one-click shortcut in the dashboard header (e.g. "New task").
 - **Activity feed** — the reverse-chronological list of recent changes in the project.
 
-# Business Rules
+## Business Rules
 
 - **BR-1** — The **New task** quick action is visible only to Owner and Editor roles; Viewers do not see it (annotation: *"Hide create actions for read-only members"*).
 - **BR-2** — The activity feed shows at most the **20** most recent events; older events are reachable from the full History page.
 - **BR-3** — An archived project renders the dashboard in read-only mode for **all** roles, including the Owner, until it is restored.
 
-# Scenarios
+## Scenarios
+
+- **Open a project and take the first action** — select a project, then create the first task from the dashboard.
 
 The prototype wiring in the design defines the flow from the dashboard. This chart
 maps it (solid = navigation, dashed = dialog/overlay):
@@ -69,7 +71,7 @@ flowchart TD
     Dashboard --> EmptyState[Empty project state]
 ```
 
-## Scenario: Open a project and take the first action
+### Open a project and take the first action
 
 **Purpose:** a member opens a project and creates their first task from the dashboard.
 
@@ -104,22 +106,22 @@ flowchart TD
 
 **Postconditions:** the new task exists in the project and appears at the top of the activity feed. (In extension 2a, no state change: the empty state persists until the first task is created.)
 
-# Dependencies & Prerequisites
+## Dependencies & Prerequisites
 
 - Relies on the **Membership** service for the current member's role (drives which quick actions render).
 - The activity feed depends on the **Events** API; if it is unavailable the feed shows a non-blocking "Activity is temporarily unavailable" notice while the rest of the dashboard renders.
 
-# Roadmap
+## Roadmap
 
 - **Phase 2:** the analytics panel (shown disabled in the design) adds per-project throughput charts.
 
-# Changelog
+## Changelog
 
 | Date | Change | Source |
 |------|--------|--------|
 | 2025-05-18 | Initial version — dashboard, roles, first-action and empty-state flows | Figma *Project Workspace v3* |
 
-# Appendix & Resources
+## Appendix & Resources
 
 - Figma: *Project Workspace v3* — pages **Dashboard**, **Empty States** (page **[ignore] Exploration** was skipped).
 
