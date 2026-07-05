@@ -114,7 +114,7 @@ When clarification isn't available, document the ambiguity explicitly in the doc
 
 ## 4. DoD Additions (brief-specific deltas only)
 
-- Scenarios are inferred from user stories but must still meet the full scenario rule in `CLAUDE.md` §4 (Purpose, Preconditions, Main Flow, Extensions, Postconditions; inline images when available). Acceptance criteria describing failure/edge behavior map to **Extensions**, not to extra happy-path steps.
+- Scenarios are inferred from user stories but must still meet the full scenario rule in `CLAUDE.md` §4 (Purpose, Roles Involved, Preconditions, Main Flow, Extensions, Postconditions; inline images when available). Acceptance criteria describing failure/edge behavior map to **Extensions**, not to extra happy-path steps.
 - Business rules must be explicit and specific per `CLAUDE.md` §5 — convert vague brief language into concrete rules or mark as `[CLARIFICATION NEEDED]`.
 - After enumerating the user stories/scenarios, if a section will exceed the §2 split threshold, split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule.
 

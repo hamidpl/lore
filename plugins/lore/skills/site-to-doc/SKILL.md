@@ -75,7 +75,7 @@ steps:
 
 Each step is one action + one `shot` (the screenshot's descriptive name) + an optional `expect`. The on-disk image name follows `{feature}-{NN}-{state}.png` (NN = step number) so captures sort in flow order.
 
-⛔ **The scenario script is an internal authoring artifact — never surface it in the output (Rule 5).** Do not name it, link it, embed its YAML, or write its `.claude/scenarios/...` path anywhere in the published documentation. Readers see the flow only as product-facing prose in the document's **Scenarios** section (the standard Purpose / Preconditions / Main Flow / Extensions / Postconditions structure) — written from the user's perspective, with no mention of the script, the browser tooling, or any `.claude/` path. Observed error, validation, and empty states go in each scenario's **Extensions** section (per `CLAUDE.md` §4 + the template).
+⛔ **The scenario script is an internal authoring artifact — never surface it in the output (Rule 5).** Do not name it, link it, embed its YAML, or write its `.claude/scenarios/...` path anywhere in the published documentation. Readers see the flow only as product-facing prose in the document's **Scenarios** section (the standard Purpose / Roles Involved / Preconditions / Main Flow / Extensions / Postconditions structure) — written from the user's perspective, with no mention of the script, the browser tooling, or any `.claude/` path. Observed error, validation, and empty states go in each scenario's **Extensions** section (per `CLAUDE.md` §4 + the template).
 
 ### Running the scenario (delegate the heavy part)
 
