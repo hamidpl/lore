@@ -23,7 +23,7 @@ claude mcp add playwright -- npx @playwright/mcp@latest
 
 ## How a run works
 
-1. **Pre-flight.** Confirms the browser tools are available, asks once how to run (approve each step, or run uninterrupted), and pins which routes and features to explore. If a feature needs a login, you sign in once in the headed browser and the session persists.
+1. **Pre-flight.** Confirms the browser tools are available, asks once how to run (approve each step, or run uninterrupted), pins which routes and features to explore, and asks once whether to also document the responsive view (mobile 390×844, tablet 768×1024, or both) — opt-in, because each extra viewport is a separate browser pass. If a feature needs a login, you sign in once in the headed browser and the session persists.
 2. **Scenario scripts.** Each feature gets a small, re-runnable scenario — a list of steps, each with an action, a screenshot name, and optional text to wait for. These are internal artifacts; they never appear in the published docs.
 3. **Browser automation.** The heavy browsing is delegated to the **`lore:site-explorer`** subagent, which performs the steps, reads the **exact UI text** from the accessibility snapshot, captures deterministic screenshots, and returns a compact summary.
 4. **Validation and report.**
@@ -43,4 +43,4 @@ Documenting a live product surfaces real defects. Discrepancies between the desi
 
 ## Deterministic by design
 
-Screenshots use a fixed viewport (1280×720 by default, or a mobile preset) and stable waits — never fixed sleeps — so the images are consistent and diffable. UI text is read from the accessibility tree, not pixels, which is both exact and cheap.
+Screenshots use a fixed viewport (1280×720 by default, or a mobile/tablet preset when you opt into a responsive pass) and stable waits — never fixed sleeps — so the images are consistent and diffable. When a responsive pass runs, the scenario re-runs at the smaller viewport and only the differences are captured into a **Mobile & Tablet View** section (mobile shots display at half width). UI text is read from the accessibility tree, not pixels, which is both exact and cheap.
