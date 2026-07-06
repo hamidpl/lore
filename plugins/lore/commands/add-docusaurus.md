@@ -85,10 +85,10 @@ This drops Lore's `docusaurus.config.ts` (templated), `sidebars.ts`, `src/css/cu
 Run, **from the project root** (the folder that now contains `package.json`):
 
 ```bash
-npm install && npm run build
+npm install @docusaurus/theme-mermaid && npm run build
 ```
 
-Report success or failure. If the build fails on a Node engine error, tell the user the installed Docusaurus needs a newer Node (the version is whatever the latest release requires).
+`@docusaurus/theme-mermaid` powers the user-flow diagrams that `figma-to-doc` / `site-to-doc` emit as ```` ```mermaid ```` fences. Lore's `docusaurus.config.ts` references it in `themes: [...]`, so it **must** be installed or the build fails with "Cannot find module `@docusaurus/theme-mermaid`" — install it explicitly here (the fresh scaffold does not include it). If the build fails on a Node engine error instead, tell the user the installed Docusaurus needs a newer Node (the version is whatever the latest release requires).
 
 After a green build, set `"docusaurus": true` in `.claude/lore.json` (create the marker if a pre-marker project lacks it) so the project state stays accurate.
 

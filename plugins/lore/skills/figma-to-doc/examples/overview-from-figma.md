@@ -50,6 +50,17 @@ This document covers the Workspace **dashboard** only: its layout, the per-role 
 
 # Scenarios
 
+The prototype wiring in the design defines two flows from the dashboard. This chart
+maps them (solid = navigation, dashed = dialog/overlay):
+
+```mermaid
+flowchart TD
+    ProjectList[Project list] -->|On click: select project| Dashboard[Workspace dashboard]
+    Dashboard -.->|On click: New task| NewTask[New task dialog]
+    NewTask -->|On click: Create| Dashboard
+    Dashboard --> EmptyState[Empty project state]
+```
+
 ## Scenario: Open a project and take the first action
 
 **Purpose:** a member opens a project and creates their first task from the dashboard.

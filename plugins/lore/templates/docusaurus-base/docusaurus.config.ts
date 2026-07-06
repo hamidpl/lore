@@ -59,6 +59,13 @@ const config: Config = {
     ],
   ],
 
+  // Mermaid flow diagrams: figma-to-doc / site-to-doc emit ```mermaid``` fences
+  // for user-flow charts. Requires the `@docusaurus/theme-mermaid` dependency
+  // (installed by /lore:add-docusaurus). Without it the fence renders as a plain
+  // code block — harmless, but the diagram won't draw.
+  markdown: { mermaid: true },
+  themes: ['@docusaurus/theme-mermaid'],
+
   themeConfig: {
     navbar: {
       title: '{{SITE_TITLE}}',

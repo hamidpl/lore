@@ -63,8 +63,9 @@ if grep -RIl '{{' docs 2>/dev/null | grep -q .; then
   exit 1
 fi
 
-# 6. Install and build.
-npm install
+# 6. Install and build. The Lore config references @docusaurus/theme-mermaid
+# (user-flow diagrams), so it must be installed — mirrors /lore:add-docusaurus.
+npm install @docusaurus/theme-mermaid
 npm run build
 
 echo "smoke-build: OK (green production build, RTL fonts resolved)"
