@@ -9,10 +9,16 @@ tags: [tasks, comments]
 EXAMPLE OUTPUT for the lore:site-to-doc skill.
 Shown for an English-language project documenting a generic project-management
 product by observing the running site. UI text is captured verbatim. Your real
-output follows the project's documentation language (§7).
+output follows the project's documentation language (§7). The page title comes
+from the frontmatter `title` above — the body starts at the Document Info block,
+with no `#` (H1) heading.
 -->
 
-# Task Comments (Current Behavior)
+| Field | Value |
+|-------|-------|
+| **Status** | Current |
+| **Owner** | Tasks team |
+| **Last verified** | 2025-05-22 — against the live product (observed) |
 
 ## Introduction & Purpose
 
@@ -20,7 +26,9 @@ This document records how **task comments** behave in the live product today, in
 
 ## Scope
 
-Covers posting, editing, and deleting a comment on a task, plus the empty state and validation. Reactions and @-mentions appear in the UI but are documented separately.
+Covers posting, editing, and deleting a comment on a task, plus the empty state and validation.
+
+**Out of scope:** reactions and @-mentions (they appear in the UI but are documented separately).
 
 ## Audiences & Roles
 
@@ -30,7 +38,7 @@ Covers posting, editing, and deleting a comment on a task, plus the empty state 
 | Editor | Post, edit own, delete own comment. |
 | Viewer | Read comments only; no comment box shown. (Could not test Viewer for delete — no UI present.) |
 
-## Key Performance Indicators (KPIs)
+## Success signals (KPIs)
 
 - Share of tasks that receive at least one comment.
 
@@ -38,17 +46,19 @@ Covers posting, editing, and deleting a comment on a task, plus the empty state 
 
 - **Comment box** — the multi-line input at the bottom of a task's detail panel.
 
-# Business Rules
+## Business Rules
 
 Observed in the live product:
 
-- The comment box is shown only to Owner and Editor; a Viewer sees the thread without an input box.
-- An empty comment cannot be posted: the **Post** button stays disabled until the box is non-empty.
-- A comment longer than the limit is blocked at input — typing stops at **2,000** characters and a counter turns red as it approaches the limit.
+- **BR-1** — The comment box is shown only to Owner and Editor; a Viewer sees the thread without an input box.
+- **BR-2** — An empty comment cannot be posted: the **Post** button stays disabled until the box is non-empty.
+- **BR-3** — A comment longer than the limit is blocked at input — typing stops at **2,000** characters and a counter turns red as it approaches the limit.
 
-# Scenarios
+## Scenarios
 
-## Scenario: Post a comment (happy path)
+- **Post a comment** — add a comment to a task, including the empty state and validation.
+
+### Post a comment
 
 **Purpose:** an Editor adds a comment to a task.
 
@@ -68,25 +78,21 @@ Observed in the live product:
 
    ![Comment posted and shown in the thread](/img/tasks/comments-02-posted.png)
 
+**Extensions — Alternative & Exception Flows:**
+
+- **1a.** The task has no comments yet (empty state):
+  - **1a1.** The system shows the text **"No comments yet. Start the conversation."** Owner/Editor also see the comment box; a Viewer sees only the message (BR-1).
+
+    ![Task comment thread empty state](/img/tasks/comments-03-empty-state.png)
+
+- **2a.** The comment box is empty (BR-2):
+  - **2a1.** The **Post** button stays disabled; nothing is posted.
+- **2b.** The member reaches the length limit (BR-3):
+  - **2b1.** Input stops accepting characters at **2,000**; the counter turns red as it nears the limit. There is no over-limit message — input simply stops.
+- **3a.** The network times out while posting:
+  - **3a1.** The **Post** button shows a spinner, then an inline message **"Couldn't post comment. Retry."**; the comment is not added.
+
 **Postconditions:** the comment is visible to everyone with access to the task.
-
-## Scenario: Empty state (no comments yet)
-
-**Purpose:** document the thread before any comment exists.
-
-**Roles Involved:** Owner, Editor, Viewer.
-
-**Preconditions:** the task has no comments.
-
-**Main Flow:**
-
-1. The member opens a task with no comments.
-
-   ![Task comment thread empty state](/img/tasks/comments-03-empty-state.png)
-
-2. The system shows the text **"No comments yet. Start the conversation."** Owner/Editor also see the comment box; Viewer sees only the message.
-
-**Postconditions:** none.
 
 ## Behavior vs. design discrepancy
 
@@ -106,17 +112,23 @@ Observed in the live product:
 Observed in the browser console while posting:
 
 - Endpoint: `POST /api/tasks/{id}/comments`, request `{ "body": "..." }`, response `201` with the created comment.
-- No console errors on the happy path. Posting with the network throttled showed a spinner on **Post** and a "Couldn't post comment. Retry." inline message on timeout.
+- No console errors on the happy path. Posting with the network throttled reproduced extension 3a (spinner → "Couldn't post comment. Retry.").
 
-# Dependencies & Prerequisites
+## Dependencies & Prerequisites
 
 - Depends on the **Comments** API; the thread degrades to a read-only "Comments are temporarily unavailable" notice when the API errors.
 
-# Roadmap
+## Roadmap
 
 - The 5,000-character design (see discrepancy) is a candidate for a later release, pending product confirmation.
 
-# Appendix & Resources
+## Changelog
+
+| Date | Change | Source |
+|------|--------|--------|
+| 2025-05-22 | Initial version — posting, empty state, validation, and the live-vs-design length discrepancy | Live product (observed) + Figma *Comments v2* |
+
+## Appendix & Resources
 
 - Compared against Figma *Comments v2* for the discrepancy section.
 
@@ -126,4 +138,3 @@ process deliverable for the user and is NEVER written into the documentation fil
 It names the skill, subagents, and internal .claude/ paths, none of which may appear
 in reader-facing docs (Rule 5). It is intentionally omitted from this example file.
 -->
-

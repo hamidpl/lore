@@ -177,7 +177,7 @@ Figma's prototype wiring is the **machine-readable source for a scenario's Main 
 
 ⛔ **Never document `duration` / `easing` / transition-animation type** (SMART_ANIMATE, DISSOLVE, MOVE_IN, …). Animation timing is presentation noise, not product behavior — it violates the business-focused style (`CLAUDE.md` §7). Use the transition only to infer *navigation meaning* (e.g. an OVERLAY transition = a dialog, not a full page change).
 
-**Flow diagram (Mermaid).** When a documented section has **≥ 2 interaction edges**, add one Mermaid `flowchart` near the section's *List of Scenarios* in `index.md`. Nodes are frames (labelled in the documentation language); edges are labelled with the trigger; draw overlay/dialog edges as dashed (`-.->`) to distinguish them from full navigation (`-->`). Example:
+**Flow diagram (Mermaid).** When a documented section has **≥ 2 interaction edges**, add one Mermaid `flowchart` near the top of the section's *Scenarios* list in `index.md`. Nodes are frames (labelled in the documentation language); edges are labelled with the trigger; draw overlay/dialog edges as dashed (`-.->`) to distinguish them from full navigation (`-->`). Example:
 
 ```mermaid
 flowchart TD
@@ -203,7 +203,7 @@ flowchart TD
 | **TEXT nodes (design copy, fallback)** | Treat as design copy, not a business rule, unless used as on-canvas notes | Headline/body copy → page content; an on-canvas note → fallback business rule |
 | **Comments** | Context for "why" decisions | Comment explaining rationale → Overview section |
 | **Component variants** | User role differences | Button states per user type → role-based behavior |
-| **Empty states** | Edge case documentation | Empty list frame → empty state scenario |
+| **Empty states** | Edge case documentation (Extensions) | Empty list frame → an Extension of the relevant scenario |
 
 > **Large sections:** once the frame inventory and scenario count are known, if a Figma page maps to a section that will exceed the §2 split threshold (many frame-groups → many scenarios), split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule. Decide this before writing.
 
@@ -220,7 +220,7 @@ flowchart TD
 
 - **Inline image placement:** Each exported frame image must appear inline at the exact scenario step it illustrates. The full rule and the canonical correct/incorrect example live in `CLAUDE.md` Section 4 — follow it; do not group images at the end.
 - **Prototype-flow fidelity:** where prototype wiring exists (E > 0), each scenario's Main Flow navigation steps must be **consistent with the interaction edges** — or any divergence must be explained in the final report (e.g. an annotation overrode the wiring). A Main Flow that contradicts the wiring without a stated reason is a failure.
-- **Flow diagram:** a section with ≥ 2 interaction edges includes a Mermaid `flowchart` near its List of Scenarios (per §3).
+- **Flow diagram:** a section with ≥ 2 interaction edges includes a Mermaid `flowchart` near the top of its Scenarios list (per §3).
 - All other scenario, accuracy, and technical-validity rules are global — see `CLAUDE.md` §4–§6.
 
 ---

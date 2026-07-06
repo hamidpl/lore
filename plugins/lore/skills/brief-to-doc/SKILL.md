@@ -61,7 +61,7 @@ If questions go unanswered, use `[CLARIFICATION NEEDED: ...]` placeholders in th
 
 ### Inferring Scenarios from User Stories
 
-Transform each `As a [role], I want [action], so that [benefit]` story into a complete scenario (Purpose, Roles, Preconditions, Flow, Postconditions — per `CLAUDE.md` §4). Example (shown for a Persian-language project — write in the project's documentation language, §7):
+Transform each `As a [role], I want [action], so that [benefit]` story into a complete scenario (Purpose, Roles, Preconditions, Main Flow, Extensions, Postconditions — per `CLAUDE.md` §4 + the template). A story's error/empty/edge conditions become **Extensions** anchored to the Main Flow step they depart from. Example (shown for a Persian-language project — write in the project's documentation language, §7):
 
 ```markdown
 ## سناریو: فیلتر ویدیوها بر اساس وضعیت انتشار
@@ -76,9 +76,12 @@ Transform each `As a [role], I want [action], so that [benefit]` story into a co
 3. کاربر «پیش‌نویس» را انتخاب می‌کند
 4. سیستم لیست را فیلتر کرده و تعداد نتایج را نمایش می‌دهد
 
+**فلوهای جایگزین و استثنا:**
+- **۴a.** اگر هیچ ویدیویی با وضعیت انتخاب‌شده وجود نداشته باشد:
+  - **۴a۱.** سیستم حالت خالی را نمایش می‌دهد: [CLARIFICATION NEEDED: متن دقیق پیام «نتیجه‌ای یافت نشد» چیست؟]
+
 **پیامدها:**
 - وضعیت فیلتر تا پاک‌کردن یا خروج حفظ می‌شود
-- اگر نتیجه‌ای نباشد: [CLARIFICATION NEEDED: چه پیامی نمایش داده شود؟]
 ```
 
 > Brief-based scenarios will have more `[CLARIFICATION NEEDED]` markers than design-based ones, since briefs lack visual detail.
@@ -111,7 +114,7 @@ When clarification isn't available, document the ambiguity explicitly in the doc
 
 ## 4. DoD Additions (brief-specific deltas only)
 
-- Scenarios are inferred from user stories but must still meet the full scenario rule in `CLAUDE.md` §4 (Purpose, Preconditions, Flow, Postconditions; inline images when available).
+- Scenarios are inferred from user stories but must still meet the full scenario rule in `CLAUDE.md` §4 (Purpose, Roles Involved, Preconditions, Main Flow, Extensions, Postconditions; inline images when available). Acceptance criteria describing failure/edge behavior map to **Extensions**, not to extra happy-path steps.
 - Business rules must be explicit and specific per `CLAUDE.md` §5 — convert vague brief language into concrete rules or mark as `[CLARIFICATION NEEDED]`.
 - After enumerating the user stories/scenarios, if a section will exceed the §2 split threshold, split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule.
 

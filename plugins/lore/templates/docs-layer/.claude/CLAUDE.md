@@ -143,7 +143,7 @@ tags: [section-name, feature-name]
 
 **Multi-Page Sections (split rule).** A single page that grows too large stops being readable. **Split a section when its `index.md` would exceed more than 6 documented scenarios OR more than 3000 words — whichever comes first.** When that happens:
 
-- Convert `docs/{section}/index.md` into an **overview / hub page** (`sidebar_position: 1`): keep the Summary/Introduction, Scope, and a consolidated Business-Rules overview, plus a linked list of the sub-pages with a one-line description of each.
+- Convert `docs/{section}/index.md` into an **overview / hub page** (`sidebar_position: 1`): keep the Introduction & Purpose, Scope, and a consolidated Business-Rules overview, plus a linked list of the sub-pages with a one-line description of each.
 - Move each cohesive cluster (e.g. one group of scenarios) into a **sibling sub-page** `docs/{section}/{sub-topic}.md`, each with its own frontmatter (`sidebar_position: 2, 3, …`, own `title`/`description`/`tags`).
 - **Stay cohesive, not fragmented:** the index links every child; each child links back to the index; related siblings cross-link where their flows connect.
 - Images stay under `static/img/{section}/` (§6). Mirror the split in `sidebars.ts`: the section becomes a `category` with `index` first, then the siblings.
@@ -158,13 +158,15 @@ If your product has distinct roles, add a roles table here (name + optional loca
 
 ### Section 4 — Scenario Writing Rules (Blocking)
 
-Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Preconditions**, **Detailed flow** (steps with system reactions), and **Postconditions**.
+Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Roles Involved**, **Preconditions**, **Main Flow** (steps with system reactions), **Extensions** (alternative & exception flows), and **Postconditions** — following the scenario structure in `docs-template/Product Document Template.md`. Each scenario is its own `###` sub-heading under a single `## Scenarios` section (the page title/H1 comes from frontmatter — the body carries no `#` heading).
+
+**Errors, validation failures, empty states, and edge cases belong in the scenario's Extensions section** — anchored to the Main Flow step they depart from (step-letter numbering: `3a`, `3a1`, …), not scattered through the happy-path steps and not omitted. The template defines the exact format; do not restate it here (Rule 4).
 
 **Images must** be placed inline at the correct scenario step, directly matching that step, appearing between steps.
 
 **⛔ BLOCKING:** Images grouped at the end of a scenario or in a separate "Images" section is NOT acceptable.
 
-Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases (empty states, maximum values, errors).
+Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases (empty states, maximum values, errors) — the latter documented as Extensions.
 
 ### Section 5 — Accuracy & Consistency
 
