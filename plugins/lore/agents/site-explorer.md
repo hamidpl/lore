@@ -26,8 +26,8 @@ If no `browser_*` tools are available to you, stop immediately and report that t
 
 - **Base URL** and the assumption that any required login is **already done** (a persistent browser profile / injected storage-state). You are **not** responsible for logging in.
 - **Scenario scripts:** an ordered list of steps; each step has an action, a screenshot name (`shot`), and an optional `expect` (text/condition to wait for).
-- **Viewport** (default `1280x720`; a mobile preset like `390x844` only if specified).
-- **Image output section** → the on-disk target `static/img/{section}/`.
+- **Viewport** (default `1280x720`; a mobile preset `390x844` or tablet preset `768x1024` only if specified for a responsive pass).
+- **Image output section** → the on-disk target `static/img/{section}/`. For a responsive pass the main agent will give you a sub-path — `static/img/{section}/mobile/` or `static/img/{section}/tablet/` — capture into that instead.
 - **Page budget** (default ~10 pages / ~3 scenarios) — stop and report if you would exceed it.
 
 ## What to do
@@ -38,7 +38,7 @@ If no `browser_*` tools are available to you, stop immediately and report that t
    b. **Wait for stability** with `browser_wait_for` on the step's `expect` (or for the relevant text/element) — never a fixed sleep.
    c. Read the `browser_snapshot` and record **verbatim** any UI text the step introduces (labels, button text, validation/error/success/empty-state messages). Capture exact wording — never paraphrase.
    d. `browser_take_screenshot` with the step's `shot` name. Default to a **viewport** shot; use `fullPage` only when the step explicitly needs the whole scrollable page.
-   e. **Move the captured file into place:** the screenshot lands in the server output dir — move/rename it to `static/img/{section}/{shot}` (use `Read`/`Bash` `mv`). The final on-disk name must be the descriptive `{feature}-{NN}-{state}.png` the main agent specified. Never leave images under `docs/`.
+   e. **Move the captured file into place:** the screenshot lands in the server output dir — move/rename it to the target the main agent gave you (`static/img/{section}/{shot}`, or the `mobile/`/`tablet/` sub-path on a responsive pass) (use `Read`/`Bash` `mv`). The final on-disk name must be the descriptive `{feature}-{NN}-{state}.png` the main agent specified. Never leave images under `docs/`.
 3. Cover the testing dimensions the main agent requested (happy path, validation errors, edge cases — empty states, maximum values, network/permission variations). Capture the exact message for each error/edge state from the snapshot.
 4. **Technical details (only if requested):** pull `browser_console_messages` and `browser_network_requests` for a "Technical Details" section — endpoints called, console errors, timeouts.
 

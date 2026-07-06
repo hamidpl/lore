@@ -107,6 +107,24 @@ table {
 	margin-top: 0.5rem;
 }
 
+/* Mobile-view screenshots (path convention: /img/{section}/mobile/) —
+   tall portrait phone shots are shown at half width on desktop so they
+   don't dominate the page, and at full width on small screens. Scoped to
+   the article body so navbar/logo imagery is unaffected. Width-only +
+   centered margins are direction-neutral (no RTL mirror needed). */
+.markdown img[src*="/mobile/"] {
+	display: block;
+	width: 50%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+@media (max-width: 996px) {
+	.markdown img[src*="/mobile/"] {
+		width: 100%;
+	}
+}
+
 /* Flow steps */
 .flow-step {
 	display: flex;

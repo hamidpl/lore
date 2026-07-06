@@ -44,7 +44,8 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Secti
    - **Specific scenario** — the user has a particular flow to exercise. Build or collect the step-by-step scenario(s) and finalize them with the user (format in §3).
 
    Either way, any scenario script you write is a **purely internal re-run artifact** (stored under `.claude/`, §3) — it is never named, linked, or surfaced in the published documentation (Rule 5). When planning, if a target page's scenarios will exceed the §2 split threshold, plan it as a multi-page section (overview `index.md` + sibling sub-pages) per the `CLAUDE.md` §2 split rule.
-6. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
+6. **Responsive coverage — ask once, before running.** Unlike Figma (where device frames are already fetched), each extra viewport here is a **separate browser pass** over the key routes — real token/time cost. So ask the user explicitly whether to also document the responsive view, offering: **none — desktop only** (default), **mobile** (`390×844`), **tablet** (`768×1024`), or **both**. Warn that each chosen viewport re-runs the key steps of the scenario. If the user doesn't choose, default to desktop-only and note it in the final report. Record the decision — it drives the responsive pass in §3 and the Mobile & Tablet View section.
+7. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
 ⛔ **Blocking:** Do NOT proceed to write until the feature has been systematically exercised in its live environment via the agreed scenarios.
 
@@ -83,11 +84,13 @@ Delegate the actual browser run to the **`lore:site-explorer`** subagent (Task t
 
 Pass the subagent: the base URL, the scenario script(s), the viewport, the `static/img/{section}/` target, and the page budget. The subagent shares this session's MCP connection — so a session you logged into during the Login Checkpoint is already authenticated for it.
 
+**Responsive pass (only if the user opted in at Pre-Flight step 6).** Re-run the **same** scenario script through `lore:site-explorer` at the chosen preset (`390×844` and/or `768×1024`), but scope it to a **differences pass** — the happy-path steps plus any state whose layout or behavior visibly changes on a small screen — not a full re-capture of every step. Tell the subagent the target sub-path (`mobile/` or `tablet/`). Its captures + observed differences feed **only** the template's Mobile & Tablet View section (differences from desktop — never a re-told flow). This extra pass counts against the page/scenario budget below.
+
 > **Fallback (no subagent MCP access):** if the `lore:site-explorer` subagent cannot reach the browser tools in your environment, run the scenario **in the main context** using the same `browser_*` tools directly — but warn the user this consumes more tokens, and keep the page budget tight.
 
 ### Capture rules
 
-- **Deterministic viewport:** resize to **1280×720** before capturing (`browser_resize`) so images are stable across runs and diffs between doc versions are meaningful. A **mobile preset** (`390×844`) is available for documenting the responsive/mobile-web view — use it only when the user asks.
+- **Deterministic viewport:** resize to **1280×720** before capturing (`browser_resize`) so images are stable across runs and diffs between doc versions are meaningful. Two responsive presets — **mobile `390×844`** and **tablet `768×1024`** — are available for documenting the responsive/mobile-web view; run them **only when the user opted in at Pre-Flight step 6**. Route those captures to `static/img/{section}/mobile/…` and `static/img/{section}/tablet/…` respectively (same `{feature}-{NN}-{state}.png` naming). The `/mobile/` sub-path makes those tall shots render at half width on desktop — that display convention is global (`CLAUDE.md` §6); just follow the path.
 - **Naming:** `{feature}-{NN}-{state}.png` (e.g. `upload-01-initial.png`, `upload-02-size-error.png`, `my-videos-01-empty-state.png`).
 - **Shot type:** **viewport** shot by default; `fullPage` only for genuinely long pages where the whole scroll matters.
 - **Stability over sleeps:** wait on a text/element/condition (`browser_wait_for`), never a fixed delay.
@@ -117,7 +120,7 @@ The pattern is **"the human logs in once, automation continues."** A password is
 - Navigate and read text from **accessibility snapshots**, not screenshots — the snapshot is structured text, far lighter than sending images to the model.
 - Screenshots are **saved to disk only**; do not pull captured images back into context (spot-check 1–2 at most for quality).
 - Push the heavy browsing into the **`lore:site-explorer`** subagent so its verbose tool traffic never enters the main context — only the compact summary returns.
-- **Default budget: ~3 scenarios / ~10 pages per run.** Going beyond needs explicit user confirmation.
+- **Default budget: ~3 scenarios / ~10 pages per run.** Going beyond needs explicit user confirmation. A responsive pass (a second/third viewport) counts against this budget — which is why it is opt-in (Pre-Flight step 6).
 - **Update mode is cheap by design:** when the product changes, re-run only the affected saved scenario script(s); unchanged captures and prose stay as-is.
 
 ### Systematic Testing Approach
@@ -227,6 +230,7 @@ See [examples/observed-issues.md](examples/observed-issues.md) for a filled side
 
 - Screenshots are the live-site equivalent of Figma image extraction: place each inline at the scenario step it illustrates (the scenario/image rule is global — `CLAUDE.md` §4).
 - Capture all system messages verbatim from the snapshot to satisfy the accuracy requirement (`CLAUDE.md` §5).
+- **Responsive view:** if the user opted in (Pre-Flight step 6), the **Mobile & Tablet View** section is required (differences only, per the template), with mobile/tablet shots under the `mobile/`/`tablet/` sub-paths. If the user declined, record "responsive view not documented (user declined)" in the final report — the omission is then expected, not a gap.
 
 ---
 
@@ -234,7 +238,8 @@ See [examples/observed-issues.md](examples/observed-issues.md) for a filled side
 
 The base final-report structure is defined in `CLAUDE.md` Section 8. The Final Report is delivered **in chat** at task completion — it is a process deliverable for the user and is **never written into a documentation file** (the reader-facing docs are governed by Rule 5; the report below may name the skill/subagents and internal `.claude/` paths because the user, not the product's readers, is its audience). In addition, a live-site report MUST include:
 
-- **URLs tested** + test environment (browser, viewport, OS, network, date).
+- **URLs tested** + test environment (browser, OS, network, date) and **every viewport run** (desktop `1280×720`, plus mobile `390×844` / tablet `768×1024` if a responsive pass ran).
+- **Responsive coverage:** which viewports the user opted into at Pre-Flight step 6 (or "desktop only — declined"), and whether the Mobile & Tablet View section was produced.
 - **Scenario scripts** run (paths under `.claude/scenarios/`).
 - **Authentication method** used (manual Login Checkpoint / reused persistent session / injected storage-state) — **never any secret or file contents**.
 - **User roles tested** vs. could-not-test (with reason).
@@ -257,6 +262,8 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 - [ ] Happy path, validation errors, and edge cases exercised
 - [ ] Exact UI text / error messages captured verbatim (from snapshots)
 - [ ] Screenshots captured for all significant states, named `{feature}-{NN}-{state}.png` under `static/img/{section}/`
+- [ ] Responsive coverage decided with the user (Pre-Flight step 6): if opted in, responsive pass run and Mobile & Tablet View section written (mobile/tablet shots under `mobile/`/`tablet/`); if declined, noted in the final report
+- [ ] Scenario headings numbered per the template (`Scenario N: …`)
 - [ ] No screenshot images pulled into context beyond a 1–2 image spot-check
 - [ ] Role differences tested where possible (roles per `CLAUDE.md` §3)
 - [ ] If a session was exported, `.claude/.auth/` is git-ignored and no secret reached chat/docs/report

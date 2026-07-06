@@ -62,9 +62,9 @@ Derived from the epic's acceptance criteria:
 
 ## Scenarios
 
-- **Import tasks from a CSV file** — upload, map, validate, and commit an import.
+1. **Import tasks from a CSV file** — upload, map, validate, and commit an import.
 
-### Import tasks from a CSV file
+### Scenario 1: Import tasks from a CSV file
 
 **Purpose:** an Editor uploads a CSV to create many tasks at once.
 
