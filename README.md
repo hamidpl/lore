@@ -2,7 +2,7 @@
 
 **Turn designs, briefs, and living products into documentation that lasts.**
 
-[![Version](https://img.shields.io/badge/version-0.3.3-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/plugin-Claude%20Code-purple.svg)](https://code.claude.com/docs/en/plugins)
 [![Website](https://img.shields.io/badge/website-lorekit.net-ff7a59.svg)](https://lorekit.net)
@@ -15,7 +15,7 @@
 
 This single repo is **both** the plugin (`plugins/lore/`) and its marketplace (`.claude-plugin/marketplace.json`).
 
-## What is "lore"?
+## What is "Lore"?
 
 *Lore* is the accumulated knowledge of a community — its facts, rules, and stories — kept alive and passed on so nothing has to be relearned from scratch.
 
@@ -43,7 +43,7 @@ Three input paths, one consistent pipeline:
 
 ```
  Figma design ─┐
- Brief / PRD  ─┼─▶  lore skill  ─▶  lore:doc-reviewer  ─▶  Markdown or static site
+ Brief / PRD  ─┼─▶  Lore skill  ─▶  lore:doc-reviewer  ─▶  Markdown or static site
  Live product ─┘     (generate)      (validate vs DoD)        (deploy anywhere)
 ```
 

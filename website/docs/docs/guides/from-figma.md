@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: Document from Figma
-description: Use lore:figma-to-doc to turn Figma design files, Dev-Mode annotations, and comments into documented flows and business rules with inline screenshots.
+description: Use lore:figma-to-doc to turn Figma design files, Dev-Mode annotations, comments, and prototype wiring into documented flows and business rules with inline screenshots.
 tags: [guides, figma]
 ---
 
@@ -17,9 +17,10 @@ lore:figma-to-doc <figma-url-or-file-key>
 
 1. **Collects sources.** Fetches the file's discussion **comments** and its **Dev-Mode annotations** (the `annotations` property on nodes — Figma's real annotation feature, distinct from ordinary design text) — these are two separate sources, and both are read. It records them in an auditable source census so nothing is silently skipped, and also searches your configured trusted sources.
 2. **Reviews the design.** Navigates every frame, skips pages marked out of scope, and summarizes the business rules expressed in annotations and comments.
-3. **Extracts images.** Exports **individual frames** (never whole-section composites) at 2× resolution and stores them under the static image directory, named by feature and state.
-4. **Writes the documentation.** Maps Figma pages to doc sections, frame groups to scenarios, annotations to business rules, and component variants to role differences.
-5. **Validates and reports.** Runs the [doc validator](../guides/review-and-validate.md) before delivery and ends with a source/tooling/summary report.
+3. **Reads the prototype wiring.** Fetches the file's prototype flows (`flowStartingPoints`) and each frame's `interactions[]` — the machine-readable *navigation* evidence for a scenario's Main Flow, instead of guessing the flow from frame names. Animation timing (duration, easing, transition type) is deliberately ignored as presentation noise; only the navigation meaning is kept (e.g. an overlay transition ⇒ a dialog). The flow/interaction counts are recorded in the source census, even when zero.
+4. **Extracts images.** Exports **individual frames** (never whole-section composites) at 2× resolution and stores them under the static image directory, named by feature and state.
+5. **Writes the documentation.** Maps Figma pages to doc sections, frame groups to scenarios, annotations to business rules, component variants to role differences, and prototype interactions to Main Flow steps — adding a Mermaid flow diagram to any section with two or more interaction edges.
+6. **Validates and reports.** Runs the [doc validator](../guides/review-and-validate.md) before delivery and ends with a source/tooling/summary report.
 
 ## Heavy extraction is delegated
 
@@ -30,6 +31,7 @@ For large files, the heavy lifting (comments, annotations, the frame inventory, 
 - Missing information becomes an explicit `[CLARIFICATION NEEDED: …]` marker rather than a guess.
 - Placeholder/Lorem-Ipsum text prompts a request for the real content.
 - When an annotation and a comment conflict, the annotation is preferred and the conflict is raised with you.
+- Prototype wiring is treated as *design intent, not confirmed behavior*: where an interaction edge contradicts a Dev-Mode annotation, the annotation wins and the divergence is called out.
 
 ## Credentials
 

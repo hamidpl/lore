@@ -8,6 +8,46 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.4.0
+
+Adds **prototype-flow evidence** to the Figma pipeline, a **rewritten Product
+Document Template**, and a maintainer **`/release`** runbook.
+
+### `lore:figma-to-doc`: read prototype flows & interactions as navigation evidence
+
+- **What changed.** The skill now fetches the file's prototype wiring —
+  `flowStartingPoints` (per flow) and each frame's `interactions[]` — from the
+  same node call it already makes for annotations, and uses it as the
+  machine-readable source for each scenario's **Main Flow** instead of guessing
+  the flow from frame names/order. Flow and interaction counts are recorded in
+  the source census (even when zero), and any section with ≥ 2 interaction edges
+  gets a **Mermaid flow diagram**.
+- **Deliberate exclusions.** The legacy `transitionNodeID` / `transitionDuration`
+  / `transitionEasing` fields and `prototypeStartNodeID` are ignored (they carry
+  only partial or deprecated wiring), and **animation timing** (duration, easing,
+  transition-animation type) is dropped as presentation noise — only the
+  *navigation meaning* is kept (e.g. an overlay transition ⇒ a dialog).
+- **Conflict rule.** Prototype wiring is treated as design intent, not confirmed
+  behavior: where an interaction edge contradicts a Dev-Mode annotation, the
+  annotation wins and the divergence is reported.
+- Docs synced (EN + FA `from-figma` guide).
+
+### Rewritten Product Document Template
+
+- The `templates/docs-layer/docs-template/Product Document Template.md` is
+  restructured around researched living-spec / documentation best practices, and
+  every skill's reference example + DoD wording is aligned to match.
+
+### Maintainer `/release` command
+
+- Adds the interactive, gated `/release` runbook (ask version → bump all strings →
+  PR → tag → GitHub Release → post-tag redeploy + verify live badge).
+
+### Docs
+
+- Capitalized the product name **Lore** where it appeared lowercase in prose in
+  `README.md` (the `lore:` skill namespace and literal identifiers stay lowercase).
+
 ## 0.3.3
 
 Fixes a visible **RTL styling bug** in the Docusaurus viewer for right-to-left
