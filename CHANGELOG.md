@@ -8,6 +8,74 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.4.1
+
+Adds **mobile/tablet view documentation**, **numbered scenarios**, and
+**half-width mobile screenshots** to the documentation output.
+
+### Mobile & Tablet View
+
+- **What changed.** The Product Document Template gains an optional
+  **Mobile & Tablet View** section (after `Scenarios`) that captures *only the
+  differences* from desktop — layout reflow, hidden/moved elements, the mobile
+  navigation pattern — never a re-told flow.
+- **`lore:figma-to-doc`.** Frames are classified by device (from their
+  `absoluteBoundingBox` width + name); when the design has mobile/tablet frames,
+  documenting them is **mandatory** (the frames are already fetched, so no user
+  prompt) and they export to `mobile/`/`tablet/` sub-paths. `lore:figma-extractor`
+  returns the device class per frame.
+- **`lore:site-to-doc`.** Because each viewport is a separate, costly browser
+  pass, the responsive view is **opt-in**: a new Pre-Flight step asks once
+  (none / mobile `390×844` / tablet `768×1024` / both). A responsive pass re-runs
+  only the key steps through `lore:site-explorer` and counts against the page
+  budget.
+
+### Numbered scenarios
+
+- Scenario headings are now numbered — `Scenario 1: [goal]` (localized, e.g.
+  `سناریو ۱: …`). The format is defined once in the template (Rule 4); the
+  global rules, all three producer skills, `lore:doc-reviewer`, and
+  `lore:doc-validator` reference it. Reference examples updated.
+
+### Half-width mobile screenshots
+
+- **Path convention.** Mobile screenshots live under
+  `static/img/{section}/mobile/`, tablet under `/tablet/`. The Docusaurus
+  stylesheet renders any doc-body image whose `src` contains `/mobile/` at
+  **50% width on desktop and 100% below 996px**, so tall portrait phone shots
+  don't dominate the page. Width-only + `margin:auto` is direction-neutral, so
+  RTL styling needs no change; Markdown stays plain, so the enforcement hooks
+  are unaffected.
+- **Verified.** 44/44 hook tests pass, the manifest validates, and a real
+  `create-docusaurus` RTL smoke build is green with the rule compiled into the
+  bundle (`.markdown img[src*="/mobile/"]` → 50% desktop / 100% <996px, scope
+  intact).
+- Docs synced (EN + FA `from-figma`, `from-a-live-site`, `review-and-validate`
+  guides).
+
+**Upgrade note.** Skills/agents propagate via `/plugin update`, but
+`src/css/custom.css`, the Product Document Template, and the `.claude/CLAUDE.md`
+template are copied at **scaffold time only** — existing projects apply those
+three by hand. Add the mobile-image rule to `custom.css`:
+
+```css
+.markdown img[src*="/mobile/"] {
+	display: block;
+	width: 50%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+@media (max-width: 996px) {
+	.markdown img[src*="/mobile/"] {
+		width: 100%;
+	}
+}
+```
+
+Existing docs keep working unchanged; renumbering old scenarios and adding a
+responsive section are optional catch-up edits.
+
 ## 0.4.0
 
 Adds **prototype-flow evidence** to the Figma pipeline, a **rewritten Product
