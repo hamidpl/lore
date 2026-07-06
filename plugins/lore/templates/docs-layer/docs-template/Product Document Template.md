@@ -90,7 +90,7 @@ The rules, constraints, and key business logic for this feature. Give each rule 
 
 ## Scenarios
 
-Name each scenario that maps to a flow (e.g. "Create an item", "Edit profile"). This list is the fastest summary of what the feature does — keep the names short and goal-oriented.
+Name each scenario that maps to a flow (e.g. "Create an item", "Edit profile"). This list is the fastest summary of what the feature does — keep the names short and goal-oriented. **Number the scenarios in order** so they can be referenced unambiguously (from a review, from the Mobile & Tablet View section, or in conversation).
 
 <!-- {Optional — delete this comment and the diagram if the feature is a single
 screen with no navigation} A flow diagram gives a bird's-eye map of the screens
@@ -104,9 +104,9 @@ flowchart TD
 ```
 -->
 
-Then document each scenario with its own `###` sub-heading, repeating the block below. Name each sub-heading after the scenario's goal (e.g. `### Create an item`).
+Then document each scenario with its own `###` sub-heading, repeating the block below. Number each sub-heading in order and name it after the scenario's goal — the format is `### Scenario N: [goal phrase]` (e.g. `### Scenario 1: Create an item`). Write "Scenario" and the number in the document's language (e.g. Persian `### سناریو ۱: ایجاد آیتم`).
 
-### [Scenario name — a short goal phrase]
+### Scenario 1: [goal phrase]
 
 **Purpose** — what the user does in this scenario, and why.
 
@@ -129,6 +129,14 @@ Then document each scenario with its own `###` sub-heading, repeating the block 
 Mandatory detail (per §4): all user options, all form fields (required vs optional), all validation rules, all system messages with their exact wording, and edge cases (empty, maximum, error).
 
 **Postconditions** — what is true after the scenario completes.
+
+## Mobile & Tablet View
+
+_(Optional — delete this heading if the product has no distinct mobile/tablet design, or the responsive view was not documented.)_
+
+Document **only what differs** from the desktop view — never re-tell a flow already covered above. Cover the layout changes (single-column stacking, elements hidden/moved/collapsed), the navigation pattern (e.g. a hamburger menu replacing a top bar), and any behavior that genuinely changes on a smaller screen (reference the affected scenario by its number, e.g. "In Scenario 2, …"). If a viewport behaves identically to desktop apart from reflow, say so in one line rather than restating steps.
+
+Place mobile screenshots from `/img/{section}/mobile/…` — images under that `mobile/` path are automatically shown at half width on desktop and full width on small screens (see `.claude/CLAUDE.md` §6). Tablet screenshots go under `/img/{section}/tablet/…` and display full width.
 
 ## Open Questions
 

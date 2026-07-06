@@ -158,7 +158,7 @@ If your product has distinct roles, add a roles table here (name + optional loca
 
 ### Section 4 — Scenario Writing Rules (Blocking)
 
-Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Roles Involved**, **Preconditions**, **Main Flow** (steps with system reactions), **Extensions** (alternative & exception flows), and **Postconditions** — following the scenario structure in `docs-template/Product Document Template.md`. Each scenario is its own `###` sub-heading under a single `## Scenarios` section (the page title/H1 comes from frontmatter — the body carries no `#` heading).
+Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Roles Involved**, **Preconditions**, **Main Flow** (steps with system reactions), **Extensions** (alternative & exception flows), and **Postconditions** — following the scenario structure in `docs-template/Product Document Template.md`. Each scenario is its own `###` sub-heading under a single `## Scenarios` section, **numbered in order** (the exact heading format — `Scenario N: [goal]` — is defined in the template; do not restate it here, Rule 4). The page title/H1 comes from frontmatter — the body carries no `#` heading.
 
 **Errors, validation failures, empty states, and edge cases belong in the scenario's Extensions section** — anchored to the Main Flow step they depart from (step-letter numbering: `3a`, `3a1`, …), not scattered through the happy-path steps and not omitted. The template defines the exact format; do not restate it here (Rule 4).
 
@@ -177,6 +177,7 @@ Terminology must match existing docs; UI labels and behaviors must exactly match
 - All internal links and anchors work
 - All images stored in `static/img/{section}/` (physical location)
 - All markdown image references use `/img/{section}/` (NOT `/static/img/`)
+- **Responsive screenshots (path convention):** mobile-view screenshots go under `static/img/{section}/mobile/` (referenced `/img/{section}/mobile/…`) and tablet-view under `static/img/{section}/tablet/`. The `/mobile/` path segment is meaningful: the Docusaurus stylesheet renders any `/mobile/` image at **half width on desktop, full width on small screens** — so a tall portrait phone shot doesn't dominate the page. Tablet (and desktop) images display full width.
 - **⛔ BLOCKING:** No images in `/docs/`
 - **⛔ BLOCKING:** No tooling/internal references in reader-facing docs (Rule 5) — no `lore:*`, no `.claude/` paths, no `CLAUDE.md` citation
 - Documentation builds in Docusaurus with no errors
@@ -186,6 +187,7 @@ Terminology must match existing docs; UI labels and behaviors must exactly match
 |--------|---------|
 | Physical storage | `static/img/overview/feature.png` |
 | Markdown reference | `![description](/img/overview/feature.png)` |
+| Mobile-view screenshot | `static/img/overview/mobile/feature.png` → `![…](/img/overview/mobile/feature.png)` (auto half-width on desktop) |
 | Why not `/static/` | Docusaurus serves `static/` at root; `/static/img/` causes "file not found" |
 
 ### Section 7 — Language & Style

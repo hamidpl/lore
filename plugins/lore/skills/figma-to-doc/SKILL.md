@@ -94,9 +94,9 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 
 | # | Step | How to Verify |
 |---|------|---------------|
-| 5 | **Navigate all frames** | Frame inventory with IDs and names |
+| 5 | **Navigate all frames** | Frame inventory with IDs, names, **and each frame's width×height + device class** (mobile / tablet / desktop — see §3 "Responsive / Device Variants") |
 | 6 | **Identify [ignore] pages** | List of skipped pages (or "none") — any page whose name starts with `[ignore]` is out of scope |
-| 7 | **Extract images (individual FRAMEs only)** | Downloaded PNGs at 2x, one per frame (see §3) |
+| 7 | **Extract images (individual FRAMEs only)** | Downloaded PNGs at 2x, one per frame; **mobile/tablet variants routed to `mobile/`/`tablet/` sub-paths** (see §3) |
 | 8 | **Summarize findings** | Business rules distilled from annotations + comments, and navigation flow distilled from prototype interactions, recorded in the census (Counts + raw lists) before any writing |
 
 ⛔ **Blocking:** Do NOT start writing until Phase 2 is complete and the census Counts + raw lists exist.
@@ -152,6 +152,20 @@ Store extracted frames under `static/img/{section}/`, mirroring the documentatio
 
 > The image storage/reference path rule (`static/img/` on disk, `/img/` in markdown, never `/docs/`) is global — see `CLAUDE.md` Section 6 + Rule 1. Do not restate it; just follow it.
 
+### Responsive / Device Variants
+
+Figma files often carry the same screen at more than one device size. **Classify each frame** during Phase 2 step 5 using its `absoluteBoundingBox` width, with the frame/page name as a second signal (names like "Mobile", "Tablet", device names, or a `[Mobile]`/`[Tablet]` prefix):
+
+| Device class | Frame width (guide) | Screenshot destination |
+|--------------|--------------------|------------------------|
+| Desktop | ≳ 1025 px | `static/img/{section}/…` (default) |
+| Tablet | ~481–1024 px | `static/img/{section}/tablet/…` |
+| Mobile | ≲ 480 px | `static/img/{section}/mobile/…` |
+
+**When the design contains mobile and/or tablet frames, documenting them is mandatory** — the frames are already fetched, so the marginal cost is low (no need to ask the user; that opt-in gate exists only for the live-site skill, where each viewport is a separate expensive browser pass). Export those frames into the `mobile/`/`tablet/` sub-paths above, then write the template's **Mobile & Tablet View** section — **only the differences** from desktop (layout reflow, hidden/moved/collapsed elements, the mobile navigation pattern, and any behavior that genuinely changes — referencing the affected scenario by its number). Do not re-tell a flow already documented for desktop; the template defines the section's shape (Rule 4). Mobile shots under `/mobile/` are auto-shown at half width on desktop (per `CLAUDE.md` §6); tablet shots display full width.
+
+If the design has **no** mobile or tablet frames, omit the section entirely (delete the heading) — never invent a responsive view the design doesn't show.
+
 ### Prototype Flows & Interactions (navigation evidence)
 
 Figma's prototype wiring is the **machine-readable source for a scenario's Main Flow** — the alternative to guessing the flow from frame names/order. Read it during step 2c, from the **same** node fetch as the annotations.
@@ -204,6 +218,7 @@ flowchart TD
 | **Comments** | Context for "why" decisions | Comment explaining rationale → Overview section |
 | **Component variants** | User role differences | Button states per user type → role-based behavior |
 | **Empty states** | Edge case documentation (Extensions) | Empty list frame → an Extension of the relevant scenario |
+| **Mobile / tablet frame variants** | Mobile & Tablet View section (differences only) | A `[Mobile]` version of the dashboard → the differences documented under "Mobile & Tablet View", shot in `mobile/` |
 
 > **Large sections:** once the frame inventory and scenario count are known, if a Figma page maps to a section that will exceed the §2 split threshold (many frame-groups → many scenarios), split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule. Decide this before writing.
 
@@ -219,6 +234,7 @@ flowchart TD
 ## 4. DoD Additions (Figma-specific deltas only)
 
 - **Inline image placement:** Each exported frame image must appear inline at the exact scenario step it illustrates. The full rule and the canonical correct/incorrect example live in `CLAUDE.md` Section 4 — follow it; do not group images at the end.
+- **Responsive coverage:** if the design contains mobile and/or tablet frames, the **Mobile & Tablet View** section is mandatory (differences only) and those frames are exported into the `mobile/`/`tablet/` sub-paths (§3 "Responsive / Device Variants"). Missing that section when device frames exist is a failure; conversely, if the design has no such frames the section is omitted entirely.
 - **Prototype-flow fidelity:** where prototype wiring exists (E > 0), each scenario's Main Flow navigation steps must be **consistent with the interaction edges** — or any divergence must be explained in the final report (e.g. an annotation overrode the wiring). A Main Flow that contradicts the wiring without a stated reason is a failure.
 - **Flow diagram:** a section with ≥ 2 interaction edges includes a Mermaid `flowchart` near the top of its Scenarios list (per §3).
 - All other scenario, accuracy, and technical-validity rules are global — see `CLAUDE.md` §4–§6.
@@ -232,6 +248,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - **Figma sources:** file name + URL, pages reviewed, pages skipped (`[ignore]`), and the census counts — **Dev-Mode annotations** (from the `annotations` property) and comment threads reviewed, plus legacy TEXT-node notes if the fallback was used. The full census (raw lists + coverage map) is persisted at `.claude/sources/figma-{key}-census.md`.
 - **Prototype flows & interactions:** count of flows (`flowStartingPoints`) and interaction edges reviewed; the flow diagrams generated (which sections); any interaction/annotation conflicts and how they were resolved; whether Mermaid rendering is active in the project (or the diagram is a plain code block pending `/lore:add-docusaurus`).
 - **Images extracted:** count and storage directories (`static/img/{section}/`), with dimensions/scale.
+- **Device coverage:** how many desktop / tablet / mobile frames were found and documented (or "no mobile/tablet frames present" — the Mobile & Tablet View section was omitted).
 
 ---
 
@@ -246,6 +263,8 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Flow diagram (Mermaid) added for any section with ≥ 2 interaction edges
 - [ ] Annotation & Comment Census (incl. prototype flows/interactions) written to `.claude/sources/figma-{key}-census.md` (counts + raw lists + coverage map; zero-case states "confirmed none present")
 - [ ] Images exported as individual FRAMEs at 2x, stored under `static/img/{section}/`
+- [ ] Frames classified by device; mobile/tablet frames (if any) exported to `mobile/`/`tablet/` sub-paths and the Mobile & Tablet View section written (differences only) — or section omitted because none exist
+- [ ] Scenario headings numbered per the template (`Scenario N: …`)
 - [ ] Images placed inline at correct scenario steps (per `CLAUDE.md` §4)
 - [ ] Temporary/composite files cleaned up
 - [ ] Final report includes Figma file details + extracted-image list

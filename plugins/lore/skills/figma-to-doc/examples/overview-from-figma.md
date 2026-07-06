@@ -58,7 +58,7 @@ This document covers the Workspace **dashboard** only: its layout, the per-role 
 
 ## Scenarios
 
-- **Open a project and take the first action** — select a project, then create the first task from the dashboard.
+1. **Open a project and take the first action** — select a project, then create the first task from the dashboard.
 
 The prototype wiring in the design defines the flow from the dashboard. This chart
 maps it (solid = navigation, dashed = dialog/overlay):
@@ -71,7 +71,7 @@ flowchart TD
     Dashboard --> EmptyState[Empty project state]
 ```
 
-### Open a project and take the first action
+### Scenario 1: Open a project and take the first action
 
 **Purpose:** a member opens a project and creates their first task from the dashboard.
 

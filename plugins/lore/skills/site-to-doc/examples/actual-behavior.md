@@ -56,9 +56,9 @@ Observed in the live product:
 
 ## Scenarios
 
-- **Post a comment** — add a comment to a task, including the empty state and validation.
+1. **Post a comment** — add a comment to a task, including the empty state and validation.
 
-### Post a comment
+### Scenario 1: Post a comment
 
 **Purpose:** an Editor adds a comment to a task.
 
@@ -93,6 +93,17 @@ Observed in the live product:
   - **3a1.** The **Post** button shows a spinner, then an inline message **"Couldn't post comment. Retry."**; the comment is not added.
 
 **Postconditions:** the comment is visible to everyone with access to the task.
+
+## Mobile & Tablet View
+
+On the mobile viewport (`390×844`) the task detail differs from desktop only in layout — the flow in Scenario 1 is unchanged:
+
+- The comment thread and the composer stack in a single column; the composer docks to the bottom of the screen and the **Post** button becomes a full-width icon button.
+- The task's side metadata panel (assignee, labels) collapses behind a **"Details"** toggle at the top instead of showing in a right rail.
+
+![Task detail and comment composer on mobile](/img/tasks/mobile/comments-01-initial.png)
+
+Tablet (`768×1024`) keeps the desktop two-column layout at a narrower width; no behavioral differences observed.
 
 ## Behavior vs. design discrepancy
 
