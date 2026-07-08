@@ -29,7 +29,7 @@ Each references a screenshot already on disk under `static/img/upload/`.
 **Severity (guess):** medium
 **Where:** /upload — scenario step 02
 **Expected:** Per Figma v2.1, the limit is 6 GB (standard) / 12 GB (premium).
-**Actual:** A 4 GB file is rejected with the message "حجم فایل بیش از حد مجاز است. حداکثر 3GB" — the live cap is 3 GB for all users, with no premium tier.
+**Actual:** A 4 GB file is rejected with the message "File size exceeds the limit. Maximum 3GB" — the live cap is 3 GB for all users, with no premium tier.
 **Steps to reproduce:**
 1. Go to /upload.
 2. Choose a 4 GB file.

@@ -151,22 +151,22 @@ When live behavior differs from a Figma design or brief: document both versions 
 | **Different error handling** | Document actual error behavior |
 | **Additional features** | Document discovered features not in designs |
 
-**Documentation format for a discrepancy** (shown for a Persian-language project — write in the project's documentation language, §7):
+**Documentation format for a discrepancy** (write in the project's documentation language, §7; the example below is in English):
 
 ```markdown
-## رفتار فعلی سیستم
+## Current System Behavior
 
-### آپلود ویدیو
+### Video Upload
 
-**رفتار مشاهده‌شده در سایت:**
-- حداکثر حجم فایل: 3 گیگابایت
-- پیام خطا: "حجم فایل بیش از حد مجاز است. حداکثر 3GB"
+**Behavior observed on the live site:**
+- Maximum file size: 3 GB
+- Error message: "File size exceeds the limit. Maximum 3GB"
 
-**رفتار طراحی‌شده (Figma v2.1):**
-- حداکثر حجم فایل: 6 گیگابایت (عادی), 12 گیگابایت (پرمیوم)
+**Designed behavior (Figma v2.1):**
+- Maximum file size: 6 GB (standard), 12 GB (premium)
 
-**وضعیت:**
-⚠️ تفاوت بین طراحی و پیاده‌سازی وجود دارد. نیاز به تایید تیم محصول.
+**Status:**
+⚠️ Design and implementation differ. Needs product-team confirmation.
 [CLARIFICATION REQUESTED: Document current 3GB limit or planned 6GB/12GB?]
 ```
 
@@ -174,16 +174,16 @@ When live behavior differs from a Figma design or brief: document both versions 
 
 ### Edge Case Walkthroughs
 
-- **Empty states:** Is there an empty-state message and a CTA? Capture exact text. Example (Persian-language project; use the project's documentation language, §7):
+- **Empty states:** Is there an empty-state message and a CTA? Capture exact text. Example (write in the project's documentation language, §7; shown in English):
 
   ```markdown
-  ### حالت خالی (Empty State)
+  ### Empty State
 
-  ![حالت خالی ویدئوهای من](/img/my-videos/my-videos-01-empty-state.png)
+  ![My Videos empty state](/img/my-videos/my-videos-01-empty-state.png)
 
-  سیستم نمایش می‌دهد:
-  - پیام: "هنوز ویدیویی آپلود نکرده‌اید"
-  - دکمه CTA: "اولین ویدیو خود را آپلود کنید"
+  The system displays:
+  - Message: "You haven't uploaded any videos yet"
+  - CTA button: "Upload your first video"
   ```
 
 - **Maximum values:** actual character/size limit, whether the field blocks input beyond it, counter presence, paste behavior.
@@ -192,7 +192,7 @@ When live behavior differs from a Figma design or brief: document both versions 
 
 ### Technical Details (optional)
 
-Where the user wants technical depth, have the run also collect (via the MCP `browser_console_messages` / `browser_network_requests` tools): API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under a "Technical Details" subsection (heading in the project's documentation language, §7 — e.g. Persian "اطلاعات فنی").
+Where the user wants technical depth, have the run also collect (via the MCP `browser_console_messages` / `browser_network_requests` tools): API endpoints called (request/response shape), JavaScript errors, network failures/timeouts, and load/response times. Document under a "Technical Details" subsection (heading in the project's documentation language, §7).
 
 ### Surfacing Observed Issues (optional bug drafts)
 

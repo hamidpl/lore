@@ -37,8 +37,8 @@ Keep it here in the body (NOT in frontmatter — the hooks validate only the 4
 YAML keys). Fill every row; use "—" when genuinely unknown. "Last verified" is
 the date someone last checked this doc AGAINST ITS SOURCE, not the last edit. -->
 
-| Field | Value |
-|-------|-------|
+|  |  |
+|--|--|
 | **Status** | Draft / Current / Needs review |
 | **Owner** | The team or person accountable for keeping this accurate |
 | **Last verified** | YYYY-MM-DD — against which source (design vX / live site / epic) |
@@ -104,7 +104,7 @@ flowchart TD
 ```
 -->
 
-Then document each scenario with its own `###` sub-heading, repeating the block below. Number each sub-heading in order and name it after the scenario's goal — the format is `### Scenario N: [goal phrase]` (e.g. `### Scenario 1: Create an item`). Write "Scenario" and the number in the document's language (e.g. Persian `### سناریو ۱: ایجاد آیتم`).
+Then document each scenario with its own `###` sub-heading, repeating the block below. Number each sub-heading in order and name it after the scenario's goal — the format is `### Scenario N: [goal phrase]` (e.g. `### Scenario 1: Create an item`). Translate the word "Scenario" and use the numerals of the document's language.
 
 ### Scenario 1: [goal phrase]
 
