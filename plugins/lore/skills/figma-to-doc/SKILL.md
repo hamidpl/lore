@@ -225,7 +225,7 @@ flowchart TD
 ### Handling Figma Edge Cases
 
 - **Missing information:** Document what IS shown; mark gaps as `[CLARIFICATION NEEDED: ...]`; ask the user.
-- **Lorem Ipsum / placeholder text:** Ask for real content; if unavailable insert a placeholder **in the project's documentation language** (§7) — e.g. English: `[real content pending content-team approval]`, Persian: `[محتوای واقعی در انتظار تایید تیم محتوا]` — then flag it in the final report.
+- **Lorem Ipsum / placeholder text:** Ask for real content; if unavailable insert a placeholder **in the project's documentation language** (§7) — e.g. `[real content pending content-team approval]` — then flag it in the final report.
 - **Conflicting annotation vs comment:** Prefer the annotation (usually closer to current design); ask the user to confirm; note in final report.
 - **Multiple design versions:** Ask which to document; if the latest is clear, document it and note "Documented version X (most recent as of [date])".
 

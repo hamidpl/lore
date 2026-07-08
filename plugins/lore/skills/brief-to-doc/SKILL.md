@@ -61,27 +61,29 @@ If questions go unanswered, use `[CLARIFICATION NEEDED: ...]` placeholders in th
 
 ### Inferring Scenarios from User Stories
 
-Transform each `As a [role], I want [action], so that [benefit]` story into a complete scenario (Purpose, Roles, Preconditions, Main Flow, Extensions, Postconditions — per `CLAUDE.md` §4 + the template). Give each scenario its own numbered `###` heading (`Scenario N: …`, in the document's language — see the template). A story's error/empty/edge conditions become **Extensions** anchored to the Main Flow step they depart from. Example (shown for a Persian-language project — write in the project's documentation language, §7):
+Transform each `As a [role], I want [action], so that [benefit]` story into a complete scenario (Purpose, Roles, Preconditions, Main Flow, Extensions, Postconditions — per `CLAUDE.md` §4 + the template). Give each scenario its own numbered `###` heading (`Scenario N: …`, in the document's language — see the template). A story's error/empty/edge conditions become **Extensions** anchored to the Main Flow step they depart from. Write in the project's documentation language (§7); the example below is in English:
 
 ```markdown
-### سناریو ۱: فیلتر ویدیوها بر اساس وضعیت انتشار
+### Scenario 1: Filter videos by publication status
 
-**هدف:** یافت سریع ویدیوها بر اساس وضعیت (پیش‌نویس، منتشرشده، آرشیو)
+**Purpose:** Quickly find videos by status (draft, published, archived).
 
-**پیش‌نیازها:** کاربر حداقل یک ویدیو دارد و در «ویدئوهای من» است
+**Roles Involved:** Any signed-in user with videos.
 
-**فلو اصلی:**
-1. کاربر روی «فیلتر» کلیک می‌کند
-2. سیستم منوی فیلتر را نمایش می‌دهد (همه، منتشرشده، پیش‌نویس، آرشیو)
-3. کاربر «پیش‌نویس» را انتخاب می‌کند
-4. سیستم لیست را فیلتر کرده و تعداد نتایج را نمایش می‌دهد
+**Preconditions:** The user has at least one video and is on "My Videos".
 
-**فلوهای جایگزین و استثنا:**
-- **۴a.** اگر هیچ ویدیویی با وضعیت انتخاب‌شده وجود نداشته باشد:
-  - **۴a۱.** سیستم حالت خالی را نمایش می‌دهد: [CLARIFICATION NEEDED: متن دقیق پیام «نتیجه‌ای یافت نشد» چیست؟]
+**Main Flow:**
+1. The user clicks "Filter"
+2. The system displays the filter menu (All, Published, Draft, Archived)
+3. The user selects "Draft"
+4. The system filters the list and displays the result count
 
-**پیامدها:**
-- وضعیت فیلتر تا پاک‌کردن یا خروج حفظ می‌شود
+**Extensions — Alternative & Exception Flows:**
+- **4a.** If no video matches the selected status:
+  - **4a1.** The system shows the empty state: [CLARIFICATION NEEDED: what is the exact "no results found" message?]
+
+**Postconditions:**
+- The filter state persists until cleared or the user leaves the page.
 ```
 
 > Brief-based scenarios will have more `[CLARIFICATION NEEDED]` markers than design-based ones, since briefs lack visual detail.
