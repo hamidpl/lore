@@ -11,6 +11,14 @@ Before writing or editing any document, you must strictly follow the Documentati
 
 ---
 
+## Product Overview — PRODUCT LAYER
+
+> The canonical one-line description of the product (Rule 4). `/lore:config` sets it, and derives the Docusaurus `tagline` and the `docs/intro.md` home page from it. Keep it to one or two sentences here; the expanded, reader-facing version lives in `docs/intro.md`.
+
+_One-line product description not set yet — add it via `/lore:config`._
+
+---
+
 ## Prerequisite: Lore Plugin (Documentation Factory)
 
 The documentation **methodology** — the four skills (`lore:figma-to-doc`, `lore:brief-to-doc`, `lore:site-to-doc`, `lore:doc-reviewer`), the supporting subagents (`lore:doc-validator`, `lore:figma-extractor`, `lore:site-explorer`), and the BLOCKING-rule enforcement hooks — is provided by the shared **Lore** plugin, not by this repo. This file (CLAUDE.md) carries the always-on rules (DoD, image paths, general rules) plus the product-specific layer (trusted sources §1, user roles §3, documentation structure).

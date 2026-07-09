@@ -79,7 +79,10 @@ If the user chose **Yes**, run the install sequence from **`/lore:add-docusaurus
 
 1. Fetch the latest Docusaurus into `.lore-tmp/` and import the framework, discarding its sample `docs/`/`blog/`/`src/pages/` (add-docusaurus Steps 2–3).
 2. Overlay Lore's config/styling: `sh "$PLUGIN_ROOT/scripts/scaffold.sh" --target . --layer docusaurus` — add `--layer rtl` when the language is RTL.
-3. Fill the Docusaurus placeholders with the answers you already have: `package.json` `{{PROJECT_SLUG}}` (kebab-case of the product name); `docusaurus.config.ts` `{{SITE_TITLE}}`, `{{SITE_TAGLINE}}`, `{{PROJECT_SLUG}}`, `{{ORG}}`, `{{COPYRIGHT}}`, and the i18n placeholders `{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`. **RTL:** set `customCss` to `['./src/css/custom.css', './src/css/custom-rtl.css']`; **LTR:** `['./src/css/custom.css']` and ensure no `custom-rtl.css`/fonts were copied.
+3. Fill the Docusaurus placeholders with the answers you already have: `package.json` `{{PROJECT_SLUG}}` (kebab-case of the product name); `docusaurus.config.ts` `{{SITE_TITLE}}`, `{{SITE_TAGLINE}}`, `{{PROJECT_SLUG}}`, `{{ORG}}`, `{{COPYRIGHT}}`, `{{LORE_ATTRIBUTION}}`, and the i18n placeholders `{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`. **RTL:** set `customCss` to `['./src/css/custom.css', './src/css/custom-rtl.css']`; **LTR:** `['./src/css/custom.css']` and ensure no `custom-rtl.css`/fonts were copied.
+   - `{{LORE_ATTRIBUTION}}` is a **localized** anchor to `https://lorekit.net`, filled per the documentation language ("Lore" always stays Latin):
+     - **RTL / Persian:** `ساخته شده با <a href="https://lorekit.net" target="_blank" rel="noopener noreferrer">Lore</a>`
+     - **LTR / English:** `Built with <a href="https://lorekit.net" target="_blank" rel="noopener noreferrer">Lore</a>`
 4. Wire `sidebars.ts` to the real `docs/` tree.
 5. Run `npm install && npm run build` from the project root and report green/red.
 6. After a green build, set `"docusaurus": true` in `.claude/lore.json`.
