@@ -7,7 +7,7 @@
 #   scaffold.sh --target <dir> --layer docs [--layer docusaurus] [--layer rtl]
 #
 # Layers:
-#   docs        templates/docs-layer/      → .claude/, docs/, docs-template/
+#   docs        templates/docs-layer/      → .claude/, docs/, templates/
 #   docusaurus  templates/docusaurus-base/ → overlay only: docusaurus.config.ts,
 #               sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus
 #               framework itself is fetched fresh via create-docusaurus@latest

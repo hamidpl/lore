@@ -83,7 +83,7 @@ Every fact, rule, or definition must be written in **exactly one canonical locat
 | Global rules / DoD / image paths / user roles / trusted sources | `.claude/CLAUDE.md` (this file) |
 | Input-specific workflow logic | the relevant skill in the **Lore** plugin (`lore:{name}`) |
 | Lessons learned | `.claude/lesson-learned.md` |
-| Document structure template | `docs-template/Product Document Template.md` |
+| Document structure template | `templates/product-document-template.md` |
 | Skill structure template | `templates/skill-template.md` in the **Lore** plugin |
 
 - ⛔ Copying the full text of an existing rule into a second place is prohibited. This rule is BLOCKING.
@@ -135,7 +135,7 @@ _None yet — define them via `/lore:config`._
 
 ### Section 2 — Documentation Scope & Structure
 
-Every document follows the structure defined in the canonical template at `docs-template/Product Document Template.md` — use its sections, in its order. If the project's template is customized, that file remains the single source of truth for document structure (Rule 4).
+Every document follows the structure defined in the canonical template at `templates/product-document-template.md` — use its sections, in its order. If the project's template is customized, that file remains the single source of truth for document structure (Rule 4).
 
 Independent of the template body, every document must begin with valid YAML frontmatter (enforced by the frontmatter hook and §6):
 
@@ -166,7 +166,7 @@ If your product has distinct roles, add a roles table here (name + optional loca
 
 ### Section 4 — Scenario Writing Rules (Blocking)
 
-Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Roles Involved**, **Preconditions**, **Main Flow** (steps with system reactions), **Extensions** (alternative & exception flows), and **Postconditions** — following the scenario structure in `docs-template/Product Document Template.md`. Each scenario is its own `###` sub-heading under a single `## Scenarios` section, **numbered in order** (the exact heading format — `Scenario N: [goal]` — is defined in the template; do not restate it here, Rule 4). The page title/H1 comes from frontmatter — the body carries no `#` heading.
+Scenarios must be complete, step-by-step, and written from the user's perspective. Each must include **Purpose**, **Roles Involved**, **Preconditions**, **Main Flow** (steps with system reactions), **Extensions** (alternative & exception flows), and **Postconditions** — following the scenario structure in `templates/product-document-template.md`. Each scenario is its own `###` sub-heading under a single `## Scenarios` section, **numbered in order** (the exact heading format — `Scenario N: [goal]` — is defined in the template; do not restate it here, Rule 4). The page title/H1 comes from frontmatter — the body carries no `#` heading.
 
 **Errors, validation failures, empty states, and edge cases belong in the scenario's Extensions section** — anchored to the Main Flow step they depart from (step-letter numbering: `3a`, `3a1`, …), not scattered through the happy-path steps and not omitted. The template defines the exact format; do not restate it here (Rule 4).
 
@@ -174,7 +174,7 @@ Scenarios must be complete, step-by-step, and written from the user's perspectiv
 
 **⛔ BLOCKING:** Images grouped at the end of a scenario or in a separate "Images" section is NOT acceptable.
 
-Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases — checked against the edge-case coverage taxonomy in `docs-template/Product Document Template.md` (Scenarios section) and documented as Extensions.
+Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases — checked against the edge-case coverage taxonomy in `templates/product-document-template.md` (Scenarios section) and documented as Extensions.
 
 ### Section 5 — Accuracy & Consistency
 

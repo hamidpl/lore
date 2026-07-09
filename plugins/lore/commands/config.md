@@ -22,7 +22,7 @@ Use AskUserQuestion. Every question is optional: tell the user they can **skip**
 - **Project site URL** — the product's live website, if it has one (optional). Ask this **before** the description. If given, record it together with the product description and offer to add it to §1 Trusted Sources as the live product URL.
 - **Product description** — a short description of the product. It is the canonical source (Rule 4) for three surfaces written in Step 2: the **Product Overview — PRODUCT LAYER** block in `.claude/CLAUDE.md`, the **`docs/intro.md`** home page (expanded into a real introduction), and the Docusaurus **tagline** when Docusaurus is present.
 - **Trusted sources (§1)** — e.g. a Help Center URL, Blog URL, Live product URL, or any source the user trusts. These become the configured trusted sources in the DoD. Replace the "Configured trusted sources" block in §1 (default text: "_None yet…_") with the list the user gives.
-- **Document-writing template** — present exactly **two** options: **Use the default template** (the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/docs-template/Product Document Template.md"`, already copied at init) or **Provide a custom template path**. If the user picks custom, capture the path (free-text) and copy that file over `docs-template/Product Document Template.md`.
+- **Document-writing template** — present exactly **two** options: **Use the default template** (the canonical bundled one at `"$PLUGIN_ROOT/templates/docs-layer/templates/product-document-template.md"`, already copied at init) or **Provide a custom template path**. If the user picks custom, capture the path (free-text) and copy that file over `templates/product-document-template.md`.
 - **Brand color** — only meaningful if Docusaurus is installed. A hex color; regenerate the 7 `--ifm-color-primary-*` shades in `src/css/custom.css` from it.
 
 **The 3 init answers (editable here too)**
@@ -36,7 +36,7 @@ For each setting the user provided (skip the rest), edit the right file. §1 con
 - Site URL, sources, product name/language → `.claude/CLAUDE.md`.
 - Title/slug/org/copyright, i18n, customCss → `docusaurus.config.ts` / `package.json` (only if Docusaurus present). When re-writing the footer `copyright` line, **keep the trailing ` · <Lore attribution>`** intact (the "ساخته شده با Lore" / "Built with Lore" link) — don't drop it.
 - Brand color → `src/css/custom.css`.
-- Document template → `docs-template/Product Document Template.md`.
+- Document template → `templates/product-document-template.md`.
 
 **Product description → three derived surfaces** (only when the user gave/changed a description):
 1. **`.claude/CLAUDE.md`** — rewrite the default line in the **Product Overview — PRODUCT LAYER** block with the one/two-sentence description (the canonical copy, Rule 4).
