@@ -104,6 +104,15 @@ case "$rel" in
       echo "Use /img/{section}/ instead (physical storage stays static/img/). See CLAUDE.md Section 6 / Rule 1." >&2
       exit 2
     fi
+    # Rule C: mobile-view screenshots must be embedded as raw HTML <img>, not
+    # markdown syntax — Docusaurus rewrites markdown-embedded images to hashed
+    # /assets/images/ URLs at build time, stripping the /mobile/ segment the
+    # half-width stylesheet keys on (CLAUDE.md Section 6).
+    if [ -f "$file_path" ] && grep -qE '!\[[^]]*\]\([^)]*/mobile/' "$file_path"; then
+      echo "BLOCKED: markdown in $rel embeds a /mobile/ screenshot with markdown ![..](..) syntax." >&2
+      echo 'Use a raw HTML tag instead: <img src="/img/{section}/mobile/..." alt="..." /> — markdown-embedded images lose the /mobile/ path at build time, so the half-width mobile styling never applies (CLAUDE.md Section 6).' >&2
+      exit 2
+    fi
     ;;
 esac
 

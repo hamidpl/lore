@@ -8,6 +8,31 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.5.2
+
+A rendering fix for mobile-view screenshots: they now keep their half-width
+display after a Docusaurus production build, not just in dev.
+
+### Mobile screenshots stay half-width after build
+
+- **What changed.** Mobile-view screenshots must now be embedded with a raw
+  `<img src="/img/{section}/mobile/…" alt="…" />` tag instead of markdown
+  `![…](…)` syntax. The half-width rule (`.markdown img[src*="/mobile/"]`) is
+  unchanged; only the embed form is. Desktop and tablet images keep markdown
+  syntax. The convention is enforced at write time (`check-image-path.sh`
+  Rule C, BLOCKING) and on Stop (`verify-docs.sh` check 2b), and checked by
+  `lore:doc-reviewer` / `lore:doc-validator`.
+- **Why.** Docusaurus rewrites markdown-embedded images to hashed
+  `/assets/images/…` URLs at build time, stripping the `/mobile/` path segment
+  the stylesheet keys on — so the 50% rule silently stopped applying in the
+  built site (it still worked in dev). A raw `<img>` tag keeps its `src`
+  verbatim through the build. Device classification is unchanged: mobile frames
+  are still detected by frame **width** (≲480px), not by the word "mobile" in a
+  layer/section name.
+- **How verified.** Hook suite green (50 assertions, incl. new markdown-`/mobile/`
+  block, raw-`<img>` pass, and alt-text-only non-false-positive cases);
+  `shellcheck -S warning` clean; `claude plugin validate` passes.
+
 ## 0.5.1
 
 A small batch of authoring-quality improvements: the generated home page is no

@@ -111,7 +111,10 @@ table {
    tall portrait phone shots are shown at half width on desktop so they
    don't dominate the page, and at full width on small screens. Scoped to
    the article body so navbar/logo imagery is unaffected. Width-only +
-   centered margins are direction-neutral (no RTL mirror needed). */
+   centered margins are direction-neutral (no RTL mirror needed).
+   Requires the raw <img src="/img/.../mobile/..." /> embed (CLAUDE.md §6):
+   markdown-embedded images are rewritten to hashed /assets/images/ URLs at
+   build time, so this src selector would never match them. */
 .markdown img[src*="/mobile/"] {
 	display: block;
 	width: 50%;
