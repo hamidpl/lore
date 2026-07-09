@@ -8,6 +8,61 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.5.0
+
+Adds a shared **edge-case coverage taxonomy** plus methodology upgrades across
+all four skills — making scenario coverage systematic instead of ad-hoc, while
+keeping the no-invention principle supreme.
+
+### Edge-case coverage taxonomy (single source of truth)
+
+- **What changed.** The Product Document Template gains a compact **edge-case
+  coverage taxonomy** in the `Scenarios` section — nine categories (empty/null,
+  boundaries, errors, concurrency, state transitions, permissions, invalid
+  input, internationalization, bulk operations), roughly ordered by
+  production-defect frequency. It is guidance inside the Scenarios explanation,
+  not a new output section.
+- Defined once in the template (Rule 4); the global §4 rule, all three producer
+  skills, `lore:doc-reviewer`, and `lore:doc-validator` **reference** it and add
+  only their input-specific application — no skill re-lists the categories.
+
+### Per-skill upgrades
+
+- **`lore:brief-to-doc`.** A **brief-readiness gate** (warns and asks before
+  generating from a brief missing acceptance criteria / personas / out-of-scope);
+  a **clarification-question cap** (~5, impact-ordered; the rest become
+  placeholders); **Gherkin acceptance-criteria mapping** (Given → Preconditions,
+  When/Then → a Main Flow step, failures → Extensions); the taxonomy used as a
+  **question engine** (a silent-but-applicable category becomes a
+  category-attributed question or placeholder, never a fabricated Extension); and
+  an **AC testability rule** (subjective criteria are flagged, not accepted).
+- **`lore:site-to-doc`.** Edge-case coverage delegates to the taxonomy; limits
+  get a **three-value boundary probe** (below/at/above — e.g. 99/100/101),
+  **state transitions** are exercised (Back mid-flow, direct mid-state URL), and
+  a tight budget is triaged by the taxonomy's frequency order.
+- **`lore:figma-to-doc`.** A taxonomy-driven **missing-states check**: each
+  feature's design is checked for empty / error / loading / permission-denied
+  frames; an absent state becomes a clarification question, never an invented
+  screen.
+- **`lore:doc-reviewer` / `lore:doc-validator`.** A scenario with a missing or
+  empty **Extensions** block is flagged as a **warning** (non-blocking), and
+  Extensions coverage is judged against the taxonomy — scoped to projects whose
+  template defines one, so existing repos see no false warnings.
+
+### Migration
+
+- `scaffold.sh` never overwrites, so **existing** projects get the updated skills
+  via `/plugin update` but keep their old template. To gain the full benefit,
+  copy the **Edge-case coverage taxonomy** block from the plugin's
+  `templates/docs-layer/docs-template/Product Document Template.md` into your
+  project's `docs-template/` copy.
+
+### Verified
+
+- `sh tests/run-tests.sh` (44 passed), `claude plugin validate ./plugins/lore`,
+  and `npm run build` for the docs site (EN + FA) all pass; Rule 4 greps confirm
+  the taxonomy text lives only in the template.
+
 ## 0.4.1
 
 Adds **mobile/tablet view documentation**, **numbered scenarios**, and
