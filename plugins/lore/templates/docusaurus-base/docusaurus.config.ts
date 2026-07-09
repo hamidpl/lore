@@ -74,7 +74,9 @@ const config: Config = {
     footer: {
       style: 'dark',
       links: [],
-      copyright: '{{COPYRIGHT}}',
+      // copyright renders as raw HTML. {{LORE_ATTRIBUTION}} is a localized anchor
+      // to lorekit.net ("ساخته شده با Lore" / "Built with Lore") filled by the wizard.
+      copyright: '{{COPYRIGHT}} · {{LORE_ATTRIBUTION}}',
     },
     prism: {
       theme: prismThemes.github,

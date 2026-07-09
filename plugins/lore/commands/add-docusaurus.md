@@ -77,7 +77,8 @@ This drops Lore's `docusaurus.config.ts` (templated), `sidebars.ts`, `src/css/cu
 ## Step 5 — Fill config + wire the sidebar to existing docs
 
 - `package.json`: `{{PROJECT_SLUG}}`.
-- `docusaurus.config.ts`: title/tagline/slug/org/copyright + i18n (`{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`). Pull product name/description from `.claude/CLAUDE.md`. **RTL:** set `customCss` to `['./src/css/custom.css', './src/css/custom-rtl.css']`; **LTR:** keep `['./src/css/custom.css']`.
+- `docusaurus.config.ts`: title/tagline/slug/org/copyright + `{{LORE_ATTRIBUTION}}` + i18n (`{{LOCALE}}`, `{{LANG_LABEL}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`). Pull product name/description from `.claude/CLAUDE.md` (tagline from the **Product Overview** block). **RTL:** set `customCss` to `['./src/css/custom.css', './src/css/custom-rtl.css']`; **LTR:** keep `['./src/css/custom.css']`.
+  - `{{LORE_ATTRIBUTION}}` is a **localized** anchor to `https://lorekit.net` ("Lore" stays Latin) — **RTL / Persian:** `ساخته شده با <a href="https://lorekit.net" target="_blank" rel="noopener noreferrer">Lore</a>`; **LTR / English:** `Built with <a href="https://lorekit.net" target="_blank" rel="noopener noreferrer">Lore</a>`.
 - `sidebars.ts`: generate a sidebar that mirrors the **existing** `docs/` tree (one entry per section/folder), not the placeholder example.
 
 ## Step 6 — Install, build, and show the user how to preview

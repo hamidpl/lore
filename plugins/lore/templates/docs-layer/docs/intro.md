@@ -11,7 +11,7 @@ tags: [home, introduction]
 Welcome to the product documentation. These docs are written for internal use by the product team.
 
 :::note Starter page
-This is a sample home page. Replace the title and body with your product's introduction. See the project `README.md` for how to generate documentation and configure project settings.
+This is a sample home page. Setting the product description in your project settings rewrites this page into a real product introduction; you can also edit the title and body here by hand. See the project `README.md` for how to generate documentation and configure project settings.
 :::
 
 ## About these docs
