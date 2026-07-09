@@ -106,7 +106,7 @@ Several Gherkin criteria usually collapse into ONE scenario: the shared flow is 
 
 ### Edge-Case Coverage as a Question Engine
 
-After drafting each scenario, walk the **edge-case coverage taxonomy** in the template's Scenarios section (`docs-template/Product Document Template.md`), category by category:
+After drafting each scenario, walk the **edge-case coverage taxonomy** in the template's Scenarios section (`templates/product-document-template.md`), category by category:
 
 - The brief **addresses** the category → document it as an Extension (anchored per the template).
 - The category **applies but the brief is silent** → a targeted clarification question (it counts against the ~5 cap in "Asking Clarification Questions") or a `[CLARIFICATION NEEDED: ...]` placeholder, **named after the category** so the gap is auditable (e.g. `[CLARIFICATION NEEDED: concurrency — what happens on double-submit?]`).

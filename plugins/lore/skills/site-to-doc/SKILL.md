@@ -132,7 +132,7 @@ Exercise each feature across four dimensions (encode these as steps in the scena
 
 **2. Validation Errors** — empty required fields, invalid data (special chars, too long), wrong file type, oversized file, submit-with-errors. Record the **exact** error text for each.
 
-**3. Edge Cases** — walk the **edge-case coverage taxonomy** in the template's Scenarios section (`docs-template/Product Document Template.md`) and probe every category that applies, live — the concrete per-category probes are in "Edge Case Walkthroughs" below. When the budget is tight, cover categories in the taxonomy's listed order (roughly defect-frequency ordered) and record what was skipped.
+**3. Edge Cases** — walk the **edge-case coverage taxonomy** in the template's Scenarios section (`templates/product-document-template.md`) and probe every category that applies, live — the concrete per-category probes are in "Edge Case Walkthroughs" below. When the budget is tight, cover categories in the taxonomy's listed order (roughly defect-frequency ordered) and record what was skipped.
 
 **4. Permission & Role Tests** — observe each role's view and access differences (roles per `CLAUDE.md` §3). Note which roles you could and could not test.
 

@@ -75,7 +75,7 @@ Every fact exists in exactly one canonical location; everywhere else references 
 | Global rules / DoD | Consuming repo's `.claude/CLAUDE.md` |
 | Input-specific workflow | The relevant skill (`skills/{name}/SKILL.md`) |
 | Lessons learned | Consuming repo's `.claude/lesson-learned.md` |
-| Document structure template | `templates/docs-layer/docs-template/Product Document Template.md` |
+| Document structure template | `templates/docs-layer/templates/product-document-template.md` |
 | Skill structure template | `templates/skill-template.md` |
 
 Copying the full text of an existing rule into a second place is prohibited.
@@ -113,7 +113,7 @@ The hooks are covered by `tests/run-tests.sh` and CI (`.github/workflows/ci.yml`
 
 Three independent, composable layers copied by `scripts/scaffold.sh`:
 
-- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `docs-template/`, project `README.md`
+- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `templates/`, project `README.md`
 - **`docusaurus-base`** — optional viewer **overlay**: docusaurus.config.ts, sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus framework itself is fetched fresh via `create-docusaurus@latest` (always latest) by `/lore:add-docusaurus`, not bundled here.
 - **`rtl-assets`** — optional: Persian font (self-hosted Vazirmatn `@font-face` with webpack-relative URLs inside `custom-rtl.css`) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
 
