@@ -186,6 +186,7 @@ Terminology must match existing docs; UI labels and behaviors must exactly match
 - All images stored in `static/img/{section}/` (physical location)
 - All markdown image references use `/img/{section}/` (NOT `/static/img/`)
 - **Responsive screenshots (path convention):** mobile-view screenshots go under `static/img/{section}/mobile/` (referenced `/img/{section}/mobile/…`) and tablet-view under `static/img/{section}/tablet/`. The `/mobile/` path segment is meaningful: the Docusaurus stylesheet renders any `/mobile/` image at **half width on desktop, full width on small screens** — so a tall portrait phone shot doesn't dominate the page. Tablet (and desktop) images display full width.
+- **⛔ BLOCKING: mobile-view screenshots must be embedded with a raw HTML tag** — `<img src="/img/{section}/mobile/…" alt="…" />` (self-closing, MDX requires the `/>`), never markdown `![…](…)` syntax. Docusaurus rewrites markdown-embedded images to hashed `/assets/images/…` URLs at build time, which strips the `/mobile/` segment the half-width styling keys on; a raw `<img>` keeps its `src` verbatim. Desktop and tablet images keep normal markdown syntax.
 - **⛔ BLOCKING:** No images in `/docs/`
 - **⛔ BLOCKING:** No tooling/internal references in reader-facing docs (Rule 5) — no `lore:*`, no `.claude/` paths, no `CLAUDE.md` citation
 - Documentation builds in Docusaurus with no errors
@@ -195,7 +196,7 @@ Terminology must match existing docs; UI labels and behaviors must exactly match
 |--------|---------|
 | Physical storage | `static/img/overview/feature.png` |
 | Markdown reference | `![description](/img/overview/feature.png)` |
-| Mobile-view screenshot | `static/img/overview/mobile/feature.png` → `![…](/img/overview/mobile/feature.png)` (auto half-width on desktop) |
+| Mobile-view screenshot | `static/img/overview/mobile/feature.png` → `<img src="/img/overview/mobile/feature.png" alt="…" />` (raw tag — auto half-width on desktop) |
 | Why not `/static/` | Docusaurus serves `static/` at root; `/static/img/` causes "file not found" |
 
 ### Section 7 — Language & Style

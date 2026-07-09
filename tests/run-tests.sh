@@ -100,6 +100,16 @@ posttool "$HOOKS/check-image-path.sh" "$P" "$P/docs/htmlref.md"; check_exit 2 "$
 printf '![a](/img/s/a.png)\n' >"$P/docs/okref.md"
 posttool "$HOOKS/check-image-path.sh" "$P" "$P/docs/okref.md"; check_exit 0 "$RC" "/img/ ref passes"
 
+printf '![m](/img/s/mobile/a.png)\n' >"$P/docs/mdmobile.md"
+posttool "$HOOKS/check-image-path.sh" "$P" "$P/docs/mdmobile.md"; check_exit 2 "$RC" "markdown /mobile/ ref blocks"
+check_stderr "raw HTML" "mobile message suggests the raw <img> tag"
+
+printf '<img src="/img/s/mobile/a.png" alt="m" />\n' >"$P/docs/htmlmobile.md"
+posttool "$HOOKS/check-image-path.sh" "$P" "$P/docs/htmlmobile.md"; check_exit 0 "$RC" "raw <img> /mobile/ ref passes"
+
+printf '![shown on mobile](/img/s/a.png)\n' >"$P/docs/mobilealt.md"
+posttool "$HOOKS/check-image-path.sh" "$P" "$P/docs/mobilealt.md"; check_exit 0 "$RC" "'mobile' in alt text only is not a false positive"
+
 mkdir -p "$P/static/img/s"
 printf 'PNG\n' >"$P/static/img/s/a.png"
 posttool "$HOOKS/check-image-path.sh" "$P" "$P/static/img/s/a.png"; check_exit 0 "$RC" "image under static/img passes"
@@ -155,6 +165,14 @@ rm -f "$V/docs/bad.png"
 printf '![a](/static/img/s/a.png)\n' >"$V/docs/badref.md"
 stophook "$V" false; check_exit 2 "$RC" "/static/img ref blocks on Stop"
 rm -f "$V/docs/badref.md"
+
+printf '![m](/img/s/mobile/a.png)\n' >"$V/docs/mdmobile.md"
+stophook "$V" false; check_exit 2 "$RC" "markdown /mobile/ ref blocks on Stop"
+rm -f "$V/docs/mdmobile.md"
+
+printf '<img src="/img/s/mobile/a.png" alt="m" />\n' >"$V/docs/htmlmobile.md"
+stophook "$V" false; check_exit 0 "$RC" "raw <img> /mobile/ ref passes on Stop"
+rm -f "$V/docs/htmlmobile.md"
 
 printf 'PNG\n' >"$V/static/img/s/orphan.png"
 stophook "$V" false; check_exit 0 "$RC" "orphan image is non-blocking"

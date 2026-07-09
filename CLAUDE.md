@@ -98,10 +98,10 @@ A skill must contain ONLY input-specific content. If something is already a glob
 
 Three hooks in `plugins/lore/hooks/hooks.json`:
 
-- **`check-image-path.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): images must be in `static/img/`, markdown/MDX refs must use `/img/` (never `/static/img/`), images must never be placed in `docs/`.
+- **`check-image-path.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): images must be in `static/img/`, markdown/MDX refs must use `/img/` (never `/static/img/`), images must never be placed in `docs/`, and `/mobile/` screenshots must be embedded with a raw `<img …/>` tag — markdown `![…](…/mobile/…)` refs are blocked because the Docusaurus build rewrites markdown-embedded images to hashed `/assets/images/` URLs, stripping the `/mobile/` path the half-width CSS keys on.
 - **`check-frontmatter.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): every `docs/` markdown/MDX must have a closed YAML frontmatter block with 4 keys: `sidebar_position`, `title`, `description`, `tags` (tolerant of CRLF/BOM).
 - **`check-no-tooling-refs.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): `docs/` markdown/MDX must not reference the authoring tooling — blocks `.claude/` paths, `CLAUDE.md` citations, and the `lore:` skill/subagent namespace (Rule 5 / §6). `lore:` requires a non-alphanumeric boundary so prose like "folklore:" is not a false positive.
-- **`verify-docs.sh`** (Stop): BLOCKS (exit 2) on images under `docs/` and `/static/img/` refs; WARNS about orphan images. Honors `stop_hook_active` to avoid loops.
+- **`verify-docs.sh`** (Stop): BLOCKS (exit 2) on images under `docs/`, `/static/img/` refs, and markdown-embedded `/mobile/` images; WARNS about orphan images. Honors `stop_hook_active` to avoid loops.
 
 **Path scoping:** hooks resolve each file relative to the project root (`$CLAUDE_PROJECT_DIR`, else payload `cwd`) and act only on `docs/` paths. **Scope carve-out:** `.claude/`, `templates/`, and `_templates/` are skipped (intentional examples live there). JSON parsing falls back jq → python3 → sed and warns loudly if none is available rather than silently passing.
 

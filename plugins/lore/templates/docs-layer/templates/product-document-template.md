@@ -148,7 +148,7 @@ _(Optional — delete this heading if the product has no distinct mobile/tablet 
 
 Document **only what differs** from the desktop view — never re-tell a flow already covered above. Cover the layout changes (single-column stacking, elements hidden/moved/collapsed), the navigation pattern (e.g. a hamburger menu replacing a top bar), and any behavior that genuinely changes on a smaller screen (reference the affected scenario by its number, e.g. "In Scenario 2, …"). If a viewport behaves identically to desktop apart from reflow, say so in one line rather than restating steps.
 
-Place mobile screenshots from `/img/{section}/mobile/…` — images under that `mobile/` path are automatically shown at half width on desktop and full width on small screens (see `.claude/CLAUDE.md` §6). Tablet screenshots go under `/img/{section}/tablet/…` and display full width.
+Embed mobile screenshots with a raw HTML tag — `<img src="/img/{section}/mobile/…" alt="…" />`, never markdown `![…](…)` syntax — images under that `mobile/` path are automatically shown at half width on desktop and full width on small screens, and only the raw tag keeps the `/mobile/` path intact in the built site (see `.claude/CLAUDE.md` §6). Tablet screenshots go under `/img/{section}/tablet/…` (markdown syntax is fine there) and display full width.
 
 ## Open Questions
 

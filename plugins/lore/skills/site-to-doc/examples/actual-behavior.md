@@ -101,7 +101,7 @@ On the mobile viewport (`390×844`) the task detail differs from desktop only in
 - The comment thread and the composer stack in a single column; the composer docks to the bottom of the screen and the **Post** button becomes a full-width icon button.
 - The task's side metadata panel (assignee, labels) collapses behind a **"Details"** toggle at the top instead of showing in a right rail.
 
-![Task detail and comment composer on mobile](/img/tasks/mobile/comments-01-initial.png)
+<img src="/img/tasks/mobile/comments-01-initial.png" alt="Task detail and comment composer on mobile" />
 
 Tablet (`768×1024`) keeps the desktop two-column layout at a narrower width; no behavioral differences observed.
 

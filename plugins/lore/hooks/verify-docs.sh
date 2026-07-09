@@ -61,6 +61,17 @@ if [ -n "$bad_refs" ]; then
   blocked=1
 fi
 
+# 2b) Mobile-view screenshots must use the raw <img> embed, not markdown syntax
+#     (BLOCKING) — matches the write-time hook (check-image-path.sh Rule C):
+#     markdown-embedded images lose the /mobile/ path at build time, so the
+#     half-width mobile styling never applies (CLAUDE.md Section 6).
+bad_mobile=$(grep -rnE '!\[[^]]*\]\([^)]*/mobile/' docs/ 2>/dev/null)
+if [ -n "$bad_mobile" ]; then
+  echo 'BLOCKED: /mobile/ screenshots embedded with markdown syntax (use a raw <img src="..." alt="..." /> tag so the /mobile/ path survives the build):' >&2
+  echo "$bad_mobile" >&2
+  blocked=1
+fi
+
 [ "$blocked" -eq 1 ] && exit 2
 
 # 3) Orphan images (WARNING only): files in static/img/ referenced by no doc,
