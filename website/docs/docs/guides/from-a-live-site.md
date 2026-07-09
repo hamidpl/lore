@@ -34,7 +34,7 @@ Every feature is exercised across four dimensions:
 
 - **Happy path** — the successful end-to-end journey.
 - **Validation errors** — empty fields, invalid data, oversized files; the *exact* error text is recorded.
-- **Edge cases** — empty states, maximum values, network failures, rapid or duplicate actions.
+- **Edge cases** — driven by the documentation template's edge-case taxonomy, in rough defect-frequency order: limits get a three-value probe (just below, at, just above — e.g. 99/100/101), and state transitions are exercised too (Back mid-flow, direct URL entry into a mid-flow state), alongside empty states and network failures.
 - **Roles & permissions** — how each role's view and access differ.
 
 ## Free QA on the side

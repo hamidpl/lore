@@ -126,7 +126,19 @@ Then document each scenario with its own `###` sub-heading, repeating the block 
 - **4a.** [condition — e.g. "the upload exceeds BR-2's limit"]:
   - **4a1.** The system blocks the upload and shows "[exact message]".
 
-Mandatory detail (per §4): all user options, all form fields (required vs optional), all validation rules, all system messages with their exact wording, and edge cases (empty, maximum, error).
+**Edge-case coverage taxonomy** — before closing a scenario, walk its Extensions against these categories, roughly ordered by production-defect frequency. A category the source addresses becomes an Extension; a category that applies but the source is silent on becomes a clarification question or a `[CLARIFICATION NEEDED: …]` marker — never an invented branch; a category that does not apply is skipped.
+
+- **Empty / null** — no data yet, zero results, blank or missing values.
+- **Boundaries** — min/max limits and off-by-one; defects cluster exactly at the limit.
+- **Errors** — network or server failure, timeout, expired session or link.
+- **Concurrency** — double-submit, two actors changing the same thing at once.
+- **State transitions** — back button mid-flow, re-entry, jumps into an invalid state.
+- **Permissions** — a role without access, or access revoked mid-session.
+- **Invalid input** — wrong type or format, special characters, malformed files.
+- **Internationalization** — long translations, RTL, date/number formats _(only when the product is multi-lingual)_.
+- **Bulk operations** — many-at-once actions, very large selections _(only for data-heavy features)_.
+
+Mandatory detail (per §4): all user options, all form fields (required vs optional), all validation rules, all system messages with their exact wording, and edge cases per the coverage taxonomy above.
 
 **Postconditions** — what is true after the scenario completes.
 

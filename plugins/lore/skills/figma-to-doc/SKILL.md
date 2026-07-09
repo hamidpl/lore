@@ -225,6 +225,7 @@ flowchart TD
 ### Handling Figma Edge Cases
 
 - **Missing information:** Document what IS shown; mark gaps as `[CLARIFICATION NEEDED: ...]`; ask the user.
+- **Missing-states check (taxonomy-driven):** for each documented feature, check the design for frames covering the visual states the template's edge-case coverage taxonomy implies a real feature has — at minimum **empty, error, loading, and permission-denied**. Each absent state becomes a targeted clarification question ("Is there a design for the empty list state?") and, if unanswered, a `[CLARIFICATION NEEDED: ...]` in the relevant scenario's Extensions — never silence, never a described-but-undesigned screen.
 - **Lorem Ipsum / placeholder text:** Ask for real content; if unavailable insert a placeholder **in the project's documentation language** (§7) — e.g. `[real content pending content-team approval]` — then flag it in the final report.
 - **Conflicting annotation vs comment:** Prefer the annotation (usually closer to current design); ask the user to confirm; note in final report.
 - **Multiple design versions:** Ask which to document; if the latest is clear, document it and note "Documented version X (most recent as of [date])".
@@ -265,6 +266,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Images exported as individual FRAMEs at 2x, stored under `static/img/{section}/`
 - [ ] Frames classified by device; mobile/tablet frames (if any) exported to `mobile/`/`tablet/` sub-paths and the Mobile & Tablet View section written (differences only) — or section omitted because none exist
 - [ ] Scenario headings numbered per the template (`Scenario N: …`)
+- [ ] Missing-states check run per feature (empty / error / loading / permission-denied frames); absent states raised as clarification questions, not invented
 - [ ] Images placed inline at correct scenario steps (per `CLAUDE.md` §4)
 - [ ] Temporary/composite files cleaned up
 - [ ] Final report includes Figma file details + extracted-image list

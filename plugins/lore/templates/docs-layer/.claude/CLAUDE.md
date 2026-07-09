@@ -166,7 +166,7 @@ Scenarios must be complete, step-by-step, and written from the user's perspectiv
 
 **⛔ BLOCKING:** Images grouped at the end of a scenario or in a separate "Images" section is NOT acceptable.
 
-Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases (empty states, maximum values, errors) — the latter documented as Extensions.
+Mandatory scenario details: all user options, all form fields (required vs optional), all validation rules, all system messages (success and error, exact wording), and edge cases — checked against the edge-case coverage taxonomy in `docs-template/Product Document Template.md` (Scenarios section) and documented as Extensions.
 
 ### Section 5 — Accuracy & Consistency
 
