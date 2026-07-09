@@ -19,7 +19,7 @@ The reviewer works through the Definition of Done area by area, verifying the te
 
 - **Sources** — facts trace back to approved sources; nothing fabricated.
 - **Structure** — valid frontmatter; all required sections present.
-- **Scenarios** — each is numbered (`Scenario 1`, `Scenario 2`, …) and has purpose, preconditions, flow, and postconditions, with images inline at the right step; a Mobile & Tablet View section is present whenever the doc uses responsive screenshots.
+- **Scenarios** — each is numbered (`Scenario 1`, `Scenario 2`, …) and has purpose, preconditions, flow, and postconditions, with images inline at the right step; a Mobile & Tablet View section is present whenever the doc uses responsive screenshots. A scenario with no extensions (its error and edge branches) is flagged as a warning, and extension coverage is compared against the documentation template's edge-case taxonomy.
 - **Accuracy** — consistent terminology; UI labels match the source; rules are explicit.
 - **Technical validity** — internal links work; image references and storage paths are correct; no images in the wrong place; and the site builds with no errors.
 - **Language & style**, and a complete **final report**.

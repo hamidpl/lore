@@ -122,6 +122,7 @@ The pattern is **"the human logs in once, automation continues."** A password is
 - Push the heavy browsing into the **`lore:site-explorer`** subagent so its verbose tool traffic never enters the main context — only the compact summary returns.
 - **Default budget: ~3 scenarios / ~10 pages per run.** Going beyond needs explicit user confirmation. A responsive pass (a second/third viewport) counts against this budget — which is why it is opt-in (Pre-Flight step 6).
 - **Update mode is cheap by design:** when the product changes, re-run only the affected saved scenario script(s); unchanged captures and prose stay as-is.
+- **Tight budget → triage by taxonomy order:** the template's taxonomy is listed roughly by defect frequency — when the page/scenario budget can't cover everything, probe categories top-down and list the not-probed ones in the final report.
 
 ### Systematic Testing Approach
 
@@ -131,7 +132,7 @@ Exercise each feature across four dimensions (encode these as steps in the scena
 
 **2. Validation Errors** — empty required fields, invalid data (special chars, too long), wrong file type, oversized file, submit-with-errors. Record the **exact** error text for each.
 
-**3. Edge Cases** — empty list / empty state, maximum values (character/file-size limits), network failure mid-operation, slow connection (loading states/timeouts), multiple rapid clicks (duplicate-action protection).
+**3. Edge Cases** — walk the **edge-case coverage taxonomy** in the template's Scenarios section (`docs-template/Product Document Template.md`) and probe every category that applies, live — the concrete per-category probes are in "Edge Case Walkthroughs" below. When the budget is tight, cover categories in the taxonomy's listed order (roughly defect-frequency ordered) and record what was skipped.
 
 **4. Permission & Role Tests** — observe each role's view and access differences (roles per `CLAUDE.md` §3). Note which roles you could and could not test.
 
@@ -174,6 +175,8 @@ When live behavior differs from a Figma design or brief: document both versions 
 
 ### Edge Case Walkthroughs
 
+These are concrete live probes for the taxonomy's categories — *how* to probe on a live site, not a restatement of *what* to cover (the taxonomy is canonical in the template).
+
 - **Empty states:** Is there an empty-state message and a CTA? Capture exact text. Example (write in the project's documentation language, §7; shown in English):
 
   ```markdown
@@ -186,9 +189,10 @@ When live behavior differs from a Figma design or brief: document both versions 
   - CTA button: "Upload your first video"
   ```
 
-- **Maximum values:** actual character/size limit, whether the field blocks input beyond it, counter presence, paste behavior.
+- **Boundaries (three-value probe):** for every limit, test **below, at, and above** it (e.g. a 100-character cap → 99, 100, 101 characters) — off-by-one defects sit exactly at the boundary. Encode the three probes as three consecutive script steps (`{feature}-{NN}-below-limit` / `-at-limit` / `-over-limit`); record whether input is blocked, truncated, or errored, counter presence, paste behavior, and the exact message.
 - **Network failures:** error message shown, retry possibility, resume vs. restart.
-- **Rapid actions:** does the button disable after first click? are duplicate requests sent?
+- **State transitions:** press the browser **Back** button mid-flow (is entered data kept, reset, or corrupted?), enter a mid-flow URL directly (redirect, error page, or a broken half-state?), and refresh during a long operation. Document what the system *does*, not what it should do.
+- **Rapid actions (concurrency):** does the button disable after first click? are duplicate requests sent?
 
 ### Technical Details (optional)
 
@@ -230,6 +234,7 @@ See [examples/observed-issues.md](examples/observed-issues.md) for a filled side
 
 - Screenshots are the live-site equivalent of Figma image extraction: place each inline at the scenario step it illustrates (the scenario/image rule is global — `CLAUDE.md` §4).
 - Capture all system messages verbatim from the snapshot to satisfy the accuracy requirement (`CLAUDE.md` §5).
+- **Edge-case coverage:** each applicable category of the template's edge-case coverage taxonomy is probed live or explicitly listed as not-probed (with reason) in the final report; limits are probed with the three-value method (below / at / above).
 - **Responsive view:** if the user opted in (Pre-Flight step 6), the **Mobile & Tablet View** section is required (differences only, per the template), with mobile/tablet shots under the `mobile/`/`tablet/` sub-paths. If the user declined, record "responsive view not documented (user declined)" in the final report — the omission is then expected, not a gap.
 
 ---
@@ -246,7 +251,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 - **Screenshots captured** (count + storage directories).
 - **Budget used** (scenarios / pages) against the default.
 - **Discrepancies found** between design/brief and live site.
-- **Edge cases tested** and any unexpected/undocumented behaviors discovered.
+- **Edge cases tested** — by taxonomy category (probed / not applicable / skipped for budget), the three-value probe results at limits, and any unexpected/undocumented behaviors discovered.
 - **Observed issues drafted** — count + sidecar path (`.claude/observed-issues/…`), or "none observed"; note whether any were filed to the tracker.
 
 ---
@@ -259,7 +264,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 - [ ] Playwright MCP tooling confirmed available (or install command given and resolved)
 - [ ] Crawl scope agreed with the user before exploring
 - [ ] Scenario script(s) saved under `.claude/scenarios/`
-- [ ] Happy path, validation errors, and edge cases exercised
+- [ ] Happy path and validation errors exercised; applicable taxonomy edge-case categories probed (three-value probe at limits, state transitions included) or skips recorded
 - [ ] Exact UI text / error messages captured verbatim (from snapshots)
 - [ ] Screenshots captured for all significant states, named `{feature}-{NN}-{state}.png` under `static/img/{section}/`
 - [ ] Responsive coverage decided with the user (Pre-Flight step 6): if opted in, responsive pass run and Mobile & Tablet View section written (mobile/tablet shots under `mobile/`/`tablet/`); if declined, noted in the final report

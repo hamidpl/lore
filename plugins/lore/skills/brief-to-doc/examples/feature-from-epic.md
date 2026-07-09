@@ -12,7 +12,9 @@ product, generated from a written epic (no visual design). [CLARIFICATION NEEDED
 markers stand in for details the brief did not specify. Your real output follows
 the project's documentation language (§7). The page title comes from the
 frontmatter `title` above — the body starts at the Document Info block, with no
-`#` (H1) heading.
+`#` (H1) heading. Two behaviours are shown deliberately: an Open Question named
+after a taxonomy category the epic left silent (concurrency), and an Appendix
+note mapping a Gherkin acceptance criterion into the scenario.
 -->
 
 | Field | Value |
@@ -97,6 +99,7 @@ Derived from the epic's acceptance criteria:
 - 2025-05-20 — BR-2: is 500 a hard limit that blocks the upload, or are the first 500 imported and the rest reported? — waiting on product.
 - 2025-05-20 — Extension 1a: exact message wording for the oversized-file case. — waiting on content.
 - 2025-05-20 — Extension 4a: does the preview show all error rows, or only the first N? — waiting on design.
+- 2025-05-20 — Edge-case coverage (concurrency): the epic doesn't say what happens if the member clicks **Import valid rows** twice, or if two members import into the same project at once — waiting on engineering.
 - 2025-05-20 — Is the uploaded source file retained after import, or discarded? — waiting on engineering.
 
 ## Dependencies & Prerequisites
@@ -117,6 +120,7 @@ Derived from the epic's acceptance criteria:
 ## Appendix & Resources
 
 - Source epic: *EPIC-214 Bulk Task Import* (v1.2). User stories US-214-1 … US-214-4.
+- AC-4 in the epic is written as Gherkin: *Given a validated preview with at least one valid row, when the member clicks "Import valid rows", then the valid tasks are created and an imported/skipped summary is shown.* Mapped into Scenario 1 as Main Flow steps 5–6 (BR-4); its "every row failed" variant is Extension 5a.
 
 <!--
 The Final Report (CLAUDE.md §8) is delivered IN CHAT at task completion — it is a

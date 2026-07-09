@@ -29,6 +29,7 @@ For large files, the heavy lifting (comments, annotations, the frame inventory, 
 ## Handling gaps
 
 - Missing information becomes an explicit `[CLARIFICATION NEEDED: …]` marker rather than a guess.
+- Each documented feature's frames are checked against the states real usage produces — empty, error, loading, permission-denied. A state the design doesn't show becomes a clarification question, never an invented screen.
 - Placeholder/Lorem-Ipsum text prompts a request for the real content.
 - When an annotation and a comment conflict, the annotation is preferred and the conflict is raised with you.
 - Prototype wiring is treated as *design intent, not confirmed behavior*: where an interaction edge contradicts a Dev-Mode annotation, the annotation wins and the divergence is called out.
