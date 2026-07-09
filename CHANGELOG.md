@@ -8,6 +8,43 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.5.1
+
+A small batch of authoring-quality improvements: the generated home page is no
+longer a dead stub, generated sites carry a Lore attribution, and the document
+template is renamed to match Lore's own file-naming convention.
+
+### Home page written from the product description
+
+- **What changed.** `/lore:config` now turns the **product description** into
+  real output. The description is stored once in a new **Product Overview —
+  PRODUCT LAYER** block in the project's `.claude/CLAUDE.md` (its canonical home,
+  Rule 4), and from it the command rewrites `docs/intro.md` into an actual
+  product introduction and refreshes the Docusaurus `tagline`.
+- **Why.** The scaffolded `docs/intro.md` shipped as a generic "replace me"
+  sample, and the description question existed but was never written anywhere.
+- **How verified.** Hook/scaffold suite green; the reworded intro starter stays
+  free of tooling references (Rule 5) and of `{{...}}` (MDX-safe under `docs/`).
+
+### "Built with Lore" footer attribution
+
+- **What changed.** Docusaurus-generated sites now show a localized
+  **"ساخته شده با Lore" / "Built with Lore"** link to
+  [lorekit.net](https://lorekit.net) in the footer copyright line. It lives in
+  the site chrome only — never inside `docs/` content — filled per the
+  documentation language ("Lore" stays Latin).
+- **How verified.** `scaffold + docusaurus build` CI green; the filled copyright
+  renders as a single well-formed anchor in both RTL and LTR.
+
+### Document template renamed
+
+- **What changed.** The canonical document template is renamed
+  `Product Document Template.md` → `product-document-template.md`, and the folder
+  it lands in inside a project is renamed `docs-template/` → `templates/`. All
+  path references were updated across the plugin.
+- **Why.** Aligns the template's own file/folder naming with the lowercase,
+  hyphenated convention Lore enforces everywhere else.
+
 ## 0.5.0
 
 Adds a shared **edge-case coverage taxonomy** plus methodology upgrades across

@@ -18,7 +18,7 @@ tags: [getting-started, configuration]
 | Setting | What it does |
 |---------|--------------|
 | **Project site URL** | The live product website. Optionally added to your trusted sources. |
-| **Product description** | A short description used for the intro and tagline. |
+| **Product description** | A short description of the product. Lore rewrites the home page (`docs/intro.md`) into a real introduction from it, and sets the site tagline. |
 | **Trusted sources** | The approved, authoritative sources for documentation — Help Center, blog, live product, etc. |
 | **Document-writing template** | Use the bundled default, or point to a custom template file. |
 | **Brand color** | A hex color; regenerates the primary color shades in the Docusaurus styling. |
