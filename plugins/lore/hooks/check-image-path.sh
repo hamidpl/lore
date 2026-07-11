@@ -99,7 +99,7 @@ esac
 # Rule B: markdown/MDX must not reference images via /static/img/
 case "$rel" in
   *.md|*.mdx)
-    if [ -f "$file_path" ] && grep -qE '\]\(/static/img/|src="/static/img/' "$file_path"; then
+    if [ -f "$file_path" ] && grep -qE '\]\(/static/img/|src="/static/img/' -- "$file_path"; then
       echo "BLOCKED: markdown in $rel references images via /static/img/." >&2
       echo "Use /img/{section}/ instead (physical storage stays static/img/). See CLAUDE.md Section 6 / Rule 1." >&2
       exit 2
@@ -108,7 +108,7 @@ case "$rel" in
     # markdown syntax — Docusaurus rewrites markdown-embedded images to hashed
     # /assets/images/ URLs at build time, stripping the /mobile/ segment the
     # half-width stylesheet keys on (CLAUDE.md Section 6).
-    if [ -f "$file_path" ] && grep -qE '!\[[^]]*\]\([^)]*/mobile/' "$file_path"; then
+    if [ -f "$file_path" ] && grep -qE '!\[[^]]*\]\([^)]*/mobile/' -- "$file_path"; then
       echo "BLOCKED: markdown in $rel embeds a /mobile/ screenshot with markdown ![..](..) syntax." >&2
       echo 'Use a raw HTML tag instead: <img src="/img/{section}/mobile/..." alt="..." /> — markdown-embedded images lose the /mobile/ path at build time, so the half-width mobile styling never applies (CLAUDE.md Section 6).' >&2
       exit 2

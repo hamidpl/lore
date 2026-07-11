@@ -87,7 +87,7 @@ esac
 
 # Detect unambiguous tooling references. `lore:` requires a non-alphanumeric
 # boundary before it so prose like "folklore:" does not trip the rule.
-hits=$(grep -nE '(\.claude/|CLAUDE\.md|(^|[^[:alnum:]])lore:)' "$file_path" 2>/dev/null)
+hits=$(grep -nE '(\.claude/|CLAUDE\.md|(^|[^[:alnum:]])lore:)' -- "$file_path" 2>/dev/null)
 
 if [ -n "$hits" ]; then
   echo "BLOCKED: $rel references the authoring tooling in reader-facing docs (CLAUDE.md Rule 5):" >&2
