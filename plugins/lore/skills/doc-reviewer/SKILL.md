@@ -11,7 +11,7 @@ user-invocable: true
 
 > **GOLDEN RULE (Rule 4 — Single Place of Truth):** This skill does NOT restate the DoD rules — the DoD is canonical in `CLAUDE.md`. This skill provides the *review method, checklist, and report format* only, and references each rule by its Section number.
 
-You are auditing product documentation to ensure it meets the global Definition of Done. The DoD itself lives in `CLAUDE.md` (always in context); this skill tells you how to validate against it.
+You are auditing product documentation to ensure it meets the global Definition of Done. The DoD itself is always in context — the methodology sections (Rules 1–5, DoD §0/§2/§4–§8) in `.claude/lore-methodology.md`, and the product-layer sections (§1 Trusted Sources, §3 User Roles) in `.claude/CLAUDE.md`, which imports the methodology file. This skill tells you how to validate against it.
 
 ---
 
@@ -24,7 +24,7 @@ You are auditing product documentation to ensure it meets the global Definition 
 
 ## 2. Pre-Flight Checklist
 
-- Load the complete Definition of Done from `CLAUDE.md` (Sections 0–8 + Rule 3 + Rule 4 + Rule 5). Do not copy it here — read it from the source.
+- Load the complete Definition of Done from its source files: `.claude/lore-methodology.md` (Rules 1–5, DoD §0/§2/§4–§8) and `.claude/CLAUDE.md` (§1/§3 product layer). Do not copy it here — read it from the source.
 - Identify the document(s) under review and their expected place in the structure.
 
 ---
@@ -37,7 +37,7 @@ Validate each item against the **canonical rule in `CLAUDE.md`** (do not re-deri
 
 | DoD area | What to check (compliance) | Canonical rule |
 |----------|----------------------------|----------------|
-| ⛔ **§0 Pre-Writing** | Evidence that the available inputs were reviewed; every configured trusted source searched (or "none configured"). **For Figma** (Sources name a Figma file or `.claude/sources/figma-*-census.md` exists): the census MUST exist with explicit counts; if counts > 0, every annotation/comment business rule in its Coverage map MUST resolve to a real doc file+section — a missing census or an uncovered rule is a **blocking** §0 failure | `CLAUDE.md` §0 |
+| ⛔ **§0 Exhaust Every Source** | Evidence that **every source in the active skill's manifest** was read — available inputs reviewed and every configured trusted source searched (or "none configured / none relevant"). **For Figma** (Sources name a Figma file or `.claude/sources/figma-*-census.md` exists): the census MUST exist with explicit counts covering **all** manifest source types (comments, annotations, prototype flows/interactions, variants, variables); if counts > 0, every business rule in its Coverage map MUST resolve to a real doc file+section — a missing census, an unread manifest source, or an uncovered rule is a **blocking** §0 failure | `CLAUDE.md` §0 |
 | ⛔ **§1 Trusted Sources** | No fabricated facts or unverified third-party sources; where trusted sources are configured, claims are consistent with them; missing info marked `[CLARIFICATION NEEDED]` | `CLAUDE.md` §1 |
 | **§2 Scope & Structure** | Valid frontmatter (sidebar_position, title, description, tags); no `#` (H1) in the body — the page title comes from frontmatter, top-level sections are `##` and scenarios are `###`; the Document Info block and all **required** template sections present with content; **optional** sections (marked `_(Optional — delete …)_`) are either filled or removed — never left empty or carrying the `_(Optional …)_` marker; an oversized page past the §2 split threshold (>6 scenarios or >3000 words) that was not split into an overview + sibling pages is a **warning**, and split pages must be mirrored in `sidebars.ts` and cross-linked | `CLAUDE.md` §2 + template |
 | **§3 User Roles** | Relevant roles documented using approved names; role differences explained | `CLAUDE.md` §3 |
@@ -74,7 +74,7 @@ For §6, actually run the checks rather than eyeballing:
 ## Section Results
 | DoD area | Status | Issue (location) |
 |----------|--------|------------------|
-| §0 Pre-Writing | ✅/⚠️/❌ | ... |
+| §0 Exhaust Every Source | ✅/⚠️/❌ | ... |
 | §1 Trusted Sources | ✅/⚠️/❌ | ... |
 | §2 Scope & Structure | ✅/⚠️/❌ | ... |
 | §3 User Roles | ✅/⚠️/❌ | ... |

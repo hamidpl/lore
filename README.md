@@ -2,7 +2,7 @@
 
 **Turn designs, briefs, and living products into documentation that lasts.**
 
-[![Version](https://img.shields.io/badge/version-0.5.2-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/plugin-Claude%20Code-purple.svg)](https://code.claude.com/docs/en/plugins)
 [![Website](https://img.shields.io/badge/website-lorekit.net-ff7a59.svg)](https://lorekit.net)
@@ -104,14 +104,14 @@ Then build content with `lore:figma-to-doc` / `lore:brief-to-doc` / `lore:site-t
 
 ## Division of responsibility (the golden rule)
 
-Lore carries **only the product-agnostic methodology**. Everything product-specific lives in the **consuming repo's `CLAUDE.md`**:
+Lore carries **the product-agnostic methodology and the always-on rules**. Only product-specific data lives in the consuming repo:
 
 | Layer | Where it lives |
 |-------|----------------|
-| Skills, subagents, hooks, authoring template | **This plugin** — change once, propagate to every repo via `/plugin update` |
-| Definition of Done, image-path rules, trusted sources, user roles, structure | The **consuming repo's `CLAUDE.md`** (per-product) |
+| Skills, subagents, hooks, authoring template + the always-on rules (General Rules + Definition of Done §0/§2/§4–§8) | **This plugin** — change once, propagate to every repo via `/plugin update` |
+| Trusted sources, user roles, product overview, structure (DoD §1/§3) | The **consuming repo's `CLAUDE.md`** (per-product) |
 
-Skills reference rules by `CLAUDE.md` section number — they never restate or hard-code a product's sources, roles, or structure. That is what lets one skill serve every product.
+The methodology rules ship as a plugin-owned `lore-methodology.md` that each repo's thin `CLAUDE.md` imports; a `SessionStart` hook keeps it current on `/plugin update`, so **rule improvements reach existing projects automatically** (as of v0.6.0). Skills reference rules by section number — they never restate or hard-code a product's sources, roles, or structure. That is what lets one skill serve every product.
 
 > New or updated skills must follow the canonical structure in [`plugins/lore/templates/skill-template.md`](plugins/lore/templates/skill-template.md). Contributor and maintenance details live in [`CLAUDE.md`](CLAUDE.md).
 

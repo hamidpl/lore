@@ -206,9 +206,40 @@ S=$(mktemp -d)
 sh "$SCRIPTS/scaffold.sh" --target "$S" --layer docs >/dev/null 2>"$ERRF"
 check_exit 0 "$?" "scaffold exits 0 on success"
 [ -f "$S/.claude/CLAUDE.md" ] && [ -f "$S/docs/intro.md" ] && [ -f "$S/README.md" ] && pass "docs layer scaffolds key files" || fail "docs layer scaffolds key files"
+[ -f "$S/.claude/lore-methodology.md" ] && pass "scaffold includes lore-methodology.md" || fail "scaffold includes lore-methodology.md"
+grep -q '@lore-methodology.md' "$S/.claude/CLAUDE.md" && pass "scaffolded CLAUDE.md imports methodology" || fail "scaffolded CLAUDE.md imports methodology"
 out=$(sh "$SCRIPTS/scaffold.sh" --target "$S" --layer docs 2>"$ERRF"); rc=$?
 check_exit 0 "$rc" "scaffold re-run exits 0"
 printf '%s' "$out" | grep -q "skip (exists)" && pass "re-run skips existing files" || fail "re-run skips existing files"
+
+echo "== sync-lore-files.sh (SessionStart) =="
+PLUGIN_ROOT="$SCRIPT_DIR/../plugins/lore"
+METH_SRC="$PLUGIN_ROOT/templates/docs-layer/.claude/lore-methodology.md"
+synchook() { # $1 project root
+  OUT=$(printf '{"hook_event_name":"SessionStart","cwd":"%s"}' "$1" |
+    CLAUDE_PROJECT_DIR="$1" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" sh "$HOOKS/sync-lore-files.sh" 2>"$ERRF")
+  RC=$?
+}
+# A real Lore project: CLAUDE.md that imports the methodology file, no methodology file yet.
+Y=$(mktemp -d); mkdir -p "$Y/.claude"; printf 'x\n@lore-methodology.md\n' >"$Y/.claude/CLAUDE.md"
+synchook "$Y"
+[ -f "$Y/.claude/lore-methodology.md" ] && pass "missing → created" || fail "missing → created"
+cmp -s "$METH_SRC" "$Y/.claude/lore-methodology.md" && pass "created copy matches plugin source" || fail "created copy matches plugin source"
+printf '%s' "$OUT" | grep -q 'systemMessage' && pass "emits update notice" || fail "emits update notice"
+printf '%s' "$OUT" | (command -v jq >/dev/null 2>&1 && jq . >/dev/null 2>&1 && exit 0 || command -v python3 >/dev/null 2>&1 && python3 -c 'import sys,json;json.load(sys.stdin)' >/dev/null 2>&1) && pass "notice is valid JSON" || fail "notice is valid JSON"
+synchook "$Y"
+[ -z "$OUT" ] && pass "in-sync → silent no-op" || fail "in-sync → silent no-op (got output)"
+printf 'stale\n' >"$Y/.claude/lore-methodology.md"
+synchook "$Y"
+cmp -s "$METH_SRC" "$Y/.claude/lore-methodology.md" && pass "stale → overwritten with plugin version" || fail "stale → overwritten"
+# Guard: CLAUDE.md present but does NOT import the methodology file → hook must do nothing.
+N=$(mktemp -d); mkdir -p "$N/.claude"; printf 'no import here\n' >"$N/.claude/CLAUDE.md"
+synchook "$N"
+[ ! -f "$N/.claude/lore-methodology.md" ] && [ -z "$OUT" ] && pass "no-import project → untouched" || fail "no-import project → untouched"
+# Guard: no CLAUDE.md at all (not a Lore project) → silent, nothing created.
+Z=$(mktemp -d)
+synchook "$Z"
+[ ! -f "$Z/.claude/lore-methodology.md" ] && [ -z "$OUT" ] && pass "non-Lore project → untouched" || fail "non-Lore project → untouched"
 
 echo
 echo "==== $PASS passed, $FAIL failed ===="

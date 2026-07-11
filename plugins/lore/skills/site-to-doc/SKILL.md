@@ -25,7 +25,7 @@ You document features by **driving a real browser** through the live product: yo
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources). Complete IN ORDER before writing:
+This is the live-site expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources). Complete IN ORDER before writing:
 
 1. **Browser tooling available?** Confirm the **Playwright MCP** browser tools are reachable (look for a `browser_navigate` / `browser_snapshot` tool). If they are not, **stop** and give the user the one-line install command, then wait:
    ```
@@ -37,7 +37,7 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Secti
    - **Approve each step:** keep the default — every browser action prompts. (Use when the user wants to watch each action.)
 
    If the user doesn't choose, default to approve-each-step (the safe default). See the [Lore README](https://github.com/hamidpl/lore) for setup/permission specifics (Rule 4).
-3. **Resolve the URL and scope.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope.
+3. **Resolve the URL and scope, and search trusted sources.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope. Then search **every** other trusted source in §1 (Help Center, Blog, release notes) for material about the routes in scope; extract what's relevant, or record "none relevant" explicitly (per §0) — the live observation is authoritative for *behavior*, but trusted sources fill in rules the UI doesn't spell out.
 4. **Login Checkpoint** — if any part of the scope is behind authentication, complete the login handshake in §3 before exploring.
 5. **Plan the run (scenario optional).** This skill has two modes:
    - **Full-page documentation** — the user has no specific scenario and just wants one or more pages documented completely. Build an internal exploration plan that systematically exercises each target page (happy path + validation + edge cases per §3).
