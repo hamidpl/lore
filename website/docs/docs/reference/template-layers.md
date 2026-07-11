@@ -17,7 +17,7 @@ When Lore scaffolds a project it composes independent, optional layers. They are
 
 ## The docs layer
 
-The always-included foundation. It establishes *how* documentation is written and validated in this repository — the [Definition of Done](../concepts/definition-of-done.md), the image-path and frontmatter rules, and the canonical document structure — independent of whether you ever add a browsable site.
+The always-included foundation. It establishes *how* documentation is written and validated in this repository — the [Definition of Done](../concepts/definition-of-done.md), the image-path and frontmatter rules, and the canonical document structure — independent of whether you ever add a browsable site. The always-on rules live in a plugin-owned `lore-methodology.md` that the project's thin `CLAUDE.md` imports; a `SessionStart` hook keeps that file current on `/plugin update`, while `CLAUDE.md` holds your product-specific layer.
 
 ## The Docusaurus base
 

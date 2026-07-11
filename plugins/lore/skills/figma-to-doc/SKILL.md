@@ -24,7 +24,11 @@ You are extracting product documentation from Figma design files. Approved sourc
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources) — see those sections for the global requirement.
+Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources) — see those sections for the global requirement.
+
+### Sources you must read (per §0)
+
+This is the **source manifest** for Figma — the concrete list §0 requires you to exhaust for this input type. **A Figma file carries far more than pixels: read every meaning-bearing property it exposes for the in-scope nodes, and err toward reading more, not less.** The only deliberate exclusions are presentation-only data — animation timing (`duration`/`easing`/transition-animation type, see §3) and pure visual tokens (raw color/spacing/type values) — which are style, not product behavior (`CLAUDE.md` §7). Everything else that could describe how the product works is in scope: comments, Dev-Mode annotations, prototype flows/interactions, component variants/properties, and constraint-bearing variables. The Phase-1 table below is that manifest; the census records it so no source is silently skipped.
 
 ### Phase 1: Source Collection
 
@@ -34,10 +38,12 @@ Complete IN ORDER before writing. This is the Figma-specific expansion of `CLAUD
 | 2 | **Fetch Dev-Mode annotations** | List of `node id → notes text` read from each node's `annotations` array (or an explicit "0 annotations across N nodes") | `GET /v1/files/{key}/nodes?ids={id}` (OAuth scope `file_content:read`) → read each returned node's **`annotations[]`** (`notes`, `pinned`) |
 | 2b | **(Legacy fallback) On-canvas text notes** | Only if the file predates the Dev-Mode Annotations feature: list `type:"TEXT"` nodes used as notes — **clearly marked as design copy, NOT Dev-Mode annotations** | `GET /v1/files/{key}/nodes?ids={id}` → scan `type:"TEXT"` |
 | 2c | **Fetch prototype flows & interactions** | List of prototype flows (`flowStartingPoints`) and per-node navigation edges read from the `interactions[]` arrays (or an explicit "0 flows / 0 interactions") | Read the CANVAS node's **`flowStartingPoints`** (`{nodeId, name}` per flow) and each frame node's **`interactions[]`** — both come from the **same** `GET /v1/files/{key}/nodes?ids={id}` call as step 2 (see §3) |
-| 3 | **Search configured trusted sources** | List of relevant material found (or "none configured") | Browse the trusted sources in `CLAUDE.md` §1 (e.g. Help Center, Blog, live product); skip if none are configured |
+| 2d | **Read component variants & properties** | List of variant/property sets that differentiate behavior (e.g. state/role variants), or an explicit "0 differentiating variants" | From the same node fetch, read component-set **variant names** and instance **`componentProperties`** — capture only those that signal a *product difference* (user role, enabled/disabled, a distinct state); ignore purely visual variants (see §3 "Component Variants & Properties") |
+| 2e | **Read constraint-bearing variables** | List of variables that encode a product rule (limits, state/flag names), or an explicit "0 constraint variables" | Read variable definitions (`get_variable_defs` via a connected Figma MCP server, or the file's variables) and **keep only those that encode a documented constraint** — numeric limits, named states, feature flags; **ignore pure visual tokens** (color/spacing/type) as style, not behavior |
+| 3 | **Search configured trusted sources** | List of relevant material found (or an explicit "none configured / none relevant") | Search **every** trusted source in `CLAUDE.md` §1 (e.g. Help Center, Blog, live product) for material about the pages in scope; extract what's relevant, or record the zero-case explicitly (per §0); skip only if none are configured |
 | 4 | **Check lesson-learned.md** | Confirm no relevant unresolved issues | Read `.claude/lesson-learned.md` (per Rule 3) |
 
-⛔ **Blocking:** Steps 1, 2, 2c, 3, and 4 must all be completed before Phase 2 (2b runs only as a fallback when step 2 yields nothing and the file uses on-canvas text notes).
+⛔ **Blocking:** Steps 1, 2, 2c, 2d, 2e, 3, and 4 must all be completed before Phase 2 (2b runs only as a fallback when step 2 yields nothing and the file uses on-canvas text notes). Steps 2d and 2e may legitimately be zero — record the zero-case; do not skip the check.
 
 :::warning Three distinct sources — do not conflate them
 - **Comments** = discussion threads on the file (via the comments API). Context for "why" decisions.
@@ -49,9 +55,9 @@ Comments and annotations are SEPARATE data sources and both MUST be explicitly f
 - **Prototype interactions (step 2c)** = the **`interactions` property on a node** plus the CANVAS-level **`flowStartingPoints`**. This is the design's *navigation wiring* ("click X → go to Y as an overlay"). It is the primary machine-readable evidence for a scenario's **Main Flow** — the alternative to *guessing* the flow from frame names. Treat it as **design intent, not confirmed product behavior**: where it conflicts with an annotation, the annotation wins (see §3). Fetch it explicitly and record the count (even zero) in the census.
 :::
 
-### Annotation & Comment Census (BLOCKING evidence artifact)
+### Source Census (BLOCKING evidence artifact)
 
-The fetched comments and annotations MUST be recorded in an auditable evidence file so the step cannot be silently skipped and so `lore:doc-validator` can cross-check coverage:
+Every source you fetch — comments, annotations, prototype flows/interactions, differentiating variants, and constraint-bearing variables — MUST be recorded in an auditable evidence file so no source can be silently skipped and so `lore:doc-validator` can cross-check coverage:
 
 - **Path:** `.claude/sources/figma-{fileKey}-census.md` (one file per Figma file key; re-running the same file overwrites/updates it). This lives under `.claude/`, so the hooks ignore it and it is never reader-facing (Rule 5 safe). Commit it — like `.claude/scenarios/`, it is an auditable source artifact, not a secret. **Never write the Figma token into it.**
 - **Format:**
@@ -66,6 +72,8 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 - Legacy TEXT-node notes (fallback): K   (used? yes/no)
 - Prototype flows (flowStartingPoints): F
 - Interaction edges (interactions[]): E
+- Differentiating component variants/properties: V
+- Constraint-bearing variables: X
 
 ## Comments (raw)
 - [c1] frame/node {id} — "{verbatim comment text}"
@@ -78,7 +86,12 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 - [i1] {source frame} —{TRIGGER}/{ACTION or NAVIGATION}→ {destination frame}   (e.g. Login —ON_CLICK/NAVIGATE→ Dashboard; Row —ON_CLICK/OVERLAY→ Detail dialog)
 - Zero case: `0 flows / 0 interactions — confirmed no prototype wiring`
 
-## Coverage map   (only when N + M > 0)
+## Component variants & constraint variables (raw)
+- [v1] component "{name}" — variant/property "{name}" → product difference: "{e.g. disabled for viewer role}"
+- [x1] variable "{name}" = {value} → constraint: "{e.g. max upload 6GB}"
+- Zero case: `0 differentiating variants / 0 constraint variables — confirmed none`
+
+## Coverage map   (only when N + M + V + X > 0)
 | source ref | business rule extracted | doc file → section reflecting it |
 |------------|-------------------------|----------------------------------|
 | a1 | Max 6GB upload for premium | docs/upload/index.md → Business Rules |
@@ -86,8 +99,8 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 | i2 | (flow evidence — no rule) | docs/upload/index.md → Scenario "Upload" Main Flow |
 ```
 
-- **Timing:** write the Counts + raw lists (comments, annotations, **and prototype flows/interactions**) **before** Phase 2 writing begins; fill the **Coverage map** column **after** the docs are written (every annotation/comment that yields a business rule maps to the doc file+section reflecting it; pure-context comments map to "n/a — context"; interaction edges that shaped a Main Flow map to that scenario).
-- **Zero case:** if there are no comments, no annotations, and no prototype wiring, the census still MUST exist and state `0 comments / 0 annotations — confirmed none present` and `0 flows / 0 interactions — confirmed no prototype wiring`. That file is the auditable proof the step ran.
+- **Timing:** write the Counts + raw lists (comments, annotations, prototype flows/interactions, **and differentiating variants + constraint variables**) **before** Phase 2 writing begins; fill the **Coverage map** column **after** the docs are written (every annotation/comment/variant/variable that yields a business rule maps to the doc file+section reflecting it; pure-context comments map to "n/a — context"; interaction edges that shaped a Main Flow map to that scenario).
+- **Zero case:** if a source type yields nothing, the census still MUST exist and state the zero-case for each — `0 comments / 0 annotations — confirmed none present`, `0 flows / 0 interactions — confirmed no prototype wiring`, and `0 differentiating variants / 0 constraint variables — confirmed none`. That file is the auditable proof every source was checked.
 - **Re-runs are cheap:** on a later run of the same file key, read the existing census first and re-fetch only changed frames.
 
 ### Phase 2: Figma Content Review
@@ -97,7 +110,7 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 | 5 | **Navigate all frames** | Frame inventory with IDs, names, **and each frame's width×height + device class** (mobile / tablet / desktop — see §3 "Responsive / Device Variants") |
 | 6 | **Identify [ignore] pages** | List of skipped pages (or "none") — any page whose name starts with `[ignore]` is out of scope |
 | 7 | **Extract images (individual FRAMEs only)** | Downloaded PNGs at 2x, one per frame; **mobile/tablet variants routed to `mobile/`/`tablet/` sub-paths** (see §3) |
-| 8 | **Summarize findings** | Business rules distilled from annotations + comments, and navigation flow distilled from prototype interactions, recorded in the census (Counts + raw lists) before any writing |
+| 8 | **Summarize findings** | Business rules distilled from annotations + comments + differentiating variants + constraint variables, and navigation flow distilled from prototype interactions, recorded in the census (Counts + raw lists) before any writing |
 
 ⛔ **Blocking:** Do NOT start writing until Phase 2 is complete and the census Counts + raw lists exist.
 
@@ -118,7 +131,7 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 
 The Figma REST calls need a token. Read it from the **`FIGMA_TOKEN` environment variable** (sent as the `X-Figma-Token` header), or use a connected Figma MCP server if one is available. **Never** ask the user to paste the raw token into the chat, never echo it in a command you print, and never write it to any file (including `lesson-learned.md` or the final report). If `FIGMA_TOKEN` is unset and no Figma MCP server is connected, stop and ask the user to `export FIGMA_TOKEN=...` (or connect the MCP server) before continuing.
 
-> **Heavy extraction (large files):** the main agent may delegate steps 1–8 of the Pre-Flight to the `lore:figma-extractor` subagent (Task tool) to keep the main context clean. It returns a compact summary (the census payload — counts + raw comments/annotations + provenance refs — plus frame inventory, image list, and open questions). The main agent then **writes the census file** (the subagent returns data; it does not own the artifact). Writing prose and asking the user clarification questions stay in the main context — the subagent is autonomous and cannot ask questions.
+> **Heavy extraction (large files):** the main agent may delegate steps 1–8 of the Pre-Flight to the `lore:figma-extractor` subagent (Task tool) to keep the main context clean. It returns a compact summary (the census payload — counts + raw comments/annotations/variants/variables + provenance refs — plus frame inventory, image list, and open questions). The main agent then **writes the census file** (the subagent returns data; it does not own the artifact). Writing prose and asking the user clarification questions stay in the main context — the subagent is autonomous and cannot ask questions.
 
 ### Fetching efficiently (scope the node calls)
 
@@ -203,6 +216,22 @@ flowchart TD
 
 **Treat prototype data as design intent, not confirmed behavior.** Where an interaction edge contradicts a Dev-Mode annotation, the annotation wins; ask the user to confirm and note it in the final report (this mirrors the "Conflicting annotation vs comment" rule below).
 
+### Component Variants & Properties (step 2d)
+
+Component sets and instance properties often encode **product differences**, not just visual ones. Read them from the same node fetch and capture only those that change *what the user can do or see*:
+
+- **Variant names** on a component set (e.g. `State=Disabled`, `Role=Admin`, `Type=Empty`) → a role/state difference to document (Extensions or §3 role behavior).
+- **`componentProperties`** on an instance (booleans, text, instance-swap) → conditional UI (e.g. a toggle that hides a field).
+- **Ignore** purely stylistic variants (color/size/theme) — those are presentation, not behavior. Record the differentiating ones in the census (`v…`); if none differentiate behavior, record the zero-case.
+
+### Variables & Design Tokens (step 2e)
+
+Figma variables can carry **product constraints** — read them via a connected Figma MCP server (`get_variable_defs`) or the file's variables, and keep only the meaning-bearing ones:
+
+- **Keep:** variables that encode a documented rule — numeric limits (`maxUploadGB = 6`), named states/modes, feature flags/booleans that gate behavior → become business rules or Extensions, cross-checked against annotations (annotation wins on conflict).
+- **Ignore:** pure visual tokens (color, spacing, typography, radius) — style, not product behavior (`CLAUDE.md` §7).
+- Record kept variables in the census (`x…`); if none encode a constraint, record the zero-case.
+
 ### Mapping Figma to Documentation
 
 | Figma Element | Maps To | Example |
@@ -216,7 +245,8 @@ flowchart TD
 | **Annotations (Dev Mode, `annotations[]`)** | Business rules OR step descriptions | A node annotation `notes: "Max 6GB for premium"` → Business rule |
 | **TEXT nodes (design copy, fallback)** | Treat as design copy, not a business rule, unless used as on-canvas notes | Headline/body copy → page content; an on-canvas note → fallback business rule |
 | **Comments** | Context for "why" decisions | Comment explaining rationale → Overview section |
-| **Component variants** | User role differences | Button states per user type → role-based behavior |
+| **Component variants / properties** | User role or state differences | Button states per user type → role-based behavior; a `State=Disabled` variant → an Extension |
+| **Constraint-bearing variables** | Business rules / constraints | A variable `maxUploadGB = 6` → "Uploads are limited to 6 GB." (ignore pure color/spacing tokens) |
 | **Empty states** | Edge case documentation (Extensions) | Empty list frame → an Extension of the relevant scenario |
 | **Mobile / tablet frame variants** | Mobile & Tablet View section (differences only) | A `[Mobile]` version of the dashboard → the differences documented under "Mobile & Tablet View", shot in `mobile/` |
 
@@ -246,7 +276,7 @@ flowchart TD
 
 The base final-report structure is defined in `CLAUDE.md` Section 8. In addition, a Figma-sourced report MUST include:
 
-- **Figma sources:** file name + URL, pages reviewed, pages skipped (`[ignore]`), and the census counts — **Dev-Mode annotations** (from the `annotations` property) and comment threads reviewed, plus legacy TEXT-node notes if the fallback was used. The full census (raw lists + coverage map) is persisted at `.claude/sources/figma-{key}-census.md`.
+- **Figma sources:** file name + URL, pages reviewed, pages skipped (`[ignore]`), and the census counts — **Dev-Mode annotations** (from the `annotations` property), comment threads, **differentiating component variants/properties**, and **constraint-bearing variables** reviewed, plus legacy TEXT-node notes if the fallback was used. The full census (raw lists + coverage map) is persisted at `.claude/sources/figma-{key}-census.md`.
 - **Prototype flows & interactions:** count of flows (`flowStartingPoints`) and interaction edges reviewed; the flow diagrams generated (which sections); any interaction/annotation conflicts and how they were resolved; whether Mermaid rendering is active in the project (or the diagram is a plain code block pending `/lore:add-docusaurus`).
 - **Images extracted:** count and storage directories (`static/img/{section}/`), with dimensions/scale.
 - **Device coverage:** how many desktop / tablet / mobile frames were found and documented (or "no mobile/tablet frames present" — the Mobile & Tablet View section was omitted).
@@ -261,8 +291,9 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] All Figma frames reviewed (except `[ignore]` pages)
 - [ ] Dev-Mode annotations (the `annotations` property) AND comments read and incorporated; TEXT-node fallback noted if used
 - [ ] Prototype flows (`flowStartingPoints`) AND interactions (`interactions[]`) fetched; Main Flow steps consistent with the wiring (or divergence explained); zero-case recorded explicitly
+- [ ] Component variants/properties AND variables read; differentiating variants and constraint-bearing variables incorporated (or zero-case recorded)
 - [ ] Flow diagram (Mermaid) added for any section with ≥ 2 interaction edges
-- [ ] Annotation & Comment Census (incl. prototype flows/interactions) written to `.claude/sources/figma-{key}-census.md` (counts + raw lists + coverage map; zero-case states "confirmed none present")
+- [ ] Source census (comments, annotations, prototype flows/interactions, variants, variables) written to `.claude/sources/figma-{key}-census.md` (counts + raw lists + coverage map; zero-case states "confirmed none")
 - [ ] Images exported as individual FRAMEs at 2x, stored under `static/img/{section}/`
 - [ ] Frames classified by device; mobile/tablet frames (if any) exported to `mobile/`/`tablet/` sub-paths and the Mobile & Tablet View section written (differences only) — or section omitted because none exist
 - [ ] Scenario headings numbered per the template (`Scenario N: …`)

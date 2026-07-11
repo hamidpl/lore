@@ -30,13 +30,22 @@ user-invocable: true
 ## 2. Pre-Flight Checklist (BLOCKING)
 
 Input-specific source gathering that must be completed before writing.
-Reference `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources) for the
-global requirements — list here ONLY the steps unique to this input type.
+Reference `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources) for the
+global requirement — list here ONLY the steps unique to this input type.
+
+### Sources you must read (per §0)
+
+This skill's **source manifest** — the concrete list §0 requires you to exhaust for this
+input type. List every source this input carries that could describe how the product works,
+plus the configured trusted sources in §1. Reading a subset is a blocking failure; state
+every zero-case explicitly. New must-read sources for this input type are added here.
 
 | # | Step | How to Verify |
 |---|------|---------------|
 | 1 | ... | ... |
 
+> Include a step to **search every configured trusted source in §1** for material about the
+> pages in scope (extract what's relevant, or record "none configured / none relevant" — per §0).
 > Per Rule 3, also check `.claude/lesson-learned.md` for relevant entries before starting.
 
 ---

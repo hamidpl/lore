@@ -15,7 +15,7 @@ two ⛔ failures. Locations are illustrative.
 
 | DoD area | Status | Issue (location) |
 |----------|--------|------------------|
-| §0 Pre-Writing | ✅ | Inputs reviewed; no trusted sources configured (not required). |
+| §0 Exhaust Every Source | ✅ | All manifest sources read; no trusted sources configured (not required). |
 | §1 Trusted Sources | ✅ | No fabricated facts; gaps marked `[CLARIFICATION NEEDED]`. |
 | §2 Scope & Structure | ⚠️ | Frontmatter valid and the Document Info block is present, but the required **Changelog** section is missing. |
 | §3 User Roles | ✅ | Owner/Editor/Viewer documented with approved names. |

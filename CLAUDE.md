@@ -17,7 +17,7 @@ plugins/lore/                      # the plugin itself
   commands/                        # /lore:init, /lore:config, /lore:add-docusaurus
   skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
   agents/                          # doc-validator, figma-extractor, site-explorer (worker subagents)
-  hooks/                           # hooks.json + 4 shell scripts (BLOCKING enforcement)
+  hooks/                           # hooks.json + 5 shell scripts (BLOCKING enforcement + methodology sync)
   scripts/                         # scaffold.sh, detect-project.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
 tests/run-tests.sh                 # POSIX hook/script test harness (run before release)
@@ -61,10 +61,12 @@ This is the core design principle — every decision flows from it:
 
 | Layer | Lives in | Changes how |
 |-------|----------|-------------|
-| Product-agnostic methodology (skills, subagents, hooks, templates) | **This plugin** | Changed here once → propagates via `/plugin update` |
-| Product-specific rules (DoD, trusted sources, user roles, structure) | Consuming repo's `.claude/CLAUDE.md` | Per-product; plugin cannot inject always-on context |
+| Product-agnostic methodology (skills, subagents, hooks, templates) + the always-on rules (General Rules, DoD §0/§2/§4–§8) | **This plugin** | Changed here once → propagates via `/plugin update` |
+| Product-specific data (trusted sources §1, user roles §3, product overview, structure) | Consuming repo's `.claude/CLAUDE.md` | Per-product; the user owns and edits it |
 
-Skills reference the consuming repo's `CLAUDE.md` rules by **section number** (e.g., "per §6") — they never restate or hard-code product-specific content.
+Skills reference DoD rules by **section number** (e.g., "per §6") — the numbers are unique across the two files, so they resolve regardless of which file a section lives in. Skills never restate or hard-code product-specific content.
+
+**The always-on rules propagate via a synced file (as of v0.6.0).** The methodology (General Rules + DoD §0/§2/§4–§8) lives in a plugin-owned file `templates/docs-layer/.claude/lore-methodology.md`. A consuming repo gets a thin `.claude/CLAUDE.md` (product layer + custom rules) that `@`-imports it. The `SessionStart` sync hook (`hooks/sync-lore-files.sh`) copies the latest methodology file into the repo on `/plugin update` — so rule improvements reach existing projects automatically, which a plugin otherwise cannot do (it cannot inject always-on context directly). Only §1/§3 (product-layer DoD sections) stay in the repo's `CLAUDE.md`, with stub pointers in the methodology file so the §-numbering reads continuously.
 
 ## Rule 4: Single Place of Truth (BLOCKING)
 
@@ -72,7 +74,8 @@ Every fact exists in exactly one canonical location; everywhere else references 
 
 | Fact category | Canonical location |
 |---------------|--------------------|
-| Global rules / DoD | Consuming repo's `.claude/CLAUDE.md` |
+| Methodology: General Rules + DoD §0/§2/§4–§8 | `templates/docs-layer/.claude/lore-methodology.md` (plugin-owned; synced into each repo) |
+| Product-layer DoD: trusted sources §1, user roles §3 | Consuming repo's `.claude/CLAUDE.md` |
 | Input-specific workflow | The relevant skill (`skills/{name}/SKILL.md`) |
 | Lessons learned | Consuming repo's `.claude/lesson-learned.md` |
 | Document structure template | `templates/docs-layer/templates/product-document-template.md` |
@@ -85,23 +88,26 @@ Copying the full text of an existing rule into a second place is prohibited.
 All skills follow the canonical 7-section structure defined in `plugins/lore/templates/skill-template.md`:
 
 1. When to Use
-2. Pre-Flight Checklist (references CLAUDE.md §0/§1 — only input-specific steps here)
+2. Pre-Flight Checklist (references §0/§1 — only input-specific steps here)
 3. Core Workflow (the unique value — only input-specific content)
 4. DoD Additions (input-specific deltas only — references §4/§6 for the rest)
 5. Final Report Additions (skill-specific fields only — references §8)
 6. Completion Checklist (ends with self-verification via `lore:doc-validator`)
 7. Reference Example
 
-A skill must contain ONLY input-specific content. If something is already a global rule in CLAUDE.md, reference it — don't repeat it.
+A skill must contain ONLY input-specific content. If something is already a global rule (in `lore-methodology.md` or the repo's `CLAUDE.md`), reference it — don't repeat it.
+
+**Source manifests (§0 Exhaust Every Source).** §0 (in `lore-methodology.md`) is the single canonical rule that documentation must use *every* available source. Each producer skill's §2 carries a "Sources you must read (per §0)" **source manifest** — the input-specific instantiation of that rule (Figma: comments, annotations, prototype flows/interactions, component variants, constraint-bearing variables; live-site: the observed run + trusted sources; brief: the brief + trusted sources). A new must-read source goes in §0 if it's global, or in the relevant skill's manifest if it's input-specific — never restated in both (Rule 4).
 
 ## Hook System
 
-Three hooks in `plugins/lore/hooks/hooks.json`:
+Hooks in `plugins/lore/hooks/hooks.json` (three PostToolUse enforcers + one Stop verifier + one SessionStart syncer):
 
 - **`check-image-path.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): images must be in `static/img/`, markdown/MDX refs must use `/img/` (never `/static/img/`), images must never be placed in `docs/`, and `/mobile/` screenshots must be embedded with a raw `<img …/>` tag — markdown `![…](…/mobile/…)` refs are blocked because the Docusaurus build rewrites markdown-embedded images to hashed `/assets/images/` URLs, stripping the `/mobile/` path the half-width CSS keys on.
 - **`check-frontmatter.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): every `docs/` markdown/MDX must have a closed YAML frontmatter block with 4 keys: `sidebar_position`, `title`, `description`, `tags` (tolerant of CRLF/BOM).
 - **`check-no-tooling-refs.sh`** (PostToolUse: Write|Edit, BLOCKING exit 2): `docs/` markdown/MDX must not reference the authoring tooling — blocks `.claude/` paths, `CLAUDE.md` citations, and the `lore:` skill/subagent namespace (Rule 5 / §6). `lore:` requires a non-alphanumeric boundary so prose like "folklore:" is not a false positive.
 - **`verify-docs.sh`** (Stop): BLOCKS (exit 2) on images under `docs/`, `/static/img/` refs, and markdown-embedded `/mobile/` images; WARNS about orphan images. Honors `stop_hook_active` to avoid loops.
+- **`sync-lore-files.sh`** (SessionStart: startup|resume|clear|compact, non-blocking): keeps the plugin-owned `.claude/lore-methodology.md` in a consuming repo in sync with the installed plugin (an extensible `SOURCE|DEST|MODE` manifest; `owned` = silent `cmp`/`cp` overwrite + a one-line `systemMessage` notice, `notify-only` = report drift, never overwrite). Guarded: acts only in a repo whose `.claude/CLAUDE.md` imports the methodology file, so it never writes into non-Lore repos. Source path is `${CLAUDE_PLUGIN_ROOT}/templates/docs-layer/.claude/lore-methodology.md`. This is how always-on rule updates reach existing projects.
 
 **Path scoping:** hooks resolve each file relative to the project root (`$CLAUDE_PROJECT_DIR`, else payload `cwd`) and act only on `docs/` paths. **Scope carve-out:** `.claude/`, `templates/`, and `_templates/` are skipped (intentional examples live there). JSON parsing falls back jq → python3 → sed and warns loudly if none is available rather than silently passing.
 
@@ -113,7 +119,7 @@ The hooks are covered by `tests/run-tests.sh` and CI (`.github/workflows/ci.yml`
 
 Three independent, composable layers copied by `scripts/scaffold.sh`:
 
-- **`docs-layer`** — always included: `.claude/` (CLAUDE.md, settings.json, lesson-learned.md), `docs/`, `templates/`, project `README.md`
+- **`docs-layer`** — always included: `.claude/` (CLAUDE.md — thin product layer that `@`-imports the rules; `lore-methodology.md` — plugin-owned methodology, kept in sync by the SessionStart hook; settings.json, lesson-learned.md), `docs/`, `templates/`, project `README.md`
 - **`docusaurus-base`** — optional viewer **overlay**: docusaurus.config.ts, sidebars.ts, src/css/custom.css, .gitignore. The Docusaurus framework itself is fetched fresh via `create-docusaurus@latest` (always latest) by `/lore:add-docusaurus`, not bundled here.
 - **`rtl-assets`** — optional: Persian font (self-hosted Vazirmatn `@font-face` with webpack-relative URLs inside `custom-rtl.css`) + right-to-left CSS (only when Docusaurus chosen AND language is RTL)
 

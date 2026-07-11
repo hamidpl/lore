@@ -24,15 +24,16 @@ You are creating product documentation from textual requirements (briefs, epics,
 
 ## 2. Pre-Flight Checklist (BLOCKING)
 
-This is the brief-specific expansion of `CLAUDE.md` Section 0 (Pre-Writing) and Section 1 (Trusted Sources). Before writing:
+This is the brief-specific expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources). Before writing:
 
 1. **Read the entire brief/epic** from start to finish.
 2. **Identify all user stories** / feature requirements.
 3. **Extract acceptance criteria** — these become business rules.
 4. **Note stated assumptions, constraints, and out-of-scope items.**
 5. **Identify gaps** — what's missing or unclear (drives clarification questions, §3).
-6. **Brief readiness gate.** Check the brief carries all three essentials: **acceptance criteria**, **personas/roles**, and **out-of-scope** statements. If any is missing, tell the user exactly which, warn that the output will be placeholder-heavy in those areas, and ask whether to proceed anyway — never silently generate from an unready brief. Record the decision for the final report (§5).
-7. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
+6. **Search configured trusted sources (§1).** Search **every** trusted source in `CLAUDE.md` §1 for material about the features in scope; extract what's relevant, or record "none configured / none relevant" explicitly (per §0). Do not document from the brief alone when a trusted source also covers the feature.
+7. **Brief readiness gate.** Check the brief carries all three essentials: **acceptance criteria**, **personas/roles**, and **out-of-scope** statements. If any is missing, tell the user exactly which, warn that the output will be placeholder-heavy in those areas, and ask whether to proceed anyway — never silently generate from an unready brief. Record the decision for the final report (§5).
+8. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
 ⛔ **Blocking:** Do NOT proceed until the brief is fully analyzed and all gaps identified.
 

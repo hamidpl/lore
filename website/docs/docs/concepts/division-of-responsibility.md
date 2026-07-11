@@ -9,14 +9,16 @@ tags: [concepts, architecture]
 
 This is the core design principle of Lore, and every other decision follows from it.
 
-> Lore carries **only the product-agnostic methodology**. Everything product-specific lives in the **consuming repository**.
+> Lore carries **the product-agnostic methodology and the always-on rules**. Only product-specific *data* lives in the consuming repository.
 
 | Layer | Lives in | Examples |
 |-------|----------|----------|
-| Product-agnostic methodology | **The plugin** | Skills, review subagents, enforcement hooks, the authoring template |
-| Product-specific configuration | **The consuming repo** | Definition of Done, trusted sources, user roles, document structure, language |
+| Product-agnostic methodology + always-on rules | **The plugin** | Skills, review subagents, enforcement hooks, the authoring template, and the Definition of Done (General Rules + §0/§2/§4–§8) |
+| Product-specific data | **The consuming repo** | Trusted sources, user roles, product overview, document structure, language |
 
 Change the methodology once in the plugin, and it propagates to every repository with a single update. Configure sources, roles, and structure per product, owned by the team that ships it.
+
+The always-on rules ship as a plugin-owned `lore-methodology.md`; each repo's thin `CLAUDE.md` imports it and adds the product layer (plus any custom project rules). A `SessionStart` hook re-syncs the file on update — so rule improvements reach existing projects automatically, not just new ones.
 
 ## Reference, don't restate
 
@@ -26,7 +28,8 @@ Skills refer to the consuming repo's rules **by section number** — they never 
 
 A closely related rule governs facts everywhere: **every fact exists in exactly one canonical location, and everywhere else references it.** Copying the full text of a rule into a second place is prohibited. Canonical homes are, for example:
 
-- Global rules and the Definition of Done → the consuming repo's configuration
+- Global rules and the Definition of Done (§0/§2/§4–§8) → the plugin-owned `lore-methodology.md`
+- Product-layer configuration (trusted sources, roles) → the consuming repo's `CLAUDE.md`
 - Input-specific workflow → the relevant skill
 - Document structure → the project's document template
 

@@ -8,6 +8,62 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.6.0
+
+Two architecture changes. The always-on methodology rules now live in a
+plugin-owned file that auto-syncs on `/plugin update`, so rule improvements
+finally reach existing projects — not just new ones. And source-gathering is
+unified under one general rule, "Exhaust Every Source", with a richer Figma
+source manifest.
+
+### Methodology rules now propagate via a synced file
+
+- **What changed.** The Definition of Done and General Rules (Rule 1–5, DoD
+  §0/§2/§4–§8) moved out of each consumer repo's `.claude/CLAUDE.md` into a new
+  **plugin-owned** `.claude/lore-methodology.md`. The consumer `CLAUDE.md` is now
+  thin — product layer (§1 Trusted Sources, §3 User Roles, product overview,
+  structure) plus your own custom rules — and `@`-imports the methodology file.
+  A new `SessionStart` hook (`sync-lore-files.sh`, matchers
+  `startup|resume|clear|compact`) copies the latest methodology file into the
+  repo whenever it differs (silent overwrite + a one-line notice), guarded to act
+  only in a repo whose `CLAUDE.md` imports it. It carries an extensible
+  `SOURCE|DEST|MODE` manifest (`owned` = auto-overwrite; `notify-only` = report
+  drift, never touch user-edited files).
+- **Why.** `CLAUDE.md` is copied once at `/lore:init` and never updated by
+  `/plugin update`, so every past rule improvement was stranded in new projects
+  only. Plugins can't inject always-on context directly, but a `SessionStart`
+  hook can keep an imported file current — closing the gap. Split boundary maps
+  onto the existing `— PRODUCT LAYER` tags; §1/§3 stay in `CLAUDE.md` with stub
+  pointers in the methodology file so §-numbering reads continuously and the
+  ~115 `§N` references in skills keep resolving.
+- **How verified.** Prototype validated with real `claude -p` sessions
+  (`@import` loads like CLAUDE.md; subagents see the imported rules; auto-sync
+  after a version bump; no approval dialog for project-local imports). Hook suite
+  green (60 assertions, incl. 10 new sync-hook + scaffold cases: missing→create,
+  in-sync→silent, stale→overwrite, no-import/non-Lore repo→untouched, valid
+  JSON notice); `shellcheck` clean; `claude plugin validate` passes.
+
+### One general rule: Exhaust Every Source
+
+- **What changed.** DoD §0 is now **"Exhaust Every Source"** — a single blocking
+  rule that documentation must read *every* available source for a page and
+  extract everything relevant, stating any zero-case explicitly. Each producer
+  skill's Pre-Flight carries a "Sources you must read (per §0)" **source
+  manifest** (the input-specific instantiation). The Figma manifest is expanded
+  to a maximal read: beyond comments, Dev-Mode annotations, and prototype
+  flows/interactions, it now also requires **component variants/properties**
+  (role/state differences) and **constraint-bearing variables** (limits, named
+  states) — recorded in the source census and mirrored in `lore:figma-extractor`.
+  The trusted-sources read obligation is now applied uniformly across
+  figma/brief/site skills (previously uneven). `skill-template.md` gained the
+  manifest slot so every future skill carries it.
+- **Why.** These must-read requirements had accreted as separate blocking rules
+  scattered across skills; sources (Figma annotations, trusted sources) were
+  sometimes silently skipped. One general rule + per-skill manifests gives a
+  single home for the principle and one obvious place to add future must-reads.
+- **How verified.** `lore:doc-reviewer` / `lore:doc-validator` updated to check
+  the full manifest coverage in the census; hook/validate suite green.
+
 ## 0.5.2
 
 A rendering fix for mobile-view screenshots: they now keep their half-width
