@@ -8,6 +8,42 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.6.2
+
+Trusted sources become auditable. A recurring failure — a producer skill
+delivering documentation without reading the trusted sources configured in
+`CLAUDE.md` §1, and validation passing anyway — is closed by making the §1
+search leave the same auditable evidence every other source already does.
+
+### Trusted-source coverage is now census evidence
+
+- **Problem.** Trusted sources were the only source type with no evidence
+  trail. The Figma census counted comments, annotations, prototype flows,
+  variants, and variables — but had no field for trusted sources. The skill
+  mentioned the §1 search once (pre-flight step 3) and never re-verified it:
+  no census field, no checklist item, no validator check. Every source *in*
+  the census got read; the one source *not* in it got silently skipped. On
+  large files a fourth gap compounded it — "delegate steps 1–8 to
+  `lore:figma-extractor`" dropped the §1 search, which the extractor never
+  performs.
+- **What changed.** The source census is generalized to every producer skill,
+  and its mandatory common core is a **Trusted Sources (§1) coverage block** —
+  one row per configured source (its finding → the doc page, or an explicit
+  `nothing relevant — confirmed searched`), written before writing begins.
+  `§0` gains an order-of-operations rule: discover scope first, then read every
+  source for a page before writing it (fetch once, reuse per page).
+- **Enforcement.** `lore:doc-validator` gains a BLOCKING cross-check — every
+  §1 source must have a census row, and each claimed contribution is grepped
+  against the named doc section to confirm it is actually reflected. The
+  `figma-to-doc` delegation note now marks steps 3–4 as NOT delegable to the
+  extractor. `brief-to-doc` and `site-to-doc` write a lightweight census
+  carrying the same common core, so the fix covers all three input types.
+- **Docs.** The Definition-of-Done concepts page and the three producer-skill
+  guides (EN & FA) describe the census coverage.
+
+Existing projects receive the methodology change automatically via the
+`SessionStart` sync hook on `/plugin update`.
+
 ## 0.6.1
 
 Prompt-injection hardening. Following an audit against current LLM-security
