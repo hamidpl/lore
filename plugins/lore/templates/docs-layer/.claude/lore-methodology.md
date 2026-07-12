@@ -80,6 +80,7 @@ When a published doc needs a fact that lives in a config section (e.g. trusted s
 
 - ✅ **The source set to exhaust** = every configured trusted source in §1 **+** all materials/artifacts the user provided **+** the input-specific source manifest listed in the active skill's Pre-Flight (the skill owns that list).
 - ✅ Actively extract and analyze information from those sources **before** writing — for each page, pull whatever the sources say about it.
+- ✅ **Order of operations:** first read the primary input enough to know the scope (which pages/features exist), then — **before writing each page** — search every configured trusted source (§1) for material about it. Fetch each source once and reuse it across pages: the per-page obligation is reading and applying, not re-fetching.
 - ⛔ **Reading only a subset of the available sources is a blocking failure.** Writing or editing before reviewing the sources you DO have is strictly prohibited.
 - ✅ **State absence explicitly.** When a source type in scope yields nothing (e.g. no annotations, no comments, no relevant trusted-source material), record that explicitly ("0 … — confirmed none") — never silently skip a source.
 - ℹ️ If no specific trusted sources are configured yet, this does not block you — proceed from the materials the user provided (see §1).
@@ -91,7 +92,7 @@ When a published doc needs a fact that lives in a config section (e.g. trusted s
 | **Live Product** | `lore:site-to-doc` | Live site via browser automation, scenario scripts, screenshots |
 | **All types** | - | Configured trusted sources (§1) + user clarifications |
 
-> The active skill's Pre-Flight source manifest is the authoritative "what to read" for its input type. For Figma, a source-census evidence artifact under `.claude/sources/` is mandatory (the Figma skill defines its format) — delivering without it, or leaving any manifest source unread, is a §0 failure.
+> The active skill's Pre-Flight source manifest is the authoritative "what to read" for its input type. **Every producer-skill run writes a source-census evidence artifact under `.claude/sources/`** (the skill defines its filename and its input-specific fields). The census's mandatory common core — identical for every input type — is the **Trusted Sources (§1) coverage block**: one row per configured §1 source stating what it contributed and to which doc page (`[t1] {source} — "{finding}" → {doc file/section}`), or the explicit per-source zero-case (`nothing relevant — confirmed searched`); when §1 configures no sources, the single line `no trusted sources configured`. Delivering without the census, leaving any manifest source unread, or leaving any configured §1 source without a coverage row is a §0 failure.
 >
 > **Adding a new must-read source:** if it applies to *every* input type, add it here (§0); if it is specific to one input type, add it to that skill's Pre-Flight source manifest. Keep the rule here general and the list in the skill.
 
