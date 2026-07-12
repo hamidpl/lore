@@ -31,7 +31,7 @@ This is the brief-specific expansion of `CLAUDE.md` Section 0 (Exhaust Every Sou
 3. **Extract acceptance criteria** — these become business rules.
 4. **Note stated assumptions, constraints, and out-of-scope items.**
 5. **Identify gaps** — what's missing or unclear (drives clarification questions, §3).
-6. **Search configured trusted sources (§1).** Search **every** trusted source in `CLAUDE.md` §1 for material about the features in scope; extract what's relevant, or record "none configured / none relevant" explicitly (per §0). Do not document from the brief alone when a trusted source also covers the feature.
+6. **Search configured trusted sources (§1) and write the source census.** Search **every** trusted source in `CLAUDE.md` §1 for material about the features in scope. Do not document from the brief alone when a trusted source also covers the feature. Record the evidence in the source census at `.claude/sources/brief-{slug}-census.md` — for a brief this is just the §0 common core: a header naming the brief (title, version, date) plus the **Trusted Sources (§1) coverage block** (per §0: one row per source — finding → doc page, or `nothing relevant — confirmed searched`; or `no trusted sources configured`). A §1 source with no row is a §0 failure.
 7. **Brief readiness gate.** Check the brief carries all three essentials: **acceptance criteria**, **personas/roles**, and **out-of-scope** statements. If any is missing, tell the user exactly which, warn that the output will be placeholder-heavy in those areas, and ask whether to proceed anyway — never silently generate from an unready brief. Record the decision for the final report (§5).
 8. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
@@ -159,7 +159,7 @@ When clarification isn't available, document the ambiguity explicitly in the doc
 
 The base final-report structure is defined in `CLAUDE.md` Section 8. In addition, a brief-sourced report MUST include:
 
-- **Brief sources:** document title, date, author, version; the user-story IDs addressed; how many acceptance criteria were used.
+- **Brief sources:** document title, date, author, version; the user-story IDs addressed; how many acceptance criteria were used; the source census path (`.claude/sources/brief-{slug}-census.md`) with the trusted sources (§1) covered.
 - **Brief readiness:** which of the three essentials (acceptance criteria, personas/roles, out-of-scope) were present or missing, and whether the user chose to proceed anyway (per §2 step 6).
 - **Clarifications log:** questions asked / answered / pending (the pending list mirrors the `[CLARIFICATION NEEDED]` markers in the doc); each pending gap names its taxonomy category where one applies.
 
@@ -171,6 +171,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] Entire brief read and analyzed; all gaps identified
+- [ ] Every configured trusted source (§1) searched and the source census written to `.claude/sources/brief-{slug}-census.md` (Trusted Sources coverage block per §0 — finding → doc page, or explicit zero-case per source)
 - [ ] Brief readiness gate run (§2 step 6); missing essentials named and proceed-decision recorded
 - [ ] All user stories documented as complete scenarios (per `CLAUDE.md` §4)
 - [ ] Gherkin acceptance criteria (if any) mapped structurally per the mapping table

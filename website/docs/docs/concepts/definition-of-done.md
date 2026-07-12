@@ -13,7 +13,7 @@ The DoD lives in the consuming repository so each product can tune it, but the s
 
 | Area | What it requires |
 |------|------------------|
-| **Pre-writing** *(blocking)* | Review every available input before writing; never write without examining what you have. |
+| **Pre-writing** *(blocking)* | Review every available input before writing; never write without examining what you have. Every run records what it read — including every configured trusted source, each with its findings or an explicit "nothing relevant" — in an auditable source census, so no source can be silently skipped. |
 | **Trusted sources** *(blocking)* | Base everything on approved sources; don't invent facts or rely on unverified third parties. |
 | **Scope & structure** | Valid frontmatter; the document follows the canonical template. |
 | **User roles** | Use the product's approved role names; explain role differences. |

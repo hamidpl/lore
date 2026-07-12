@@ -37,7 +37,7 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) 
    - **Approve each step:** keep the default — every browser action prompts. (Use when the user wants to watch each action.)
 
    If the user doesn't choose, default to approve-each-step (the safe default). See the [Lore README](https://github.com/hamidpl/lore) for setup/permission specifics (Rule 4).
-3. **Resolve the URL and scope, and search trusted sources.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope. Then search **every** other trusted source in §1 (Help Center, Blog, release notes) for material about the routes in scope; extract what's relevant, or record "none relevant" explicitly (per §0) — the live observation is authoritative for *behavior*, but trusted sources fill in rules the UI doesn't spell out.
+3. **Resolve the URL and scope, search trusted sources, and write the source census.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope. Then search **every** other trusted source in §1 (Help Center, Blog, release notes) for material about the routes in scope — the live observation is authoritative for *behavior*, but trusted sources fill in rules the UI doesn't spell out. Record the evidence in the source census at `.claude/sources/site-{slug}-census.md` — the §0 common core: a header naming the run (base URL, scope, date) plus the **Trusted Sources (§1) coverage block** (per §0: one row per source — finding → doc page, or `nothing relevant — confirmed searched`; or `no trusted sources configured`); the live run itself is already evidenced by the scenario scripts + screenshots. A §1 source with no row is a §0 failure.
 4. **Login Checkpoint** — if any part of the scope is behind authentication, complete the login handshake in §3 before exploring.
 5. **Plan the run (scenario optional).** This skill has two modes:
    - **Full-page documentation** — the user has no specific scenario and just wants one or more pages documented completely. Build an internal exploration plan that systematically exercises each target page (happy path + validation + edge cases per §3).
@@ -245,7 +245,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 
 - **URLs tested** + test environment (browser, OS, network, date) and **every viewport run** (desktop `1280×720`, plus mobile `390×844` / tablet `768×1024` if a responsive pass ran).
 - **Responsive coverage:** which viewports the user opted into at Pre-Flight step 6 (or "desktop only — declined"), and whether the Mobile & Tablet View section was produced.
-- **Scenario scripts** run (paths under `.claude/scenarios/`).
+- **Scenario scripts** run (paths under `.claude/scenarios/`) and the source census path (`.claude/sources/site-{slug}-census.md`) with the trusted sources (§1) covered.
 - **Authentication method** used (manual Login Checkpoint / reused persistent session / injected storage-state) — **never any secret or file contents**.
 - **User roles tested** vs. could-not-test (with reason).
 - **Screenshots captured** (count + storage directories).
@@ -263,6 +263,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] Playwright MCP tooling confirmed available (or install command given and resolved)
 - [ ] Crawl scope agreed with the user before exploring
+- [ ] Every configured trusted source (§1) searched and the source census written to `.claude/sources/site-{slug}-census.md` (Trusted Sources coverage block per §0 — finding → doc page, or explicit zero-case per source)
 - [ ] Scenario script(s) saved under `.claude/scenarios/`
 - [ ] Happy path and validation errors exercised; applicable taxonomy edge-case categories probed (three-value probe at limits, state transitions included) or skips recorded
 - [ ] Exact UI text / error messages captured verbatim (from snapshots)

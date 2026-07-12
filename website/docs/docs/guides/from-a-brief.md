@@ -15,7 +15,7 @@ lore:brief-to-doc <brief-text-or-file>
 
 ## What it does
 
-1. **Reads the brief end to end** and extracts every user story and acceptance criterion, identifying gaps and ambiguities up front.
+1. **Reads the brief end to end** and extracts every user story and acceptance criterion, identifying gaps and ambiguities up front. It also searches your configured trusted sources for material about the features in scope, recording each source's findings (or an explicit "nothing relevant") in an auditable source census.
 2. **Asks clarifying questions** where behavior, rules, edge cases, or exact messages are unspecified — capped at a handful of high-impact questions, with the rest becoming explicit placeholders rather than an unanswerable wall of questions.
 3. **Infers scenarios** from user stories — turning *"As a [role], I want [action], so that [benefit]"* into a complete scenario with purpose, preconditions, flow, and postconditions. Gherkin criteria map structurally: *Given* → preconditions, *When*/*Then* → a flow step and its system reaction, failure outcomes → extensions.
 4. **Walks the edge-case taxonomy** — every scenario is checked against the documentation template's edge-case categories (empty states, boundaries, concurrency, …); a category the brief doesn't address becomes a targeted question or an explicit placeholder, never an invented flow.
