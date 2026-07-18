@@ -8,6 +8,38 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.6.3
+
+Submission readiness for the Claude Code community marketplace. Anthropic's
+review pipeline reads the plugin directory on its own terms — it runs
+`claude plugin validate` and expects the plugin to document itself — so the two
+places where Lore relied on the surrounding repository are closed.
+
+### The plugin directory now documents itself
+
+- **Problem.** `plugins/lore/` had no `README.md`. Every install, usage, and
+  contribution instruction lived in the repository root README, one level up.
+  A reader — or reviewer — landing on the plugin directory found a manifest and
+  four source folders with nothing explaining what they were.
+- **What changed.** Added `plugins/lore/README.md`: the component table
+  (commands, skills, subagents, hooks) and pointers to the root README, the
+  website, and `CLAUDE.md`. Per Rule 4 it **references** the install/update
+  commands rather than restating them — the root README stays their single
+  source of truth.
+
+### `homepage` points at the product site
+
+- **Problem.** The manifest's `homepage` and `repository` were both the GitHub
+  URL, so the plugin manager surfaced the source tree where it could surface
+  the product page.
+- **What changed.** `homepage` is now `https://lorekit.net`; `repository` still
+  points at GitHub. A version bump ships with it because consumers only receive
+  manifest changes when `version` moves.
+
+**Verified.** `claude plugin validate ./plugins/lore` passes, every relative
+link in the new README resolves to a file that exists, and `sh tests/run-tests.sh`
+plus CI pass unchanged.
+
 ## 0.6.2
 
 Trusted sources become auditable. A recurring failure — a producer skill

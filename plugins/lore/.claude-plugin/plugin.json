@@ -1,12 +1,12 @@
 {
   "name": "lore",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Reusable product-documentation factory (Figma/Brief/Site → Doc) with a /lore:init scaffold wizard, DoD review, supporting subagents, and BLOCKING-rule enforcement hooks. Product-agnostic and multilingual: the consuming repo's CLAUDE.md supplies trusted sources, user roles, structure, and documentation language.",
   "author": {
     "name": "Hamid Ostadhashemi"
   },
   "license": "MIT",
-  "homepage": "https://github.com/hamidpl/lore",
+  "homepage": "https://lorekit.net",
   "repository": "https://github.com/hamidpl/lore",
   "keywords": [
     "documentation",
