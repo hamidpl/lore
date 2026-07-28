@@ -1,0 +1,23 @@
+# Exported browser auth/session state (secrets — never commit).
+# A session cookie here grants full impersonation of the account it was captured from,
+# and a commit puts it in git history permanently.
+.claude/.auth/
+
+# Run artifacts backing the census receipts. The census itself IS committed — it is the
+# auditable record of what each run read. These are the raw payloads and run logs behind
+# it: large, product-specific, and regenerated on every run.
+.claude/sources/raw/
+.claude/sources/.evidence-log
+.claude/sources/.validator-receipt
+.claude/sources/.docs-touched
+
+# Scratch space used while installing the Docusaurus viewer
+.lore-tmp/
+
+# Claude Code scheduled-task lock (machine-local)
+.claude/scheduled_tasks.lock
+
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo

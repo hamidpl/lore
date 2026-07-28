@@ -88,7 +88,7 @@ export const t = {
     items: [
       {
         title: 'Blocking enforcement hooks',
-        desc: 'Deterministic checks run on every file write — image paths, required frontmatter, and tooling leaks are caught before they reach the docs.',
+        desc: 'Deterministic checks run on every file write — image paths, required frontmatter, and tooling leaks are caught before they reach the docs. A second family checks the evidence: a source claimed but never fetched blocks delivery.',
       },
       {
         title: 'A Definition of Done',

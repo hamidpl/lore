@@ -11,12 +11,15 @@ user-invocable: true
 > **GOLDEN RULE (an instance of Rule 4 — Single Place of Truth):**
 > This skill contains ONLY input-specific content. Do NOT restate any global rule
 > (DoD, image paths, user roles, trusted sources, final-report structure).
-> Reference the relevant Section in `.claude/CLAUDE.md` instead of copying it.
+> Reference the relevant Section instead of copying it.
 >
-> Canonical locations:
-> - Global rules / DoD / image paths / roles / sources → `.claude/CLAUDE.md`
-> - Lessons learned → `.claude/lesson-learned.md`
-> - Document template → `templates/product-document-template.md`
+> **Where each rule lives is itself a single fact:** the canonical-locations table in
+> `.claude/lore-methodology.md`. Read it there rather than reproducing it here — a copy
+> of that map is exactly what went stale everywhere when the methodology moved out of
+> `CLAUDE.md`.
+>
+> When citing a DoD section from inside this skill's own numbered headings, write
+> **`DoD §N`**. This skill's `## 3.` and the DoD's `§3` are different things.
 
 ---
 
@@ -42,11 +45,15 @@ every zero-case explicitly. New must-read sources for this input type are added 
 
 | # | Step | How to Verify |
 |---|------|---------------|
+| 0 | **Write the Run contract** (before anything else) | Every explicit user instruction for this run is a `[u#]` row in the census with a status and evidence slot (per §0.4) |
 | 1 | ... | ... |
 
-> Include a step to **search every configured trusted source in §1** for material about the
-> pages in scope (extract what's relevant, or record "none configured / none relevant" — per §0).
-> Per Rule 3, also check `.claude/lesson-learned.md` for relevant entries before starting.
+> **Step 0 is not optional and not input-specific — every skill starts with it** (§0.4). Name here
+> only what an instruction typically looks like *for this input type*.
+>
+> Include a step to **search every configured trusted source in §1** for material about the pages
+> in scope. Each row is receipted per §0.1–§0.3 — the census skeleton in §3 defines the columns;
+> do not restate the rules here. Per Rule 3, also check `.claude/lesson-learned.md` before starting.
 
 ---
 
@@ -78,7 +85,12 @@ List here ONLY the extra fields this skill must add to the report
 
 - [ ] Input-specific pre-flight steps completed
 - [ ] Only input-specific content in this skill (no restated global rules)
-- [ ] All BLOCKING rules from the global DoD satisfied (see `CLAUDE.md`)
+- [ ] Source census written, with a receipted row per source (DoD §0/§0.1)
+- [ ] Every `[u#]` run-contract row satisfied with evidence, or waived (DoD §0.4)
+- [ ] All BLOCKING rules from the global DoD satisfied
+- [ ] **`lore:doc-validator` run and green** — this is the last step of every producer
+      skill, and a `Stop` hook blocks delivery without it. A skill authored from this
+      template that omits the line omits the step the hook blocks on.
 
 ---
 

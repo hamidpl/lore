@@ -23,7 +23,7 @@ This directory is the plugin itself. The repository that contains it is also its
 | Subagent | `lore:doc-validator` | Read-only DoD validator (run by producer skills before delivery) |
 | Subagent | `lore:figma-extractor` | Heavy Figma extraction worker (keeps main context clean) |
 | Subagent | `lore:site-explorer` | Heavy live-site exploration worker — drives the browser, captures screenshots |
-| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths, frontmatter, and tooling references |
+| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths, frontmatter, and tooling references — plus the evidence gates (a hook-written fetch log, receipted source censuses, a mandatory validator run) that make a skipped source impossible to hide |
 
 ## Install and usage
 

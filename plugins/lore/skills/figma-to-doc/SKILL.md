@@ -36,23 +36,32 @@ This is the **source manifest** for Figma — the concrete list §0 requires you
 
 | # | Step | How to Verify | API/Method |
 |---|------|---------------|------------|
+| 0 | **Write the Run contract** (before any fetching) | Every explicit instruction the user gave for this run is a `[u#]` row in the census | Per §0.4: for a Figma run that typically means pages to prioritise, `[ignore]` overrides, or device coverage the user asked for |
 | 1 | **Fetch Figma comments** | List of comment threads with content (or an explicit "0 comments") | `GET /v1/files/{key}/comments` |
-| 2 | **Fetch Dev-Mode annotations** | List of `node id → notes text` read from each node's `annotations` array (or an explicit "0 annotations across N nodes") | `GET /v1/files/{key}/nodes?ids={id}` (OAuth scope `file_content:read`) → read each returned node's **`annotations[]`** (`notes`, `pinned`) |
+| 2 | **Fetch Dev-Mode annotations** | A `RECEIPT` + `COUNT` line from the probe, and one census row per annotation carrying the **whole annotation object**. A zero is only valid with `corroboration=raw-confirms-none` (§0.2) | `${CLAUDE_PLUGIN_ROOT}/scripts/figma-probe.sh nodes {key} {ids}` — it saves the raw payload, prints the receipt, and extracts annotations **schema-agnostically**. Never key on a single field name (see the warning below). |
 | 2b | **(Legacy fallback) On-canvas text notes** | Only if the file predates the Dev-Mode Annotations feature: list `type:"TEXT"` nodes used as notes — **clearly marked as design copy, NOT Dev-Mode annotations** | `GET /v1/files/{key}/nodes?ids={id}` → scan `type:"TEXT"` |
 | 2c | **Fetch prototype flows & interactions** | List of prototype flows (`flowStartingPoints`) and per-node navigation edges read from the `interactions[]` arrays (or an explicit "0 flows / 0 interactions") | Read the CANVAS node's **`flowStartingPoints`** (`{nodeId, name}` per flow) and each frame node's **`interactions[]`** — both come from the **same** `GET /v1/files/{key}/nodes?ids={id}` call as step 2 (see §3) |
 | 2d | **Read component variants & properties** | List of variant/property sets that differentiate behavior (e.g. state/role variants), or an explicit "0 differentiating variants" | From the same node fetch, read component-set **variant names** and instance **`componentProperties`** — capture only those that signal a *product difference* (user role, enabled/disabled, a distinct state); ignore purely visual variants (see §3 "Component Variants & Properties") |
 | 2e | **Read constraint-bearing variables** | List of variables that encode a product rule (limits, state/flag names), or an explicit "0 constraint variables" | Read variable definitions (`get_variable_defs` via a connected Figma MCP server, or the file's variables) and **keep only those that encode a documented constraint** — numeric limits, named states, feature flags; **ignore pure visual tokens** (color/spacing/type) as style, not behavior |
-| 3 | **Search configured trusted sources** | Every §1 source has a row in the census **Trusted Sources coverage block** (finding → doc page, or the explicit zero-case) | Once the in-scope pages are known (frame inventory), search **every** trusted source in `CLAUDE.md` §1 (e.g. Help Center, Blog, live product) for material about them; record each source and finding in the census's Trusted Sources (§1) coverage block (per §0) — a §1 source with no row is a §0 failure |
+| 3 | **Search configured trusted sources** | Every §1 source has a row in the census **Trusted Sources coverage block** with every column filled (§0.1–§0.3) | Once the in-scope pages are known (frame inventory), **actually fetch** every trusted source in `CLAUDE.md` §1 (e.g. Help Center, Blog, live product) and search it for material about them. A §1 source with no row is a §0 failure |
 | 4 | **Check lesson-learned.md** | Confirm no relevant unresolved issues | Read `.claude/lesson-learned.md` (per Rule 3) |
 
-⛔ **Blocking:** Steps 1, 2, 2c, 2d, 2e, 3, and 4 must all be completed before Phase 2 (2b runs only as a fallback when step 2 yields nothing and the file uses on-canvas text notes). Steps 2d and 2e may legitimately be zero — record the zero-case; do not skip the check.
+⛔ **Blocking:** Steps 0, 1, 2, 2c, 2d, 2e, 3, and 4 must all be completed before Phase 2 (2b runs only as a fallback when step 2 yields nothing and the file uses on-canvas text notes). Steps 2d and 2e may legitimately be zero — record the zero-case **with its receipt and corroboration** (§0.1/§0.2); do not skip the check, and do not accept an uncorroborated zero.
 
 :::warning Three distinct sources — do not conflate them
 - **Comments** = discussion threads on the file (via the comments API). Context for "why" decisions.
-- **Annotations (Dev Mode)** = the **`annotations` property on a node** — an array of `{ notes, pinned }` where `notes` carries the annotation text. This is Figma's real Dev-Mode Annotations feature and the **canonical source of business rules.** Read it from the node tree (`GET .../nodes` returns each node's `annotations[]`).
+- **Annotations (Dev Mode)** = the **`annotations` property on a node** — an array of objects. This is Figma's real Dev-Mode Annotations feature and the **canonical source of business rules.** Read it from the node tree (`GET .../nodes` returns each node's `annotations[]`).
 - **TEXT nodes** = ordinary design copy on the canvas. These are **NOT** Dev-Mode annotations; use them only as a clearly-labelled legacy fallback (step 2b).
 
 Comments and annotations are SEPARATE data sources and both MUST be explicitly fetched. **Determine annotations-present yes/no from the `annotations` arrays.** If zero across all fetched nodes, **state that explicitly** in the census below — never silently skip the step (do not assume "no TEXT nodes" means "no annotations").
+
+:::danger Never key on a single annotation field name
+The annotation object's shape is **undocumented** — Figma's own OpenAPI spec declares `AnnotationsTrait` as `properties: {}`. It has already changed once: the text currently arrives in **`label`** (with `labelMarkdown` alongside), while older guidance said `notes`. This exact mismatch shipped, and §0.2 explains what it cost.
+
+- ✅ **Take the whole annotation object.** Select any node whose `annotations` array is non-empty and record the object verbatim, every key. `${CLAUDE_PLUGIN_ROOT}/scripts/figma-probe.sh` does this; if you extract by hand, do the same.
+- ⛔ **Never send `depth` on the annotation pass.** Annotations and `interactions[]` live on deep descendant nodes, so a depth-limited fetch cannot see them — the false zero here is structural, not accidental. `depth=1` belongs to the frame-inventory pass only (§3).
+- ⛔ `figma-probe.sh` exiting **4** means the raw payload holds annotation data your parse missed. Fix the read; per §0.2 that is a failed read, not a zero.
+:::
 
 - **Prototype interactions (step 2c)** = the **`interactions` property on a node** plus the CANVAS-level **`flowStartingPoints`**. This is the design's *navigation wiring* ("click X → go to Y as an overlay"). It is the primary machine-readable evidence for a scenario's **Main Flow** — the alternative to *guessing* the flow from frame names. Treat it as **design intent, not confirmed product behavior**: where it conflicts with an annotation, the annotation wins (see §3). Fetch it explicitly and record the count (even zero) in the census.
 :::
@@ -68,21 +77,35 @@ Every source you fetch — comments, annotations, prototype flows/interactions, 
 # Figma Source Census — {file name}
 File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 
-## Counts
-- Comment threads: N
-- Dev-Mode annotations (annotations property): M
-- Legacy TEXT-node notes (fallback): K   (used? yes/no)
-- Prototype flows (flowStartingPoints): F
-- Interaction edges (interactions[]): E
-- Differentiating component variants/properties: V
-- Constraint-bearing variables: X
-- Trusted sources (§1) covered: T   (or "none configured")
+## Run contract   (§0.4 — explicit user instructions for this run)
+| ref | instruction | status | evidence |
+|-----|-------------|--------|----------|
+| u1 | {verbatim intent of what the user asked for} | satisfied | {census ref / doc path / image path} |
+- Zero case: `no explicit run instructions beyond the skill default`
+
+## Counts   (§0.1 — every count carries the receipt that produced it)
+| source type | count | probe | status | bytes | scanned | raw payload |
+|-------------|-------|-------|--------|-------|---------|-------------|
+| Comment threads | N | GET /v1/files/{key}/comments | 200 | {bytes} | — | .claude/sources/raw/figma-{key}-comments.json |
+| Dev-Mode annotations (`annotations` property) | M | GET /v1/files/{key}/nodes?ids=… | 200 | {bytes} | {nodes} | .claude/sources/raw/figma-{key}-nodes-…json |
+| Legacy TEXT-node notes (fallback) | K (used? yes/no) | — | — | — | — | (same node payload) |
+| Prototype flows (`flowStartingPoints`) | F | (same node payload) | 200 | {bytes} | {nodes} | (same) |
+| Interaction edges (`interactions[]`) | E | (same node payload) | 200 | {bytes} | {nodes} | (same) |
+| Differentiating component variants/properties | V | (same node payload) | 200 | {bytes} | {nodes} | (same) |
+| Constraint-bearing variables | X | get_variable_defs / file variables | 200 | {bytes} | — | .claude/sources/raw/figma-{key}-variables.json |
+| Trusted sources (§1) covered | T | see block below | — | — | — | — |
+
+**Zero corroboration (§0.2)** — one line per source type that came back 0, quoting the probe's own
+verdict. A zero with no corroboration line, or with `corroboration=RAW-HAS-…`, is a blocking failure:
+- `annotations: 0 — corroboration=raw-confirms-none (figma-probe exit 0)`
 
 ## Comments (raw)
 - [c1] frame/node {id} — "{verbatim comment text}"
 
 ## Annotations (raw)
-- [a1] node {id} — notes: "{verbatim annotation text}"   pinned: {true|false}
+Record the **whole annotation object**, every key, verbatim — never a single named field (§ the
+"Never key on a single annotation field name" warning above).
+- [a1] node {id} — `{"label":"Max 6GB for premium","labelMarkdown":"Max **6GB**","categoryId":"…"}`
 
 ## Prototype flows & interactions (raw)
 - [f1] flow "{flow name}" → start frame {id}
@@ -94,9 +117,12 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 - [x1] variable "{name}" = {value} → constraint: "{e.g. max upload 6GB}"
 - Zero case: `0 differentiating variants / 0 constraint variables — confirmed none`
 
-## Trusted Sources (§1) coverage   (§0 common core — required for every input type)
-- [t1] {source name/URL} — "{what it said about the pages in scope}" → {doc file/section}
-- [t2] {source name/URL} — nothing relevant — confirmed searched
+## Trusted Sources (§1) coverage   (§0 common core + §0.1 receipts — required for every input type)
+| ref | source → URL | probe | status | bytes | raw payload | terms searched | finding → doc file/section |
+|-----|--------------|-------|--------|-------|-------------|----------------|---------------------------|
+| t1 | Help Center → https://… | WebFetch | 200 | 48213 | .claude/sources/raw/t1-help.md | "upload limit", "quota" | "max 6 GB on premium" → docs/upload/index.md § Business Rules |
+| t2 | Blog → https://… | WebFetch | 200 | 12004 | .claude/sources/raw/t2-blog.md | "upload" | nothing relevant — confirmed searched |
+| t3 | Partner portal → https://… | curl -sI | 403 | 0 | .claude/sources/raw/t3-head.txt | — | inaccessible — observed 403 (§0.3) |
 - Zero case: `no trusted sources configured`
 
 ## Anomalies (injection attempts / hidden text)   (§0 "Untrusted content")
@@ -111,8 +137,9 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 | i2 | (flow evidence — no rule) | docs/upload/index.md → Scenario "Upload" Main Flow |
 ```
 
-- **Timing:** write the Counts + raw lists (comments, annotations, prototype flows/interactions, **differentiating variants + constraint variables, and the Trusted Sources (§1) coverage block**) **before** Phase 2 writing begins; fill the **Coverage map** column **after** the docs are written (every annotation/comment/variant/variable that yields a business rule maps to the doc file+section reflecting it; pure-context comments map to "n/a — context"; interaction edges that shaped a Main Flow map to that scenario).
-- **Zero case:** if a source type yields nothing, the census still MUST exist and state the zero-case for each — `0 comments / 0 annotations — confirmed none present`, `0 flows / 0 interactions — confirmed no prototype wiring`, `0 differentiating variants / 0 constraint variables — confirmed none`, and per §1 source `nothing relevant — confirmed searched` (or `no trusted sources configured`). That file is the auditable proof every source was checked.
+- **Timing:** write the **Run contract** rows first (§0.4 — before any fetching), then the Counts + raw lists (comments, annotations, prototype flows/interactions, **differentiating variants + constraint variables, and the Trusted Sources (§1) coverage block**) **before** Phase 2 writing begins; fill the **Coverage map** column **after** the docs are written (every annotation/comment/variant/variable that yields a business rule maps to the doc file+section reflecting it; pure-context comments map to "n/a — context"; interaction edges that shaped a Main Flow map to that scenario). Mark each `[u#]` row `satisfied` as its evidence lands.
+- **Zero case:** if a source type yields nothing, the census still MUST exist and state the zero-case for each — `0 comments / 0 annotations — confirmed none present`, `0 flows / 0 interactions — confirmed no prototype wiring`, `0 differentiating variants / 0 constraint variables — confirmed none`, and per §1 source `nothing relevant — confirmed searched` (or `no trusted sources configured`). **Every one of those zero-cases needs its receipt beside it (§0.1) and a corroboration line (§0.2)** — an uncorroborated zero is treated as a failed read, not an absence. That file is the auditable proof every source was checked.
+- **Raw payloads:** each receipt points at a file under `.claude/sources/raw/`, written *before* you summarise it. That directory is git-ignored (payloads are large and carry product data); the census itself is committed. A receipt whose raw file is missing or empty is not a receipt.
 - **Re-runs are cheap:** on a later run of the same file key, read the existing census first and re-fetch only changed frames.
 
 ### Phase 2: Figma Content Review
@@ -143,11 +170,13 @@ File key: {key}   URL: {url}   Captured: {YYYY-MM-DD}
 
 The Figma REST calls need a token. Read it from the **`FIGMA_TOKEN` environment variable** (sent as the `X-Figma-Token` header), or use a connected Figma MCP server if one is available. **Never** ask the user to paste the raw token into the chat, never echo it in a command you print, and never write it to any file (including `lesson-learned.md` or the final report). If `FIGMA_TOKEN` is unset and no Figma MCP server is connected, stop and ask the user to `export FIGMA_TOKEN=...` (or connect the MCP server) before continuing.
 
-> **Heavy extraction (large files):** the main agent may delegate the **Figma-API steps (1, 2, 2b–2e, 5–8)** of the Pre-Flight to the `lore:figma-extractor` subagent (Task tool) to keep the main context clean. It returns a compact summary (the census payload — counts + raw comments/annotations/variants/variables + provenance refs — plus frame inventory, image list, and open questions). The main agent then **writes the census file** (the subagent returns data; it does not own the artifact). ⛔ **Steps 3 (trusted sources) and 4 (lesson-learned) are NOT delegable** — the subagent never searches §1 sources, so the main agent must run step 3 itself and fill the census's Trusted Sources coverage block; delegation does not discharge it. Writing prose and asking the user clarification questions also stay in the main context — the subagent is autonomous and cannot ask questions.
+> **Heavy extraction (large files):** the main agent may delegate the **Figma-API steps (1, 2, 2b–2e, 5–8)** of the Pre-Flight to the `lore:figma-extractor` subagent (Task tool) to keep the main context clean. It returns a compact summary (the census payload — counts + raw comments/annotations/variants/variables + provenance refs — plus frame inventory, image list, and open questions). The main agent then **writes the census file** (the subagent returns data; it does not own the artifact). ⛔ **Steps 0 (run contract), 3 (trusted sources) and 4 (lesson-learned) are NOT delegable** — the subagent never hears the user and never searches §1 sources, so the main agent must write the run contract and run step 3 itself and fill the census's Trusted Sources coverage block; delegation does not discharge it. Writing prose and asking the user clarification questions also stay in the main context — the subagent is autonomous and cannot ask questions. ⛔ **A delegated step still needs its receipts:** carry the subagent's `RECEIPT`/`COUNT` lines into the census verbatim — a count with no receipt behind it is not evidence (§0.1), and a zero the subagent reports without corroboration is a failed read, not an absence (§0.2).
 
 ### Fetching efficiently (scope the node calls)
 
-Always pass explicit `ids=` for the frames/sections you actually need — never walk the whole file. Use `depth` deliberately: `depth=1` to discover a section's child frames, then a targeted `ids=` call for content. The same `GET /v1/files/{key}/nodes?ids=…` call returns each node's `annotations[]` (step 2), its `interactions[]` prototype wiring (step 2c), **and** its children for image export — so one scoped fetch serves annotation reading, interaction reading, and frame discovery. Read `flowStartingPoints` from the CANVAS/page node (fetch the page id at `depth=1`). This endpoint needs only the `file_content:read` scope — no Dev Mode seat or paid plan. Smaller payloads mean fewer timeouts and faster runs.
+Always pass explicit `ids=` for the frames/sections you actually need — never walk the whole file. Use `${CLAUDE_PLUGIN_ROOT}/scripts/figma-probe.sh` for the fetch: it saves the raw payload, prints the §0.1 receipt, and corroborates zeros per §0.2. The probe ships with the plugin, not with your project — always invoke it through `${CLAUDE_PLUGIN_ROOT}`, never as a bare relative path.
+
+⛔ **Two passes, two depths — do not merge them.** `depth=1` discovers a section's child frames (the **inventory** pass, and the CANVAS `flowStartingPoints`). The **content** pass — annotations (step 2), `interactions[]` (step 2c), variants (2d) — must be a targeted `ids=` call with **no `depth` at all**: those properties hang off deep descendant nodes, so a depth-limited fetch cannot see them and returns a false zero that looks exactly like a real absence. One scoped full-depth fetch then serves annotation reading, interaction reading, and image export together. This endpoint needs only the `file_content:read` scope — no Dev Mode seat or paid plan. Smaller payloads mean fewer timeouts and faster runs.
 
 ### Image Extraction
 
@@ -254,7 +283,7 @@ Figma variables can carry **product constraints** — read them via a connected 
 | **`interactions[]` edge** | A Main Flow step (navigation evidence) | `Row —ON_CLICK/NAVIGATE→ Detail` → "The user clicks a row; the system opens the Detail screen." |
 | **`OVERLAY` action** | A dialog / overlay step | `Add —ON_CLICK/OVERLAY→ New task` → "A New task dialog opens." |
 | **`AFTER_TIMEOUT` trigger** | Automatic system behavior | Splash `AFTER_TIMEOUT/NAVIGATE→ Home` → "After a short delay the app opens Home." |
-| **Annotations (Dev Mode, `annotations[]`)** | Business rules OR step descriptions | A node annotation `notes: "Max 6GB for premium"` → Business rule |
+| **Annotations (Dev Mode, `annotations[]`)** | Business rules OR step descriptions | A node annotation `{"label": "Max 6GB for premium", …}` → Business rule |
 | **TEXT nodes (design copy, fallback)** | Treat as design copy, not a business rule, unless used as on-canvas notes | Headline/body copy → page content; an on-canvas note → fallback business rule |
 | **Comments** | Context for "why" decisions | Comment explaining rationale → Overview section |
 | **Component variants / properties** | User role or state differences | Button states per user type → role-based behavior; a `State=Disabled` variant → an Extension |
@@ -297,7 +326,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure (§0/§1/§4/§6/§8, Rule 3, Rule 4), fix and re-run until it returns green. Only then write the final report (§8). This does not duplicate the DoD — it invokes the canonical validator.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure, fix and re-run until it returns green. Only then write the final report (DoD §8). This does not duplicate the DoD — it invokes the canonical validator, and which sections block is that validator's to know, not this skill's to list.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] All Figma frames reviewed (except `[ignore]` pages)
@@ -306,7 +335,11 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Component variants/properties AND variables read; differentiating variants and constraint-bearing variables incorporated (or zero-case recorded)
 - [ ] Flow diagram (Mermaid) added for any section with ≥ 2 interaction edges
 - [ ] Source census (comments, annotations, prototype flows/interactions, variants, variables) written to `.claude/sources/figma-{key}-census.md` (counts + raw lists + coverage map; zero-case states "confirmed none")
-- [ ] Every configured trusted source (§1) searched for the pages in scope and recorded in the census **Trusted Sources coverage block** — finding → doc page, or explicit `nothing relevant — confirmed searched` per source (never delegated to the extractor)
+- [ ] Run contract written at step 0 and every `[u#]` row closed (§0.4)
+- [ ] Every Counts row and every §1 row has all its columns filled, with a raw payload that exists (§0.1)
+- [ ] Every `0 …` carries its corroboration line from the raw payload (§0.2)
+- [ ] **Annotations read schema-agnostically:** whole annotation objects recorded, no single field name keyed on; the content pass sent no `depth`
+- [ ] Every configured trusted source (§1) **actually fetched** and recorded in the census **Trusted Sources coverage block** — never delegated to the extractor
 - [ ] Images exported as individual FRAMEs at 2x, stored under `static/img/{section}/`
 - [ ] Frames classified by device; mobile/tablet frames (if any) exported to `mobile/`/`tablet/` sub-paths and the Mobile & Tablet View section written (differences only) — or section omitted because none exist
 - [ ] Scenario headings numbered per the template (`Scenario N: …`)

@@ -26,12 +26,30 @@ You are creating product documentation from textual requirements (briefs, epics,
 
 This is the brief-specific expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources). Before writing:
 
+0. **Write the Run contract first (§0.4).** Before reading anything, capture every explicit instruction the user gave for this run as a `[u#]` row — for a brief that typically means features to prioritise, sections to skip, or an audience to write for.
 1. **Read the entire brief/epic** from start to finish.
 2. **Identify all user stories** / feature requirements.
 3. **Extract acceptance criteria** — these become business rules.
 4. **Note stated assumptions, constraints, and out-of-scope items.**
 5. **Identify gaps** — what's missing or unclear (drives clarification questions, §3).
-6. **Search configured trusted sources (§1) and write the source census.** Search **every** trusted source in `CLAUDE.md` §1 for material about the features in scope. Do not document from the brief alone when a trusted source also covers the feature. Record the evidence in the source census at `.claude/sources/brief-{slug}-census.md` — for a brief this is just the §0 common core: a header naming the brief (title, version, date) plus the **Trusted Sources (§1) coverage block** (per §0: one row per source — finding → doc page, or `nothing relevant — confirmed searched`; or `no trusted sources configured`). A §1 source with no row is a §0 failure.
+6. **Search configured trusted sources (§1) and write the source census.** **Actually fetch** every trusted source in `CLAUDE.md` §1 and search it for material about the features in scope. Do not document from the brief alone when a trusted source also covers the feature. Record the evidence in the source census at `.claude/sources/brief-{slug}-census.md` — for a brief this is the §0 common core only: a header naming the brief (title, version, date), the **Run contract** block (§0.4, written at step 0), and the **receipted Trusted Sources (§1) coverage block**:
+
+   ```markdown
+   ## Run contract   (§0.4)
+   | ref | instruction | status | evidence |
+   |-----|-------------|--------|----------|
+   | u1 | {verbatim intent of what the user asked for} | satisfied | {doc path} |
+   - Zero case: `no explicit run instructions beyond the skill default`
+
+   ## Trusted Sources (§1) coverage   (§0 common core + §0.1 receipts)
+   | ref | source → URL | probe | status | bytes | raw payload | terms searched | finding → doc file/section |
+   |-----|--------------|-------|--------|-------|-------------|----------------|---------------------------|
+   | t1 | Help Center → https://… | WebFetch | 200 | 48213 | .claude/sources/raw/t1-help.md | "quota" | "max 6 GB" → docs/upload/index.md § Business Rules |
+   | t2 | Blog → https://… | WebFetch | 200 | 12004 | .claude/sources/raw/t2-blog.md | "upload" | nothing relevant — confirmed searched |
+   - Zero case: `no trusted sources configured`
+   ```
+
+   A §1 source with no row is a §0 failure. Fill every column, including for a zero-case row (§0.1–§0.3).
 7. **Brief readiness gate.** Check the brief carries all three essentials: **acceptance criteria**, **personas/roles**, and **out-of-scope** statements. If any is missing, tell the user exactly which, warn that the output will be placeholder-heavy in those areas, and ask whether to proceed anyway — never silently generate from an unready brief. Record the decision for the final report (§5).
 8. **Check `.claude/lesson-learned.md`** for relevant entries (Rule 3).
 
@@ -167,11 +185,12 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure (§0/§1/§4/§6/§8, Rule 3, Rule 4), fix and re-run until it returns green. Only then write the final report (§8). This does not duplicate the DoD — it invokes the canonical validator.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure, fix and re-run until it returns green. Only then write the final report (DoD §8). This does not duplicate the DoD — it invokes the canonical validator, and which sections block is that validator's to know, not this skill's to list.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] Entire brief read and analyzed; all gaps identified
-- [ ] Every configured trusted source (§1) searched and the source census written to `.claude/sources/brief-{slug}-census.md` (Trusted Sources coverage block per §0 — finding → doc page, or explicit zero-case per source)
+- [ ] Run contract written at step 0 and every `[u#]` row closed (§0.4)
+- [ ] Every configured trusted source (§1) **actually fetched**, and the census at `.claude/sources/brief-{slug}-census.md` has a fully-filled row per source (§0.1–§0.3)
 - [ ] Brief readiness gate run (§2 step 6); missing essentials named and proceed-decision recorded
 - [ ] All user stories documented as complete scenarios (per `CLAUDE.md` §4)
 - [ ] Gherkin acceptance criteria (if any) mapped structurally per the mapping table

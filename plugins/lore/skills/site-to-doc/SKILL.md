@@ -27,6 +27,7 @@ You document features by **driving a real browser** through the live product: yo
 
 This is the live-site expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources). Complete IN ORDER before writing:
 
+0. **Write the Run contract first (§0.4).** Before any browsing, capture every explicit instruction the user gave for this run as a `[u#]` row — for a live site that typically means extra states to cover ("check the signed-in view too"), viewports, roles, or areas to skip.
 1. **Browser tooling available?** Confirm the **Playwright MCP** browser tools are reachable (look for a `browser_navigate` / `browser_snapshot` tool). If they are not, **stop** and give the user the one-line install command, then wait:
    ```
    claude mcp add playwright -- npx @playwright/mcp@latest
@@ -37,8 +38,13 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) 
    - **Approve each step:** keep the default — every browser action prompts. (Use when the user wants to watch each action.)
 
    If the user doesn't choose, default to approve-each-step (the safe default). See the [Lore README](https://github.com/hamidpl/lore) for setup/permission specifics (Rule 4).
-3. **Resolve the URL and scope, search trusted sources, and write the source census.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope. Then search **every** other trusted source in §1 (Help Center, Blog, release notes) for material about the routes in scope — the live observation is authoritative for *behavior*, but trusted sources fill in rules the UI doesn't spell out. Record the evidence in the source census at `.claude/sources/site-{slug}-census.md` — the §0 common core: a header naming the run (base URL, scope, date) plus the **Trusted Sources (§1) coverage block** (per §0: one row per source — finding → doc page, or `nothing relevant — confirmed searched`; or `no trusted sources configured`); the live run itself is already evidenced by the scenario scripts + screenshots. A §1 source with no row is a §0 failure.
-4. **Login Checkpoint** — if any part of the scope is behind authentication, complete the login handshake in §3 before exploring.
+3. **Resolve the URL and scope, search trusted sources, and write the source census.** Take the site URL from `CLAUDE.md` §1 (or one the user provides). **Pin the crawl scope explicitly** — which routes/features, and roughly how many pages — and confirm it with the user. Do NOT start exploring without an agreed scope. Then **actually fetch** every other trusted source in §1 (Help Center, Blog, release notes) and search it for material about the routes in scope — the live observation is authoritative for *behavior*, but trusted sources fill in rules the UI doesn't spell out. Record the evidence in the source census at `.claude/sources/site-{slug}-census.md` (format in §3) — the §0 common core: a header naming the run (base URL, scope, date), the **Run contract** block (§0.4, written at step 0), and the **receipted Trusted Sources (§1) coverage block** (§0.1: probe, HTTP status, bytes, saved raw-payload path, terms searched, finding → doc page — or the zero-case beside that same receipt; or `no trusted sources configured`). A §1 source with no row is a §0 failure. Fill every column, including for a zero-case row (§0.1–§0.3).
+4. **Auth-state coverage — decide it explicitly, before exploring.** Authentication is not merely an obstacle to get past; **each auth state is a different product**, and the guest view of an authenticated product is not the product. Establish and record, as `[u#]` run-contract rows:
+   - which routes in scope are public, which are behind login;
+   - whether the **guest/logged-out** view of the affected routes is in scope (it usually is — it is what every new user sees first);
+   - which **roles** (per `CLAUDE.md` §3) are to be observed signed-in, and which you have accounts for.
+
+   If any part of the scope is behind authentication, complete the Login Checkpoint in §3 before exploring. ⛔ **Both the guest and the signed-in view of an auth-gated route must end up as rows in the Observation coverage matrix — or the omitted one must be declared out of scope by the user and recorded as a `[u#]` row.** Documenting only what you happened to see is how "also check the logged-in state" quietly disappears.
 5. **Plan the run (scenario optional).** This skill has two modes:
    - **Full-page documentation** — the user has no specific scenario and just wants one or more pages documented completely. Build an internal exploration plan that systematically exercises each target page (happy path + validation + edge cases per §3).
    - **Specific scenario** — the user has a particular flow to exercise. Build or collect the step-by-step scenario(s) and finalize them with the user (format in §3).
@@ -54,6 +60,43 @@ This is the live-site expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) 
 ---
 
 ## 3. Core Workflow (live-site-specific)
+
+### Source Census (BLOCKING evidence artifact)
+
+**Path:** `.claude/sources/site-{slug}-census.md`. Lives under `.claude/`, so it is never reader-facing (Rule 5 safe). Commit it — like `.claude/scenarios/`, it is an auditable source artifact. Raw payloads go under `.claude/sources/raw/` and are git-ignored. **Never write a session token, cookie, or password into it.**
+
+```markdown
+# Site Source Census — {product}
+Base URL: {url}   Scope: {routes/features agreed}   Captured: {YYYY-MM-DD}
+
+## Run contract   (§0.4 — explicit user instructions for this run)
+| ref | instruction | status | evidence |
+|-----|-------------|--------|----------|
+| u1 | document the signed-in state, not just guest | satisfied | o2, o4 |
+| u2 | also cover mobile 390×844 | satisfied | static/img/dash/mobile/dash-01.png |
+- Zero case: `no explicit run instructions beyond the skill default`
+
+## Observation coverage   (§0.4 — one row per state actually observed)
+| ref | auth state | role | route | viewport | screenshot | snapshot evidence |
+|-----|-----------|------|-------|----------|------------|-------------------|
+| o1 | guest | — | /pricing | 1280×720 | static/img/pricing/pricing-01-guest.png | "Sign in" button present |
+| o2 | signed-in | admin | /dashboard | 1280×720 | static/img/dash/dash-01.png | account menu present |
+| o3 | signed-in | viewer | /dashboard | 1280×720 | static/img/dash/dash-04-viewer.png | "Create" hidden |
+
+## Trusted Sources (§1) coverage   (§0 common core + §0.1 receipts)
+| ref | source → URL | probe | status | bytes | raw payload | terms searched | finding → doc file/section |
+|-----|--------------|-------|--------|-------|-------------|----------------|---------------------------|
+| t1 | Help Center → https://… | WebFetch | 200 | 48213 | .claude/sources/raw/t1-help.md | "upload limit" | "max 6 GB on premium" → docs/upload/index.md § Business Rules |
+| t2 | Blog → https://… | WebFetch | 200 | 12004 | .claude/sources/raw/t2-blog.md | "upload" | nothing relevant — confirmed searched |
+- Zero case: `no trusted sources configured`
+```
+
+⛔ **Coverage rules (BLOCKING) — the live-site instantiation of §0.1–§0.4.**
+
+- **Every auth state you document must appear as a row.** A scenario whose Preconditions say "signed in" must trace to a `signed-in` row; if the only rows are `guest`, you did not observe what you wrote.
+- **A screenshot that exists on disk is this skill's receipt** (§0.1) — a state you cannot show a capture of was not observed, and the hook checks the file.
+- **A state you could not reach is an Open Question plus an open `[u#]` row** (§0.3) — never a flow inferred from what the UI implies.
+- **Timing:** run contract at step 0, the §1 coverage block before writing, the Observation coverage rows as each capture lands.
 
 ### Scenario Script (canonical format — Rule 4)
 
@@ -82,7 +125,7 @@ Each step is one action + one `shot` (the screenshot's descriptive name) + an op
 
 Delegate the actual browser run to the **`lore:site-explorer`** subagent (Task tool) — it drives Playwright MCP, walks each step, captures screenshots to disk, and returns a compact summary (steps→images, verbatim UI strings, observed business rules, open questions). This keeps the heavy, context-bloating browsing out of the main context. Writing prose and asking the user clarifying questions stay here in the main context — the subagent is autonomous and cannot ask questions.
 
-Pass the subagent: the base URL, the scenario script(s), the viewport, the `static/img/{section}/` target, and the page budget. The subagent shares this session's MCP connection — so a session you logged into during the Login Checkpoint is already authenticated for it.
+Pass the subagent: the base URL, **the auth state this run is meant to observe** (`guest`, or `signed-in as {role}`), the scenario script(s), the viewport, the `static/img/{section}/` target, and the page budget. The subagent shares this session's MCP connection — so a session you logged into during the Login Checkpoint is already authenticated for it. ⛔ It verifies the state it is actually in and reports it back; if that contradicts what you asked for, fix the session and re-run rather than documenting the captures.
 
 **Responsive pass (only if the user opted in at Pre-Flight step 6).** Re-run the **same** scenario script through `lore:site-explorer` at the chosen preset (`390×844` and/or `768×1024`), but scope it to a **differences pass** — the happy-path steps plus any state whose layout or behavior visibly changes on a small screen — not a full re-capture of every step. Tell the subagent the target sub-path (`mobile/` or `tablet/`). Its captures + observed differences feed **only** the template's Mobile & Tablet View section (differences from desktop — never a re-told flow). This extra pass counts against the page/scenario budget below.
 
@@ -106,6 +149,10 @@ The pattern is **"the human logs in once, automation continues."** A password is
 2. Ask the user to **log in manually in that browser window** (2FA / SSO are fine — the user completes them in the browser).
 3. The user tells you they are done; confirm via `browser_snapshot` that an authenticated state is visible (e.g. the account menu) before continuing.
 4. Explore. Playwright MCP uses a **persistent browser profile by default**, so the login state and cookies **persist between runs** — later runs skip the login step automatically.
+
+⛔ **The persistent profile hides the guest state — capture it deliberately.** Because the browser stays logged in, a second run never sees what a logged-out visitor sees, and the guest view silently vanishes from the documentation without anyone noticing. When the guest view is in scope (Pre-Flight step 4), capture it **before** the Login Checkpoint, or afterwards from a clean context (an isolated profile / a fresh context without the stored state). Record both as separate `Observation coverage` rows.
+
+⛔ **Verify the state you are actually in, every time.** A server-side session can expire mid-run, and an expired session returns login walls that look like ordinary pages. Before each scenario, confirm from `browser_snapshot` which state you are in (an account menu vs. a "Sign in" button) and record it in the row. Never assume the session survived.
 
 **Optional — export the session for clean/isolated runs:** you may export the authenticated state with `browser_storage_state` to `.claude/.auth/{host}.json` and re-inject it (`browser_set_storage_state`, or start the server with `--isolated --storage-state=...`). If you do:
 
@@ -236,6 +283,7 @@ See [examples/observed-issues.md](examples/observed-issues.md) for a filled side
 - Capture all system messages verbatim from the snapshot to satisfy the accuracy requirement (`CLAUDE.md` §5).
 - **Edge-case coverage:** each applicable category of the template's edge-case coverage taxonomy is probed live or explicitly listed as not-probed (with reason) in the final report; limits are probed with the three-value method (below / at / above).
 - **Responsive view:** if the user opted in (Pre-Flight step 6), the **Mobile & Tablet View** section is required (differences only, per the template), with mobile/tablet shots under the `mobile/`/`tablet/` sub-paths. If the user declined, record "responsive view not documented (user declined)" in the final report — the omission is then expected, not a gap.
+- ⛔ **Auth-state fidelity (BLOCKING).** Every documented behavior must trace to an `Observation coverage` row in the same auth state it is written about. A scenario whose Preconditions say "signed in" cannot be written from a guest-only observation, and a guest-facing page cannot be described from a signed-in capture. Where an auth state in scope was not observed, the doc gets a `[CLARIFICATION NEEDED: …]` marker and the run contract keeps an open `[u#]` row — it never gets a guessed flow.
 
 ---
 
@@ -245,7 +293,9 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 
 - **URLs tested** + test environment (browser, OS, network, date) and **every viewport run** (desktop `1280×720`, plus mobile `390×844` / tablet `768×1024` if a responsive pass ran).
 - **Responsive coverage:** which viewports the user opted into at Pre-Flight step 6 (or "desktop only — declined"), and whether the Mobile & Tablet View section was produced.
-- **Scenario scripts** run (paths under `.claude/scenarios/`) and the source census path (`.claude/sources/site-{slug}-census.md`) with the trusted sources (§1) covered.
+- **Scenario scripts** run (paths under `.claude/scenarios/`) and the source census path (`.claude/sources/site-{slug}-census.md`) with the trusted sources (§1) covered and their receipts.
+- **Run contract:** each `[u#]` instruction, its status, and the evidence that discharged it (or the user's explicit waiver).
+- **Auth-state coverage:** which states were observed (guest / signed-in per role) for which routes, and — explicitly — any state in scope that was **not** observed, with the reason. "Only the guest view was seen" is a finding to report, never something to leave implicit.
 - **Authentication method** used (manual Login Checkpoint / reused persistent session / injected storage-state) — **never any secret or file contents**.
 - **User roles tested** vs. could-not-test (with reason).
 - **Screenshots captured** (count + storage directories).
@@ -258,12 +308,15 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure (§0/§1/§4/§6/§8, Rule 3, Rule 4), fix and re-run until it returns green. Only then write the final report (§8). This does not duplicate the DoD — it invokes the canonical validator.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure, fix and re-run until it returns green. Only then write the final report (DoD §8). This does not duplicate the DoD — it invokes the canonical validator, and which sections block is that validator's to know, not this skill's to list.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] Playwright MCP tooling confirmed available (or install command given and resolved)
 - [ ] Crawl scope agreed with the user before exploring
-- [ ] Every configured trusted source (§1) searched and the source census written to `.claude/sources/site-{slug}-census.md` (Trusted Sources coverage block per §0 — finding → doc page, or explicit zero-case per source)
+- [ ] Run contract written at step 0 and every `[u#]` row closed (§0.4)
+- [ ] **Observation coverage:** one row per state actually observed (auth state × role × route × viewport), each with a screenshot that exists; every documented scenario traces to a row in its own auth state
+- [ ] **Guest and signed-in both covered** for every auth-gated route in scope — or the omitted one declared out of scope by the user and recorded as a `[u#]` row
+- [ ] Every configured trusted source (§1) **actually fetched**, and the census at `.claude/sources/site-{slug}-census.md` has a fully-filled row per source (§0.1–§0.3)
 - [ ] Scenario script(s) saved under `.claude/scenarios/`
 - [ ] Happy path and validation errors exercised; applicable taxonomy edge-case categories probed (three-value probe at limits, state transitions included) or skips recorded
 - [ ] Exact UI text / error messages captured verbatim (from snapshots)

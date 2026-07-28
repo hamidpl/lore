@@ -51,9 +51,25 @@ sed -i.bak \
   -e "s/{{LANG_LABEL}}/Farsi/g" \
   -e "s/{{DIRECTION}}/rtl/g" \
   -e "s/{{HTML_LANG}}/fa-IR/g" \
+  -e "s#{{LORE_ATTRIBUTION}}#Built with <a href=\"https://lorekit.net\">Lore</a>#g" \
   "$cfg"
 sed -i.bak "s#customCss: \['./src/css/custom.css'\]#customCss: ['./src/css/custom.css', './src/css/custom-rtl.css']#" "$cfg"
 rm -f "$cfg.bak"
+
+# Assert the substitutions actually happened. `sed` that matches nothing exits 0, so
+# a renamed placeholder used to sail through and the build still went green — after
+# which "OK" was untrue: the site shipped a raw {{TOKEN}} in its footer or title.
+leftover=$(grep -o '{{[A-Z_]*}}' "$cfg" | grep -v '{{PLACEHOLDER}}' | sort -u || true)
+if [ -n "$leftover" ]; then
+  echo "smoke-build: FAILED — unsubstituted placeholders survive in $cfg:" >&2
+  echo "$leftover" >&2
+  echo "(a placeholder was renamed in the template and this test's sed list did not follow)" >&2
+  exit 1
+fi
+grep -q "custom-rtl.css" "$cfg" || {
+  echo "smoke-build: FAILED — the RTL stylesheet was never wired into customCss" >&2
+  exit 1
+}
 
 # Guard: docs/ must never contain {{...}} — MDX would evaluate it as JS and fail.
 # (Comment-only {{...}} guidance in config/sidebars/custom.css is intentional and
@@ -63,9 +79,34 @@ if grep -RIl '{{' docs 2>/dev/null | grep -q .; then
   exit 1
 fi
 
-# 6. Install and build. The Lore config references @docusaurus/theme-mermaid
-# (user-flow diagrams), so it must be installed — mirrors /lore:add-docusaurus.
-npm install @docusaurus/theme-mermaid
-npm run build
+# 6. Install and build — running the command file's OWN block, not a copy of it.
+#
+# This test used to hardcode its own `npm install … && npm run build`. That is the
+# same restatement pattern Rule 4 forbids, and it drifted exactly as predicted: the
+# command file learned that @docusaurus/theme-mermaid must be installed (the Lore
+# config declares that theme, so the build fails without it) while copies elsewhere
+# still said plain `npm install`. Extracting the block means the test breaks the day
+# the documented command changes, which is the only way a smoke test can honestly
+# claim it replays the real consumer path.
+CMD_FILE="$PLUGIN_ROOT/commands/add-docusaurus.md"
+install_cmd=$(awk '
+  /^## Step 6/      { step6 = 1 }
+  step6 && /^```bash/ { grab = 1; next }
+  grab && /^```/    { exit }
+  grab              { print }
+' "$CMD_FILE")
 
-echo "smoke-build: OK (green production build, RTL fonts resolved)"
+if [ -z "$install_cmd" ]; then
+  echo "smoke-build: FAILED — could not extract the install command from $CMD_FILE" >&2
+  echo "(its Step 6 bash block moved or was renamed; this test must follow it)" >&2
+  exit 1
+fi
+case "$install_cmd" in
+  *"npm run build"*) : ;;
+  *) echo "smoke-build: FAILED — the extracted block does not build: $install_cmd" >&2; exit 1 ;;
+esac
+
+echo "smoke-build: running the documented command: $install_cmd"
+eval "$install_cmd"
+
+echo "smoke-build: OK (green production build, RTL fonts resolved, no unsubstituted placeholders)"
