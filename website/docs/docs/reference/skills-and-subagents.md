@@ -24,10 +24,10 @@ Subagents are workers the skills delegate to. They keep the main session's conte
 
 | Subagent | Role |
 |----------|------|
-| `lore:doc-validator` | Read-only validator that audits a document against the [Definition of Done](../concepts/definition-of-done.md) and returns a pass/fail report. Producer skills run it before delivery. |
+| `lore:doc-validator` | Read-only validator that audits a document against the [Definition of Done](../concepts/definition-of-done.md) and returns a pass/fail report. Producer skills run it before delivery. It treats the source census **adversarially** — as a set of claims to falsify, not a report to read — re-probing sources and testing receipts, because the census was written by the agent whose work it is checking. |
 | `lore:figma-extractor` | Heavy Figma extraction — comments, annotations, the frame inventory, and frame images — returned as a distilled summary. |
 | `lore:site-explorer` | Heavy live-site exploration — drives the browser, captures screenshots, and records exact UI text — returned as a compact summary. |
 
 ## How they fit together
 
-A producer skill orchestrates a run: it gathers sources (delegating heavy extraction or browsing to a worker subagent), writes the documentation, and then calls `lore:doc-validator` to self-verify against the Definition of Done before delivery. The [enforcement hooks](../concepts/enforcement-hooks.md) run independently on top, catching rule violations deterministically as files are written.
+A producer skill orchestrates a run: it records what you asked for, gathers sources (delegating heavy extraction or browsing to a worker subagent) into a receipted source census, writes the documentation, and then calls `lore:doc-validator` to self-verify against the Definition of Done before delivery. The [enforcement hooks](../concepts/enforcement-hooks.md) run independently on top — checking the shape of what was written as files are written, and, at the end of the turn, that the evidence behind it actually exists. Self-verification and deterministic enforcement are deliberately separate: the skill can be wrong about its own work, and the hooks read artifacts it did not author.

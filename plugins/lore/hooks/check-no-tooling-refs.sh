@@ -65,6 +65,15 @@ case "$file_path" in
   *)  rel="$file_path" ;;
 esac
 
+# --- guard: a scaffolded Lore docs project only -------------------------------------
+# These rules are Lore's Definition of Done, not universal truth. The plugin is
+# installed per user, so this hook also runs in repos that have nothing to do with it —
+# and plenty of projects keep plain markdown and images under docs/. Blocking those
+# writes enforced a DoD their author never opted into. The marker is the same one every
+# evidence hook uses: a .claude/CLAUDE.md that imports the methodology.
+[ -f "$root/.claude/CLAUDE.md" ] || exit 0
+grep -q '@lore-methodology.md' "$root/.claude/CLAUDE.md" 2>/dev/null || exit 0
+
 # --- carve-out ---
 case "$rel" in
   .claude/*|templates/*|_templates/*) exit 0 ;;

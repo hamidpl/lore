@@ -43,6 +43,8 @@ claude plugin update lore@lore-marketplace      # update the plugin
 
 Because Lore ships hooks that run shell scripts in your repository, review plugin updates the way you would any dependency bump.
 
+**Installing Lore does not change how other projects behave.** A plugin is installed per user, so its hooks run in whatever repository you are working in — every one of them checks for a Lore documentation project first and exits immediately otherwise. A project that merely keeps Markdown or images in a folder named `docs` is untouched: the rules here are Lore's Definition of Done, not universal truth.
+
 ## Prerequisites
 
 - **[Claude Code](https://code.claude.com/docs/en/overview).** Lore is a Claude Code plugin.

@@ -1,5 +1,5 @@
 {
-  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules + upkeep. Paths are resolved relative to the project root (CLAUDE_PROJECT_DIR / payload cwd); JSON is parsed via jq → python3 → sed, warning loudly if none are available. check-image-path.sh blocks (exit 2) any docs/ markdown or MDX referencing /static/img/, or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown/MDX missing valid frontmatter keys (§2/§6). check-no-tooling-refs.sh blocks (exit 2) any docs/ markdown/MDX referencing the authoring tooling — .claude/ paths, CLAUDE.md citations, or lore:* skill/subagent names (Rule 5/§6). verify-docs.sh (Stop) blocks (exit 2) images under docs/ and /static/img/ refs, and warns about orphan images; it honors stop_hook_active to avoid loops. sync-lore-files.sh (SessionStart) keeps plugin-owned files (lore-methodology.md) in sync with the installed plugin version — silent copy + a one-line notice on update; only touches a project whose CLAUDE.md imports the methodology file. Scope carve-out: .claude/**, templates/**, and _templates/** intentional examples are ignored.",
+  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules + upkeep. Paths are resolved relative to the project root (CLAUDE_PROJECT_DIR / payload cwd); JSON is parsed via jq → python3 → sed, warning loudly if none are available. OUTPUT SHAPE: check-image-path.sh blocks (exit 2) any docs/ markdown or MDX referencing /static/img/, or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown/MDX missing valid frontmatter keys (§2/§6). check-no-tooling-refs.sh blocks (exit 2) any docs/ markdown/MDX referencing the authoring tooling — .claude/ paths, CLAUDE.md citations, or lore:* skill/subagent names (Rule 5/§6). EVIDENCE (§0.1–§0.4): record-evidence.sh keeps an append-only, tiered log of fetches and subagent runs (never blocks) — the model does not author it, and only `verified` entries (a fetching tool actually ran) count as proof, while a URL merely seen inside a Bash command is logged `mentioned`; check-census.sh owns every census rule in two modes — as a Write|Edit hook it blocks (exit 2) on SHAPE (a missing Run contract block, a trusted-source row without its HTTP status and saved raw payload, a zero the raw payload contradicts, a cited payload that is missing, a URL with no verified fetch behind it), and as `--complete <file>` it is invoked by verify-docs.sh at Stop to block on COMPLETENESS (a site census with no observed states, a Figma census with no counted row per manifest source type) — shape at write so the prescribed pre-flight census is writable, completeness at Stop so a placeholder cannot pass; record-validator-run.sh records each lore:doc-validator run and its verdict, matched at the start of a line so prose cannot set it (never blocks); remind-census.sh injects a just-in-time reminder when a new docs/ page is created with no census yet (never blocks). verify-docs.sh (Stop) blocks (exit 2) images under docs/, /static/img/ refs, a producing session that left no census at all, an incomplete census, run-contract rows whose status is not exactly satisfied-with-evidence or waived, and documentation that changed without a fresh green validator run; it warns about orphan images and honors stop_hook_active to avoid loops. The evidence artifacts guard against a skipped step, not a deliberate forgery — they are plain files, and an agent with shell access can write one. sync-lore-files.sh (SessionStart) keeps plugin-owned files (lore-methodology.md) in sync with the installed plugin version — silent copy + a one-line notice on update; only touches a project whose CLAUDE.md imports the methodology file. Scope carve-out: templates/** and _templates/** intentional examples are ignored, and .claude/** is ignored by every hook EXCEPT check-census.sh, whose whole job is the evidence artifact that lives there.",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,17 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-lore-files.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind-census.sh"
           }
         ]
       }
@@ -27,6 +38,30 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-no-tooling-refs.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-census.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch|Task|Bash|Write|Edit|mcp__.*(playwright|browser|chrome|puppeteer|fetch).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/record-evidence.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "lore:doc-validator|doc-validator",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/record-validator-run.sh"
           }
         ]
       }

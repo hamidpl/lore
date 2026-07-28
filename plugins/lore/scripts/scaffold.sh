@@ -60,7 +60,31 @@ copy_layer() {
     rel="${f#"$src"/}"
     dest="$target/$rel"
     if [ -e "$dest" ]; then
-      echo "skip (exists): $rel"
+      # .gitignore is the one additive file: every layer contributes entries, and a
+      # docs-only project that later gains Docusaurus must end up with BOTH sets.
+      # Skipping it (the rule for every other file) would silently drop a whole
+      # layer's ignores — including node_modules/ and the exported auth state.
+      # Merging only appends lines that are not already present, so re-running stays
+      # idempotent and a user's own entries are never touched.
+      if [ "${rel##*/}" = ".gitignore" ]; then
+        added=0
+        while IFS= read -r ln || [ -n "$ln" ]; do
+          case "$ln" in ''|'#'*) continue ;; esac
+          grep -qxF "$ln" "$dest" 2>/dev/null && continue
+          if [ "$added" -eq 0 ]; then
+            printf '\n# --- added by lore scaffold ---\n' >>"$dest"
+            added=1
+          fi
+          printf '%s\n' "$ln" >>"$dest"
+        done <"$f"
+        if [ "$added" -eq 1 ]; then
+          echo "merged: $rel"
+        else
+          echo "skip (exists): $rel"
+        fi
+      else
+        echo "skip (exists): $rel"
+      fi
     else
       mkdir -p "$(dirname "$dest")"
       cp "$f" "$dest"

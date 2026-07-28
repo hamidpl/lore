@@ -36,24 +36,54 @@ jobs:
         run: |
           jq -e '.name and .version and .license' plugins/lore/.claude-plugin/plugin.json >/dev/null
       - name: hook scripts referenced by hooks.json exist and are executable
+        # DERIVED from the manifest, never listed here. A hardcoded list stops covering
+        # new hooks the moment one is added, and git tracks the exec bit — so a single
+        # chmod-less commit shipped a dead hook with CI green. The second loop catches
+        # any shipped script, wired or not, for the same reason.
         run: |
           fail=0
-          for s in check-image-path.sh check-frontmatter.sh check-no-tooling-refs.sh verify-docs.sh; do
-            p="plugins/lore/hooks/$s"
-            grep -q "$s" plugins/lore/hooks/hooks.json || { echo "hooks.json does not reference $s"; fail=1; }
+          jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' \
+            plugins/lore/hooks/hooks.json |
+            sed 's#^\${CLAUDE_PLUGIN_ROOT}/#plugins/lore/#' | sort -u |
+            while read -r p; do
+              test -f "$p" || { echo "hooks.json references a missing file: $p"; exit 1; }
+              test -x "$p" || { echo "hooks.json references a non-executable file: $p"; exit 1; }
+            done || fail=1
+          for p in plugins/lore/hooks/*.sh plugins/lore/scripts/*.sh; do
             test -x "$p" || { echo "not executable: $p"; fail=1; }
           done
-          for s in scaffold.sh detect-project.sh; do
-            test -x "plugins/lore/scripts/$s" || { echo "not executable: $s"; fail=1; }
-          done
           exit $fail
-      - name: validate the plugin (if the CLI is available)
+      - name: plugin manifest and layout
+        # Replaces a `claude plugin validate` step that sat behind `if command -v claude`
+        # and therefore never ran on a runner — dead coverage that read as coverage.
+        # These assertions are the parts of that check we can make without the CLI.
         run: |
-          if command -v claude >/dev/null 2>&1; then
-            claude plugin validate ./plugins/lore
-          else
-            echo "claude CLI not present on the runner — skipping plugin validate"
-          fi
+          fail=0
+          jq -e '.name and .version and .description and .license' \
+            plugins/lore/.claude-plugin/plugin.json >/dev/null ||
+            { echo "plugin.json is missing a required field"; fail=1; }
+          case "$(jq -r .version plugins/lore/.claude-plugin/plugin.json)" in
+            [0-9]*.[0-9]*.[0-9]*) : ;;
+            *) echo "plugin.json version is not semver"; fail=1 ;;
+          esac
+          for d in commands skills agents hooks scripts templates; do
+            test -d "plugins/lore/$d" || { echo "missing plugin dir: $d"; fail=1; }
+          done
+          jq -e '.plugins[] | select(.name == "lore") | .source' \
+            .claude-plugin/marketplace.json >/dev/null ||
+            { echo "marketplace.json does not list the lore plugin"; fail=1; }
+          test -d "$(jq -r '.plugins[] | select(.name=="lore") | .source' .claude-plugin/marketplace.json)" ||
+            { echo "marketplace.json points at a missing plugin source"; fail=1; }
+          exit $fail
+      - name: version strings agree
+        # SITE.version and the README badge are bumped by hand at release time; nothing
+        # ever checked they matched the plugin, so a release could ship three versions.
+        run: |
+          fail=0
+          v=$(jq -r .version plugins/lore/.claude-plugin/plugin.json)
+          grep -q "badge/version-${v}-" README.md ||
+            { echo "README version badge does not match plugin.json ($v)"; fail=1; }
+          exit $fail
 
   hook-tests:
     name: hook & script tests

@@ -2,7 +2,7 @@
 
 **Turn designs, briefs, and living products into documentation that lasts.**
 
-[![Version](https://img.shields.io/badge/version-0.6.3-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](plugins/lore/.claude-plugin/plugin.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/plugin-Claude%20Code-purple.svg)](https://code.claude.com/docs/en/plugins)
 [![Website](https://img.shields.io/badge/website-lorekit.net-ff7a59.svg)](https://lorekit.net)
@@ -35,7 +35,7 @@ That is exactly what product documentation should be. Documentation rots, and ev
 | Subagent | `lore:doc-validator` | Read-only DoD validator (run by producer skills before delivery) |
 | Subagent | `lore:figma-extractor` | Heavy Figma extraction worker (keeps main context clean) |
 | Subagent | `lore:site-explorer` | Heavy live-site exploration worker — drives the browser, captures screenshots (keeps main context clean) |
-| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter |
+| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter, plus the evidence gates that make a skipped source impossible to hide |
 
 ## How it works
 

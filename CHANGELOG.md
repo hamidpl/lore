@@ -8,6 +8,318 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.7.0
+
+**Evidence gates: a claim now needs a receipt.** Three BLOCKING rules were skipped
+in a single real documentation run, and validation passed all three. This release
+moves the §0 obligations out of prose and into the deterministic layer.
+
+### Problem
+
+Every §0 obligation was discharged by *writing a sentence*, and no sentence was ever
+compared against a machine-observable fact. `nothing relevant — confirmed searched` is
+byte-identical whether a source was read or never touched, and the agent that skipped
+the work is the one authoring the sentence — so it always passed. Concretely:
+
+1. **Figma annotations were never extracted, and the miss was certified.** The plugin
+   hard-coded `annotations[].notes` in five places; the Figma REST API returns the text
+   in `label`/`labelMarkdown`, and its own OpenAPI spec declares `AnnotationsTrait` as
+   `properties: {}` — the shape is undocumented. The probe returned nothing, and §0's
+   explicit-zero rule then dutifully recorded `0 annotations — confirmed none present`.
+   The census **laundered a code bug into a certified absence**, deleting every business
+   rule the designers had written. A second bug compounded it: `depth=1` was recommended
+   for scoping, but annotations hang off deep descendant nodes, so that fetch structurally
+   cannot see them.
+2. **A trusted source was skipped and the skip was recorded as a finding.** It was assumed
+   to need a support session *because of where its link sat in the page footer*, and the
+   census row read `nothing relevant — confirmed searched` without a single HTTP request.
+3. **An explicit user instruction evaporated.** `site-to-doc` was asked to cover the
+   signed-in state; only the guest view was ever observed, and the documentation was
+   written from it. Nothing on disk remembered the instruction, and the word "guest" did
+   not appear anywhere in the plugin — auth was modelled as an obstacle to get past, not
+   as a documented product state. The persistent browser profile actively hides the guest
+   view on re-runs, so neither state was reliably captured.
+
+0.6.2 addressed this class with "add a rule + have the validator check it". That is the
+approach that leaked here, so this release does not repeat it.
+
+### What changed — four evidence rules
+
+DoD §0 gains four sub-rules (additive; no renumbering), propagated to existing projects
+by the `SessionStart` sync hook:
+
+- **§0.1 Evidence, not attestation** — every census row carries a receipt: the probe run,
+  its HTTP status, the bytes returned, and the on-disk path of the saved raw payload. The
+  words *confirmed / verified / checked* carry no evidentiary weight anywhere.
+- **§0.2 Negative-result protocol** — a zero is the cheapest result to produce and the one
+  that silently subtracts content. It is valid only beside a successful receipt **and** a
+  corroboration by a second, independent method. Raw payload has the data but the parse
+  returned 0 → **parser failure, not absence**.
+- **§0.3 No assumption about accessibility** — a source may be called login-gated or
+  unreachable only on an **observed** status code or auth wall; never inferred from a
+  link's position, a name, or a guess.
+- **§0.4 Run contract** — explicit user instructions become numbered `[u#]` rows written
+  at pre-flight, and delivery is blocked while any row is open.
+
+### Enforcement — the hook layer, not more prose
+
+Hooks can match `WebFetch`, `Task`, `Bash`, MCP tools, and `SubagentStop` by agent type,
+which makes the decisive artifact possible: **an evidence log the model does not author.**
+It is a guard against a step being skipped, not a tamper-proof record — an agent with shell
+access can append to any file. The property it buys is that a source never fetched does not
+end up in the log *by accident*, which is the failure mode this release is about.
+
+- `record-evidence.sh` (PostToolUse, never blocks) appends one **tiered** line per fetch and
+  subagent run to `.claude/sources/.evidence-log` — see "The evidence log is tiered" below.
+- `check-census.sh` owns every census rule, in two modes: as a Write|Edit hook (exit 2) it
+  validates **shape** — Run contract present, a receipt on **every** trusted-source row,
+  raw payloads that exist and are non-empty, every claimed URL backed by a **verified** fetch
+  in the evidence log, cited screenshots on disk, and no zero the raw payload contradicts;
+  as `--complete <file>` it is invoked by the Stop hook to validate **completeness** — a site
+  census showing at least one observed state, a Figma census carrying a counted row per
+  manifest source type.
+- `record-validator-run.sh` (SubagentStop, never blocks) records each `lore:doc-validator`
+  run and its verdict, matched at the start of a line so report prose cannot set it.
+- `remind-census.sh` (PreToolUse, never blocks) injects the §0 obligations at the moment a
+  new `docs/` page is created without a census.
+- `verify-docs.sh` (Stop) gains four BLOCKING gates: **no census at all**, an incomplete
+  census, an open `[u#]` row, and documentation that changed without a fresh green validator
+  run. All fire only where `.claude/sources/` exists **and this session produced
+  documentation**, so hand-maintained docs trees — and anyone who merely cloned the repo —
+  are untouched.
+
+### Enforcement — the Figma probe
+
+New `scripts/figma-probe.sh` replaces improvised per-run curl and JSON walking. It saves
+the raw payload before anything interprets it, prints the §0.1 receipt, extracts
+annotations **schema-agnostically** (selecting on the presence of a non-empty `annotations`
+array and dumping whole objects — no annotation field name appears in the script at all),
+never sends `depth`, and exits 4 when the raw bytes contain annotation data the parse
+missed. A `parse` subcommand re-analyses a saved payload offline.
+
+### Enforcement — adversarial review
+
+`lore:doc-validator` and `lore:doc-reviewer` change stance from "check the census is
+well-formed" to **"assume the census is fabricated; disprove it"**: re-probe every §1
+source and compare the observed status to the claim (a row claiming "requires login" that
+answers 200 is a fabrication — blocking), test every raw payload, cross-check the evidence
+log, challenge every zero against its payload, verify every `[u#]` row's evidence exists,
+and — for site runs — confirm every scenario with a signed-in Precondition traces to a
+`signed-in` observation row. The report now states which re-verifications actually ran,
+because an unrun check is not a passed check.
+
+### Auth state is a documented state
+
+`site-to-doc` gains an Observation coverage matrix (auth state × role × route × viewport,
+each row backed by a screenshot), a rule that both the guest and signed-in views of an
+auth-gated route must be covered or explicitly waived by the user, and a warning that the
+persistent browser profile hides the guest view. `lore:site-explorer` must now **verify and
+report which auth state it is actually in** before running a scenario — an expired session
+serves login walls that look like ordinary pages.
+
+### Rule 4: an explicit carve-out for enforcement
+
+Restating a rule near the point of action is exactly what makes it land — and exactly what
+Rule 4 forbids. That tension is now resolved explicitly rather than left to judgement, in the
+same shape as the existing Rule 3 carve-out: a rule's **statement and rationale** stay
+canonical in `lore-methodology.md`; an **operational instantiation** (the columns to fill, a
+checklist item, a hook's runtime error message) belongs where the work happens. The test is
+*"if the canonical rule changed, would this other copy become wrong?"* — if yes it is a
+restatement and must become a `§N` reference. The skills, `doc-validator`, `doc-reviewer`,
+`skill-template.md` and this repo's `CLAUDE.md` were rewritten against that test.
+
+### Cost and false-block control
+
+Both were measured rather than assumed:
+
+- `record-evidence.sh` sits on the `Bash` matcher — the highest-frequency tool there is — so it
+  checks its Lore-project guard and a cheap payload filter **before** starting any JSON parser.
+  A call in an unrelated repo, or an ordinary `git status`, costs **~8.5 ms** (down from ~16 ms,
+  and now essentially just the `sh` spawn). Only a call that actually carries a URL or a
+  subagent type pays the full ~26 ms — and those already involve network I/O.
+- The Stop gate is **scoped to sessions that actually wrote documentation**. Without this, a
+  `git pull`, a rebase, or an editor save that touched `docs/` would leave the tree newer than
+  the validator receipt and block the next turn of an unrelated session. `record-evidence.sh`
+  records the session id on a `docs/` write and the Stop hook consults it; a session that wrote
+  no documentation is never gated. It still fails **closed** when no marker exists yet.
+
+### The census is now required, and validated twice
+
+The gap that made everything above optional: **nothing checked that a census existed.**
+Every §0 rule is enforced against that file, and `check-census.sh` only fires when one is
+written — so a run that wrote documentation, ran the validator, and simply never wrote a
+census delivered cleanly, having proved nothing. The entry point to the deterministic layer
+was itself prose. A session that produced documentation must now leave a census, or the turn
+is blocked.
+
+Validation is **progressive**, because a census is written incrementally:
+
+- **At write time — shape.** The skills order the Run contract written at pre-flight, before
+  any fetching. Completeness used to be enforced here, so that prescribed write was blocked;
+  the cheapest escape was a placeholder (an empty `## Observation coverage` heading, or one
+  prose line naming the six Figma source types), and the placeholder then satisfied the check
+  **for the rest of the run**. The gate was teaching the model to disarm the gate.
+- **At Stop — completeness.** The run is over, so a site census must show at least one
+  observed state and a Figma census must carry a counted row per manifest source type. A
+  heading with nothing under it is not coverage.
+
+Both live in `check-census.sh` (`--complete` is invoked by the Stop hook), so every census
+rule stays in one file.
+
+**Receipts now apply to every row.** §0.1 says each row carries a receipt; the check only
+ever ran on rows stating a *zero*, so a row claiming a positive finding — the majority of
+rows — was skipped before the receipt check was reached. And a zero whose own corroboration
+says the raw payload has the data (`corroboration=RAW-HAS-…`) is now blocked outright: that
+is a parser failure, and recording it as an absence is the bug that deleted every business
+rule the designers had written.
+
+### The evidence log is tiered
+
+`record-evidence.sh` logged any URL it found inside any Bash command. `grep -rn
+"https://x" ./notes` contacted nothing; a `curl` that failed contacted nothing — both wrote
+a receipt for a source never read, during ordinary work. Entries now carry a tier:
+`verified` when a fetching tool actually ran (WebFetch, browser navigation, a subagent, and
+`figma-probe.sh` appending its own entry once it has an HTTP status in hand), `mentioned`
+otherwise. The census check accepts only `verified`. Logs written before this have three
+fields and are read as `verified`.
+
+Log values come from tool input, so they are sanitised: for every tool but Bash only the
+first line is kept, and control characters are stripped per line. An embedded newline used
+to append a second, forged entry for a host never contacted — in the one record the census
+is checked against.
+
+### Every rule now says truthfully where it lives, and whether it blocks
+
+Two kinds of stale claim, both fixed by the same principle: a statement about the rules is
+itself a fact, and Rule 4 applies to it.
+
+- **Where each rule lives is now one table.** The methodology moved out of `CLAUDE.md` in
+  0.6.0, and every copy of "the canonical rule is in `CLAUDE.md`" went stale at once —
+  `doc-reviewer`'s *Canonical rule* column named the wrong file for **14 of its 16 rows**,
+  and `skill-template.md` taught the same wrong locations to every skill authored from it.
+  There is now a single **canonical-locations table** in `lore-methodology.md`; everything
+  else references it. Only §1 Trusted Sources and §3 User Roles remain in `CLAUDE.md`, and
+  they are labelled as the product layer.
+- **A skill citing a DoD section writes `DoD §N`.** A skill's own `## 3. Core Workflow` and
+  the DoD's `§3 User Roles` are different things, and a bare "§3" inside a skill file was
+  ambiguous in both directions.
+- **⛔ now means something checkable.** Sections that describe good practice but that nothing
+  can verify are marked **Expected** instead. **§8 Final Report is the clearest case:** it
+  lives in the chat, `lore:doc-validator` runs in its own context and cannot see it, and no
+  hook can either — so marking it blocking made it *look* enforced while every check of it
+  was a self-assessment. That is the exact pattern §0 exists to end. `doc-reviewer` now
+  reports it as `N/A — not observable from here` rather than passing it on assumption.
+- **`lore:doc-reviewer` is additive, never a substitute.** Only the `lore:doc-validator`
+  subagent leaves a recorded verdict, so a review done through the skill alone left the
+  delivery gate unsatisfied — two lines apart, the methodology suggested one and mandated
+  the other.
+- **The blocking-areas list is gone from the three producer skills.** It was byte-identical
+  in all three, already wrong, and it is the validator's business to know which sections
+  block — not each skill's to enumerate.
+
+### Restatements that had already drifted
+
+- **`/lore:init` no longer restates the Docusaurus install sequence.** It carried its own
+  numbered copy of `/lore:add-docusaurus`'s steps *while naming that file the single source
+  of truth in the same paragraph* — and the copy had drifted to plain
+  `npm install && npm run build`, which fails on `Cannot find module
+  '@docusaurus/theme-mermaid'`. The first thing a new user saw was a red build. It is now a
+  pointer, with a note explaining why it must stay one.
+- **The scaffold smoke test runs the command file's own block** instead of a hand-copied
+  version of it, so the test breaks the day the documented command changes. It also now
+  fails on any unsubstituted `{{TOKEN}}` — a `sed` that matches nothing exits 0, so a
+  renamed placeholder used to sail through and "OK (green production build)" was untrue
+  while the site shipped a raw token in its footer.
+- **`SITE.version` is deleted.** It had zero consumers — the site badges resolve from the
+  git tag — yet the release checklist mandated bumping it every time. Its hard-coded
+  fallback returned `'0.3.1'`, a real past release, so a broken checkout shipped a
+  plausible-looking wrong badge instead of failing; it now raises. CI asserts the README
+  badge matches `plugin.json`.
+
+### Lore no longer imposes its Definition of Done on unrelated repositories
+
+**If you installed Lore and it started blocking work in a project that has nothing to do
+with it, this is the fix.** A plugin is installed per user, so its hooks run in whatever
+repo the session is in — and only some of them checked whether that repo was a Lore
+project. In any project that merely kept plain markdown or an image under `docs/`:
+
+- writes to `docs/*.md` were blocked for missing frontmatter the author never asked for;
+- writing an image under `docs/` was blocked;
+- `verify-docs.sh` blocked **every turn** at Stop.
+
+All nine hooks now guard on the same marker — a `.claude/CLAUDE.md` importing
+`lore-methodology.md` — and exit immediately otherwise. The rules in this plugin are
+Lore's DoD, not universal truth. Hooks on the high-frequency matchers also bail on a cheap
+substring test before starting a JSON parser, so an unrelated repo pays roughly nothing
+(measured: ~104 ms → ~63 ms per write event, most of it now avoided entirely).
+
+### CI covers what ships
+
+The exec-bit and hook-wiring checks named four scripts by hand, so five shipped
+unchecked — and since git tracks the exec bit while the test harness invokes hooks as
+`sh <file>` (which does not need it), a single `chmod`-less commit could ship a dead hook
+with CI green. Both checks are now derived from `hooks.json` and from the contents of
+`hooks/` and `scripts/`, so a new hook is covered the day it lands, and `run-tests.sh`
+mirrors them. A `claude plugin validate` step that sat behind `if command -v claude` never
+ran on a runner; it is replaced by manifest and layout assertions that do, plus a check
+that the README version badge matches `plugin.json`.
+
+### Gate correctness — found by auditing the gates themselves
+
+An independent audit of this release's own enforcement found four more defects in it. All are
+fixed here, and each has a regression test that fails on the pre-fix commit.
+
+- **A run-contract row could be closed by writing "not satisfied".** The gate filtered open
+  rows with a substring match, so `not satisfied`, `unsatisfied` and `not yet satisfied` all
+  *contained* "satisfied" and were read as closed — including the exact phrasing §0.4's own
+  wording primes you to write. The status is now matched as a whole field, and `satisfied`
+  additionally requires a non-empty evidence cell, which §0.4 always demanded and nothing
+  checked. The same substring defect governed the validator verdict: a report saying
+  "nothing was BLOCKED" recorded a BLOCKED verdict, and a passing mention of APPROVED
+  recorded a pass. Both now require the token to open a line.
+- **A freshly cloned project blocked every session.** `.docs-touched` is git-ignored while the
+  census is committed, so after a clone the marker was missing — and a missing marker was read
+  as "unknown, therefore block" rather than "no session here has produced documentation". Every
+  turn in every clone was blocked, including ones that touched nothing. Absence now skips.
+- **A docs-only project shipped no `.gitignore`.** `.claude/.auth/` — an exported browser
+  session, and full impersonation of the account it came from — was ignored only by the
+  *optional* Docusaurus layer. The docs layer now ships its own, also covering the raw payloads
+  and run logs. `scaffold.sh` **merges** `.gitignore` instead of skipping it, so adding the
+  viewer later keeps both layers' entries.
+- **The Figma probe was cited by a path that does not exist in a consumer repo.**
+  `figma-to-doc` said `scripts/figma-probe.sh`; the probe ships with the plugin, so the skill
+  now invokes it through `${CLAUDE_PLUGIN_ROOT}` as the subagent already did. A model that
+  cannot run the probe falls back to the hand-parsing the probe exists to replace — which is
+  the annotation bug above. The probe also now rejects a file key containing anything but
+  letters, digits, `-` and `_`, since the key is interpolated into both the request path and
+  the output filename.
+
+### Known limits
+
+**These gates guard against a skipped step, not a deliberate forgery.** Every evidence artifact
+is a plain file under `.claude/`, and an agent with shell access can write one. The property
+they buy is that a source never fetched does not end up in the log *by accident* — which is the
+failure mode this release is about. Anything claiming more would be repeating the mistake that
+made 0.6.2 believe it had fixed this class of bug.
+
+A source fetched before this release is not in the evidence log, so the first run after
+upgrading re-fetches. Evidence-log URL matching is by host — deliberately permissive, to
+keep false blocks near zero. A URL that merely *appears* in a `Bash` command is currently
+recorded as if it were fetched. A browser MCP server whose tool names contain none of
+`playwright|browser|chrome|puppeteer|fetch` would not be recorded; widen the matcher in
+`hooks.json` if you use one. Documentation written outside the `Write`/`Edit` tools leaves no
+`.docs-touched` marker and is therefore not process-gated.
+
+**Verified.** `shellcheck -S warning` clean across all hooks and scripts; hook suite green
+at **173 assertions** (was 60), including the two regressions that shipped: an annotation
+payload using `label` *and* one using `notes` are both found (a field rename cannot cause a
+silent zero), and a truncated payload carrying annotation data is reported as a parser
+failure rather than a zero, plus the two false-block cases (a session that wrote no docs is
+never gated; a repo with no Lore evidence is never gated). `claude plugin validate
+./plugins/lore` passes. Existing
+projects receive the methodology change automatically via the `SessionStart` sync hook on
+`/plugin update`.
+
 ## 0.6.3
 
 Submission readiness for the Claude Code community marketplace. Anthropic's
