@@ -37,15 +37,38 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PLUGIN_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 TEMPLATES="$PLUGIN_ROOT/templates"
 
-target="."
+# Argument validation is not ceremony here: this script's whole job is side effects on
+# a directory the caller names, and both failure modes below used to be SILENT.
+# `--target X` with no --layer printed "done (layers:)" and exited 0, so a wizard step
+# that dropped its layer flag reported success over an empty project; `--target` with no
+# value died on `shift 2` under `set -e`, with no message at all.
+target=""
 layers=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --target) target="$2"; shift 2 ;;
-    --layer)  layers="$layers $2"; shift 2 ;;
+    --target)
+      [ $# -ge 2 ] || { echo "scaffold.sh: --target needs a directory" >&2; exit 2; }
+      target="$2"; shift 2 ;;
+    --layer)
+      [ $# -ge 2 ] || { echo "scaffold.sh: --layer needs a layer name (docs|docusaurus|rtl)" >&2; exit 2; }
+      # Validated HERE, not in the copy loop below: rejecting it there fired the EXIT
+      # trap, so a plain typo reported "FAILED while applying layer 'nonsens' —
+      # already-copied files were kept", which describes a partial copy that never began.
+      case "$2" in
+        docs|docusaurus|rtl) : ;;
+        *) echo "scaffold.sh: unknown layer '$2' (expected docs, docusaurus, or rtl)" >&2; exit 2 ;;
+      esac
+      layers="$layers $2"; shift 2 ;;
     *) echo "scaffold.sh: unknown arg '$1'" >&2; exit 2 ;;
   esac
 done
+
+[ -n "$target" ] || target="."
+if [ -z "$layers" ]; then
+  echo "scaffold.sh: no --layer given, so nothing would be copied." >&2
+  echo "Usage: scaffold.sh --target <dir> --layer docs [--layer docusaurus] [--layer rtl]" >&2
+  exit 2
+fi
 
 [ -d "$TEMPLATES" ] || { echo "error: templates dir not found at $TEMPLATES" >&2; exit 1; }
 mkdir -p "$target"
@@ -99,7 +122,7 @@ for layer in $layers; do
     docs)       copy_layer "$TEMPLATES/docs-layer" ;;
     docusaurus) copy_layer "$TEMPLATES/docusaurus-base" ;;
     rtl)        copy_layer "$TEMPLATES/rtl-assets" ;;
-    *) echo "scaffold.sh: unknown layer '$layer'" >&2; exit 2 ;;
+    *) echo "scaffold.sh: unknown layer '$layer'" >&2; exit 2 ;;   # unreachable; see --layer above
   esac
 done
 current_layer=""   # past the copy phase; the EXIT trap must stay quiet now

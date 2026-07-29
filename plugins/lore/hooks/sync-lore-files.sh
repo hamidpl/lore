@@ -19,20 +19,21 @@
 # (else the payload's cwd); plugin root from $CLAUDE_PLUGIN_ROOT. JSON parsing degrades
 # jq → python3 and warns to stderr if neither is present.
 
-PAYLOAD=$(cat 2>/dev/null || true)
+# shellcheck disable=SC2034  # read by json_field() in lib/common.sh, per its contract
+input=$(cat 2>/dev/null || true)
+
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || exit 0
+# shellcheck source=lib/common.sh
+. "$_lib"
 
 # --- resolve project root ---
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-}"
+PROJECT_ROOT=$(lore_root "$(json_field 'cwd')")
 if [ -z "$PROJECT_ROOT" ]; then
-  if command -v jq >/dev/null 2>&1; then
-    PROJECT_ROOT=$(printf '%s' "$PAYLOAD" | jq -r '.cwd // empty' 2>/dev/null)
-  elif command -v python3 >/dev/null 2>&1; then
-    PROJECT_ROOT=$(printf '%s' "$PAYLOAD" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("cwd",""))' 2>/dev/null)
-  else
+  [ -z "$_json_tool" ] &&
     echo "sync-lore-files.sh: no jq or python3 to parse the hook payload; skipping sync." >&2
-  fi
+  PROJECT_ROOT=$(pwd)
 fi
-[ -z "$PROJECT_ROOT" ] && PROJECT_ROOT=$(pwd)
 
 # --- resolve plugin root ---
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
@@ -40,9 +41,7 @@ PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
 [ -z "$PLUGIN_ROOT" ] && exit 0
 
 # --- guard: only manage a real Lore project (CLAUDE.md that imports the methodology file) ---
-CLAUDE_MD="$PROJECT_ROOT/.claude/CLAUDE.md"
-[ -f "$CLAUDE_MD" ] || exit 0
-grep -q '@lore-methodology.md' "$CLAUDE_MD" 2>/dev/null || exit 0
+lore_is_project "$PROJECT_ROOT" || exit 0
 
 # --- manifest: SOURCE_REL|DEST_REL|MODE (extend with more lines; no spaces in paths) ---
 MANIFEST="templates/docs-layer/.claude/lore-methodology.md|.claude/lore-methodology.md|owned"

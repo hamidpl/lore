@@ -16,15 +16,23 @@ const config: Config = {
   title: '{{SITE_TITLE}}',
   tagline: '{{SITE_TAGLINE}}',
 
-  // Production deploy URL — only affects the built site's absolute links/sitemap.
-  // Local dev (`npm start`) ignores it. Update when you host the site somewhere.
-  url: 'https://your-docusaurus-site.example.com',
+  // Production deploy URL — the origin of every absolute link Docusaurus generates:
+  // the canonical <link>, the og: tags, and every entry in sitemap.xml. Local dev
+  // (`npm start`) ignores it. The wizard fills it; if the site is not deployed yet it
+  // writes http://localhost:3000, which is *wrong but obviously wrong*. It used to ship
+  // the framework's own `https://your-docusaurus-site.example.com`, which is wrong and
+  // looks deliberate — so every generated site published a sitemap pointing at a domain
+  // nobody owns. Update it the day you deploy.
+  url: '{{SITE_URL}}',
   baseUrl: '/',
 
   organizationName: '{{ORG}}',
   projectName: '{{PROJECT_SLUG}}',
 
-  onBrokenLinks: 'warn',
+  // 'throw', not 'warn'. The production build is what the Definition of Done leans on as
+  // its authoritative link check (§6), and a warning does not gate anything — the build
+  // went green with dead links in it while the docs promised the opposite.
+  onBrokenLinks: 'throw',
   // onBrokenMarkdownLinks defaults to 'warn'. Not set explicitly: the top-level
   // option is deprecated in Docusaurus 3.9+ (moved to markdown.hooks) and removed
   // in v4 — omitting it keeps the 'warn' default across every Docusaurus version.

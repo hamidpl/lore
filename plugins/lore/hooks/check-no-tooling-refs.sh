@@ -9,46 +9,18 @@
 #
 # Scope: only Markdown/MDX under the project's docs/ (resolved relative to the
 # project root). Intentional example/placeholder trees (.claude/, templates/,
-# _templates/) are carved out. See check-frontmatter.sh for the scoping rationale.
+# _templates/) are carved out. The scoping rationale lives with the code that
+# implements it, in lib/common.sh.
 
 input=$(cat)
 
-# --- pick a JSON extraction backend once (jq → python3 → sed last resort) ---
-_json_tool=""
-if command -v jq >/dev/null 2>&1; then
-  _json_tool="jq"
-elif command -v python3 >/dev/null 2>&1; then
-  _json_tool="python3"
-fi
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || { echo "lore hooks: missing $_lib — reader-facing-output rule NOT enforced." >&2; exit 0; }
+# shellcheck source=lib/common.sh
+. "$_lib"
 
-json_field() {
-  case "$_json_tool" in
-    jq)
-      printf '%s' "$input" | jq -r "$1 // empty" 2>/dev/null
-      ;;
-    python3)
-      printf '%s' "$input" | python3 -c '
-import json,sys
-try:
-    d=json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-cur=d
-for k in sys.argv[1:]:
-    cur = cur.get(k) if isinstance(cur, dict) else None
-    if cur is None:
-        break
-print(cur if isinstance(cur, str) else "")
-' $2
-      ;;
-    *)
-      printf '%s' "$input" | sed -n "s/.*\"$3\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n 1
-      ;;
-  esac
-}
-
-file_path=$(json_field '.tool_input.file_path' 'tool_input file_path' 'file_path')
-cwd=$(json_field '.cwd' 'cwd' 'cwd')
+file_path=$(json_field 'tool_input file_path')
+cwd=$(json_field 'cwd')
 
 if [ -z "$file_path" ]; then
   if [ -z "$_json_tool" ] && [ -n "$input" ]; then
@@ -57,27 +29,11 @@ if [ -z "$file_path" ]; then
   exit 0
 fi
 
-# --- compute the project-relative path ---
-root="${CLAUDE_PROJECT_DIR:-$cwd}"
-root="${root%/}"
-case "$file_path" in
-  /*) [ -n "$root" ] && rel="${file_path#"$root"/}" || rel="$file_path" ;;
-  *)  rel="$file_path" ;;
-esac
+root=$(lore_root "$cwd")
+rel=$(lore_rel "$file_path" "$root")
 
-# --- guard: a scaffolded Lore docs project only -------------------------------------
-# These rules are Lore's Definition of Done, not universal truth. The plugin is
-# installed per user, so this hook also runs in repos that have nothing to do with it —
-# and plenty of projects keep plain markdown and images under docs/. Blocking those
-# writes enforced a DoD their author never opted into. The marker is the same one every
-# evidence hook uses: a .claude/CLAUDE.md that imports the methodology.
-[ -f "$root/.claude/CLAUDE.md" ] || exit 0
-grep -q '@lore-methodology.md' "$root/.claude/CLAUDE.md" 2>/dev/null || exit 0
-
-# --- carve-out ---
-case "$rel" in
-  .claude/*|templates/*|_templates/*) exit 0 ;;
-esac
+lore_is_project "$root" || exit 0
+lore_carved_out "$rel" && exit 0
 
 # --- in scope only under docs/ ---
 case "$rel" in

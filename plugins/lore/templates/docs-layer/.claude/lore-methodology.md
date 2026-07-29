@@ -69,11 +69,16 @@ The test: **if the canonical rule changed, would this other copy become wrong?**
 
 ### Rule 5: Reader-Facing Output (BLOCKING)
 
-Everything under `docs/` is written for the product's readers. It must **never** mention the authoring tooling: no reference to Claude/Anthropic, to the Lore plugin or its skills/subagents (`lore:*`), to the Playwright/browser automation, or to any internal authoring artifact or path under `.claude/` (`CLAUDE.md`, this methodology file, scenario scripts, observed-issues, `lesson-learned.md`, settings).
+Everything under `docs/` is written for the product's readers. It must never mention the authoring tooling. Two tiers, because they are not equally decidable:
+
+| Tier | What | Why |
+|---|---|---|
+| ⛔ **Blocking** | The Lore plugin and its skills/subagents (`lore:*`), any path under `.claude/`, and any citation of `CLAUDE.md` or this methodology file — scenario scripts, observed-issues, `lesson-learned.md`, settings | These strings have no legitimate reason to appear in product documentation, so a match is always a defect. This is the tier the write-time hook enforces. |
+| ⚠️ **Warning** | Bare mentions of Claude, Anthropic, or Playwright | A real product may legitimately document an integration with any of them. A match is reviewed, not blocked. |
 
 When a published doc needs a fact that lives in a config section (e.g. trusted sources §1, user roles §3), **state the fact itself** — do not cite the section number or the `.claude/` path. Example: write "All users see the same behavior", not "no roles configured (see §3)".
 
-- ⛔ This rule is BLOCKING. A reader-facing reference to the tooling means the document is NOT done.
+- ⛔ The blocking tier is BLOCKING: a reader-facing reference to it means the document is NOT done.
 - ℹ️ Boundary with Rule 4: Rule 4 governs how the *authoring/config* files (`CLAUDE.md`, this methodology file, skills) reference one another by path/section. Rule 5 governs the *reader-facing output* under `docs/`, which is self-contained and tool-agnostic. The in-chat Final Report (§8) is a process deliverable, not reader-facing output — it may still name the skill/subagents.
 
 ---

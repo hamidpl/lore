@@ -8,6 +8,99 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.8.0
+
+**Post-release correctness and the tests that would have caught it.** 0.7.0 shipped the
+evidence gates; this is the follow-up the roadmap deferred out of it — the generated-site
+defects that predate the release, the hook-layer duplication that let one bug exist in
+seven places, and the first tests in this project that check *the model's prescribed
+workflow* rather than a hand-written fixture.
+
+### The generated site was never deployable as generated
+
+- **`url` was the framework's own example domain.** Every site Lore scaffolded shipped
+  `url: 'https://your-docusaurus-site.example.com'` — the origin of every canonical
+  `<link>`, every `og:` tag and every entry in `sitemap.xml`. Wrong, and wrong in a way
+  that looks deliberate, so nothing ever flagged it. It is now a `{{SITE_URL}}`
+  placeholder the wizard must fill: it **asks** where the docs will be deployed, and
+  writes `http://localhost:3000` when the answer is "not yet" — obviously provisional
+  beats plausibly wrong.
+- **`onBrokenLinks` was `'warn'`.** DoD §6 names the production build as its
+  authoritative link check and the install guide repeated that promise, while the build
+  went green with dead links in it. Now `'throw'`.
+
+  ⚠️ **Behaviour change for consumer projects.** A site with pre-existing broken links
+  will now fail its build. That is the point, but it will surface on the first build
+  after a scaffold refresh rather than at a time of your choosing.
+
+### One bug, seven copies
+
+- **`hooks/lib/common.sh`.** The JSON-extraction ladder, project-root resolution, the
+  Lore-marker guard and the carve-out were copy-pasted into seven of the nine hooks —
+  about a third of the hook layer. They now live in one sourced library. Hooks resolve it
+  through `$(dirname "$0")`, never `${CLAUDE_PLUGIN_ROOT}`: `hooks.json` interpolates
+  that into the *command string*, which does not guarantee it reaches the hook's
+  environment. A test asserts no hook gets this wrong.
+- **The text fallback returned the wrong file.** With neither `jq` nor `python3`
+  available, `json_field` fell back to `sed -n 's/.*"file_path".*/\1/p`. `.*` is greedy,
+  so it returned the **last** match in the payload — the `tool_response` echo rather than
+  `tool_input` — on every `Write`, and the `head -n 1` after it was decoration. It now
+  anchors to the parent key and takes the first match.
+- **…and it could not read a boolean.** `stop_hook_active` is a JSON boolean, and the
+  string-only scan returned empty for it. On a machine with no JSON parser, the Stop
+  hook's loop guard was silently disabled — the one failure mode that can trap a user in
+  a loop. The fallback now reads unquoted scalars.
+- `json_field` takes **one** argument (a key path) instead of three dialect-specific
+  ones, so a call site can no longer describe the same field three inconsistent ways.
+
+### Statements that contradicted their own implementation
+
+- **Rule 5 claimed a blocking tier it never had.** The methodology listed
+  Claude/Anthropic/Playwright alongside `lore:*` and `.claude/` paths as forbidden, while
+  both the hook and the validator deliberately treat the former as *warnings* — a product
+  may legitimately document an integration. The rule now states the two tiers it actually
+  has.
+- **`doc-validator` forbade and required the same command.** One bullet granted Bash "for
+  `npm run build`" and forbade "any command that modifies the filesystem". The build
+  writes `build/` and `.docusaurus/`. Split into a grant and a constraint, with the build
+  named as the one explicit carve-out. Its Rule-4 line also still pointed rule citations
+  at `CLAUDE.md`, which stopped being where the methodology lives in 0.6.0.
+- **`remind-census.sh` stripped every `§`.** The just-in-time reminder — whose entire job
+  is to point at §0.1–§0.4 — read `DoD 0`, `CLAUDE.md 1`, `(0.4)`.
+- `brief-to-doc` cited "§2 step 6" for the readiness gate, which is step 7.
+- `detect-project.sh` called the model-written `.claude/lore.json` "authoritative".
+
+### `scaffold.sh` failed silently
+
+`--target X` with no `--layer` printed `done (layers:)` and exited **0** — a wizard step
+that dropped its layer flag reported success over an empty directory. `--target` with no
+value died on `shift 2` under `set -e` with no message at all. Both are now exit 2 with
+an actionable message, and an unknown layer is rejected during argument parsing rather
+than mid-copy (where it triggered a "already-copied files were kept" warning describing
+a copy that never began).
+
+### Tests: 173 → 233 assertions
+
+The strategic item, and the reason this release is worth its size. Every defect in the
+0.7.0 audit coexisted with a green suite, because each assertion tested a hook against a
+fixture written by whoever wrote the hook — so they agreed by construction.
+
+- **The skills' own census skeletons are now parsed out of the `SKILL.md` files and
+  checked against what the hooks actually read** — that the `status` cell is in the
+  column `verify-docs.sh` reads by position, that every Figma manifest source type has a
+  row, that every zero-case phrase a skill teaches is one the hook recognises. This is
+  the class of defect that shipped in 0.7.0: a skill prescribing a census its own gate
+  rejects.
+- **A complete, receipted census per input type** — real raw payloads on disk, real
+  `verified` evidence-log entries — proven to pass *both* the write-time and Stop gates.
+  Every prior test proved a gate blocks; none proved they can all be satisfied at once.
+- **A defect corpus mutated from that same green census, one defect at a time**, so a
+  block can only be attributed to the defect introduced. Each mutation is asserted to
+  have actually landed first — a `sed` that matches nothing exits 0 and copies the file
+  through, after which "it blocks" would have been a lie.
+- CI now lints with `shellcheck -x` so the shared library is checked in the context of
+  each hook that sources it, and asserts the library ships and is *not* executable.
+
 ## 0.7.0
 
 **Evidence gates: a claim now needs a receipt.** Three BLOCKING rules were skipped
