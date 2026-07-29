@@ -752,6 +752,40 @@ else
   fail ".gitignore merge is idempotent (grew from $before to $(wc -l <"$S/.gitignore"))"
 fi
 
+# Argument errors must be LOUD. This script exists to have side effects on a directory
+# the caller names, so a run that copies nothing and reports success is the worst
+# possible outcome: `--target X` with no --layer printed "done (layers:)" and exited 0,
+# and `--target` with no value died on `shift 2` with no message at all.
+E=$(mktemp -d)
+sh "$SCRIPTS/scaffold.sh" --target "$E" >/dev/null 2>"$ERRF"
+check_exit 2 "$?" "no --layer is an error, not a silent no-op"
+check_stderr "no --layer given" "…and it says which flag is missing"
+sh "$SCRIPTS/scaffold.sh" --target >/dev/null 2>"$ERRF"
+check_exit 2 "$?" "a dangling --target is rejected"
+check_stderr "needs a directory" "…with an actionable message"
+sh "$SCRIPTS/scaffold.sh" --target "$E" --layer >/dev/null 2>"$ERRF"
+check_exit 2 "$?" "a dangling --layer is rejected"
+sh "$SCRIPTS/scaffold.sh" --target "$E" --layer nonsense >/dev/null 2>"$ERRF"
+check_exit 2 "$?" "an unknown layer is rejected"
+
+echo "== the generated Docusaurus site is deployable =="
+DC="$SCRIPT_DIR/../plugins/lore/templates/docusaurus-base/docusaurus.config.ts"
+# `url` is the origin of every canonical link and every sitemap.xml entry. Shipping the
+# framework's own example domain meant each generated site advertised a domain nobody
+# owns — wrong, and wrong in a way that looks deliberate.
+if grep -qE "^[[:space:]]*url:.*your-docusaurus-site" "$DC"; then
+  fail "the config template still ships the example deploy URL"
+else
+  pass "the config template has no placeholder deploy domain"
+fi
+check_file_has "$DC" '{{SITE_URL}}' "the deploy URL is a filled placeholder"
+grep -q "sh#\|{{SITE_URL}}" "$SCRIPT_DIR/smoke-build.sh" &&
+  pass "the smoke test substitutes SITE_URL" || fail "the smoke test substitutes SITE_URL"
+# DoD §6 names the production build as its authoritative link check; 'warn' gates nothing.
+check_file_has "$DC" "onBrokenLinks: 'throw'" "broken links fail the build, as §6 promises"
+grep -q "{{SITE_URL}}" "$SCRIPT_DIR/../plugins/lore/commands/add-docusaurus.md" &&
+  pass "the wizard is told to fill SITE_URL" || fail "the wizard is told to fill SITE_URL"
+
 echo "== sync-lore-files.sh (SessionStart) =="
 PLUGIN_ROOT="$SCRIPT_DIR/../plugins/lore"
 METH_SRC="$PLUGIN_ROOT/templates/docs-layer/.claude/lore-methodology.md"
@@ -836,6 +870,289 @@ for p in "$HOOKS"/*.sh "$SCRIPTS"/*.sh; do
 done
 [ -z "$miss" ] && pass "every shipped hook/script is executable" ||
   fail "every shipped hook/script is executable —$miss"
+
+echo "== each skill's own census skeleton agrees with what the hooks parse =="
+# Every assertion in this block reads the SKILL FILE, not a fixture. The defect this
+# guards against is the one that shipped (H4): a skill prescribes a census the hooks
+# then reject or silently mis-parse. Hand-written fixtures cannot catch it, because they
+# are written by whoever wrote the hook — so they agree with it by construction.
+SK="$SCRIPT_DIR/../plugins/lore/skills"
+# The first fenced block in a skill that contains a Run contract IS its census skeleton.
+census_skeleton() { # $1 = SKILL.md
+  awk '
+    /^```/ {
+      if (inb) { if (buf ~ /## Run contract/) { printf "%s", buf; exit } ; inb=0; buf="" }
+      else { inb=1; buf="" }
+      next
+    }
+    inb { buf = buf $0 "\n" }
+  ' "$1"
+}
+# Column index of a header cell, counting the way awk -F'|' does (leading pipe → $1="").
+col_of() { # $1 = header row, $2 = cell name
+  printf '%s\n' "$1" | awk -F'|' -v want="$2" '
+    { for (i = 1; i <= NF; i++) { c = $i; gsub(/^[[:space:]]+|[[:space:]]+$/, "", c)
+        if (c == want) { print i; exit } } }'
+}
+for sk in site-to-doc figma-to-doc; do
+  sec=$(census_skeleton "$SK/$sk/SKILL.md")
+  if [ -z "$sec" ]; then
+    fail "$sk: no census skeleton found in the skill"
+    continue
+  fi
+  pass "$sk: the skill carries a census skeleton"
+
+  # §0.4 — check-census.sh greps for this heading at write time.
+  printf '%s' "$sec" | grep -q '^##[[:space:]]*Run contract' &&
+    pass "$sk: skeleton has the '## Run contract' heading the write-time hook requires" ||
+    fail "$sk: skeleton has the '## Run contract' heading the write-time hook requires"
+
+  # verify-docs.sh reads the run-contract status and evidence BY POSITION ($4/$5). A
+  # skill that reordered these columns would leave the gate reading the wrong cell — and
+  # nothing would look wrong in either file on its own.
+  uhdr=$(printf '%s\n' "$sec" | grep -m1 '^|[[:space:]]*ref[[:space:]]*|')
+  [ "$(col_of "$uhdr" status)" = "4" ] &&
+    pass "$sk: 'status' sits where the Stop gate reads it (\$4)" ||
+    fail "$sk: 'status' column moved — Stop gate reads \$4, skeleton has $(col_of "$uhdr" status)"
+  [ "$(col_of "$uhdr" evidence)" = "5" ] &&
+    pass "$sk: 'evidence' sits where the Stop gate reads it (\$5)" ||
+    fail "$sk: 'evidence' column moved — Stop gate reads \$5, skeleton has $(col_of "$uhdr" evidence)"
+
+  # And the ref prefixes the hooks' regexes anchor on.
+  printf '%s' "$sec" | grep -qE '^\|[[:space:]]*u[0-9]+[[:space:]]*\|' &&
+    pass "$sk: run-contract rows use the [u#] ref the gate matches" ||
+    fail "$sk: run-contract rows use the [u#] ref the gate matches"
+  printf '%s' "$sec" | grep -qE '^\|[[:space:]]*t[0-9]+[[:space:]]*\|' &&
+    pass "$sk: trusted-source rows use the [t#] ref the receipt check matches" ||
+    fail "$sk: trusted-source rows use the [t#] ref the receipt check matches"
+done
+
+# Per-input-type completeness: check-census.sh --complete looks for these exact blocks.
+sec=$(census_skeleton "$SK/site-to-doc/SKILL.md")
+printf '%s' "$sec" | grep -q '^##[[:space:]]*Observation coverage' &&
+  pass "site-to-doc: skeleton has the '## Observation coverage' block Stop requires" ||
+  fail "site-to-doc: skeleton has the '## Observation coverage' block Stop requires"
+printf '%s' "$sec" | grep -qE '^\|[[:space:]]*o[0-9]+[[:space:]]*\|' &&
+  pass "site-to-doc: observation rows use the [o#] ref Stop matches" ||
+  fail "site-to-doc: observation rows use the [o#] ref Stop matches"
+
+sec=$(census_skeleton "$SK/figma-to-doc/SKILL.md")
+printf '%s' "$sec" | grep -q '^##[[:space:]]*Counts' &&
+  pass "figma-to-doc: skeleton has the '## Counts' block Stop requires" ||
+  fail "figma-to-doc: skeleton has the '## Counts' block Stop requires"
+chdr=$(printf '%s\n' "$sec" | grep -m1 '^|[[:space:]]*source type[[:space:]]*|')
+[ "$(col_of "$chdr" count)" = "3" ] &&
+  pass "figma-to-doc: 'count' sits where Stop reads it (\$3)" ||
+  fail "figma-to-doc: 'count' column moved — Stop reads \$3, skeleton has $(col_of "$chdr" count)"
+# Stop demands a counted row per manifest source type; the skeleton must name them all.
+for st in comment annotation flow interaction variant variable; do
+  printf '%s' "$sec" | awk -F'|' -v k="$st" 'tolower($2) ~ k { found=1 } END { exit(found?0:1) }' &&
+    pass "figma-to-doc: skeleton has a Counts row for '$st'" ||
+    fail "figma-to-doc: skeleton has a Counts row for '$st' (Stop blocks without one)"
+done
+
+# The zero-case wording is a contract between the skills and check-census.sh's receipt
+# check: a phrase the skills teach but the hook does not recognise walks past the gate.
+zre='nothing relevant|confirmed searched|confirmed none|inaccessible|requires login|needs login'
+for sk in site-to-doc figma-to-doc brief-to-doc; do
+  bad=$(grep -oE '(nothing|no) [a-z]+ — confirmed [a-z]+' "$SK/$sk/SKILL.md" | sort -u |
+    grep -vE "$zre" || true)
+  [ -z "$bad" ] && pass "$sk: every zero-case phrase it teaches is one the hook recognises" ||
+    fail "$sk: teaches a zero-case phrase the hook does not recognise — $bad"
+done
+
+echo "== a complete, receipted census survives write AND Stop, per input type =="
+# The valid half of the corpus: a census with real raw payloads on disk and real
+# verified evidence-log entries behind every URL. Everything above this line proves a
+# gate BLOCKS; this proves the gates can all be satisfied at once, which is the property
+# a user actually needs and the one no single-rule test establishes.
+mk_corpus() { # $1 = project root — build the artifacts a receipted census cites
+  mkdir -p "$1/.claude/sources/raw" "$1/docs" "$1/static/img/s"
+  make_lore_project "$1"
+  printf '{"ok":1}\n' >"$1/.claude/sources/raw/t1-help.md"
+  printf '{"ok":1}\n' >"$1/.claude/sources/raw/t2-blog.md"
+  printf 'x\n'        >"$1/static/img/s/a.png"
+  printf 'page\n'     >"$1/docs/a.md"
+  printf '%s\tWebFetch\thttps://help.example.test/limits\tverified\n' "2026-01-01T00:00:00Z" \
+    >"$1/.claude/sources/.evidence-log"
+  printf '%s\tWebFetch\thttps://blog.example.test/posts\tverified\n' "2026-01-01T00:00:01Z" \
+    >>"$1/.claude/sources/.evidence-log"
+  printf 'sess-corpus\n' >"$1/.claude/sources/.docs-touched"
+}
+trusted_block() {
+  echo '## Trusted Sources (§1) coverage'
+  echo '| ref | source → URL | probe | status | bytes | raw payload | terms searched | finding → doc file/section |'
+  echo '|---|---|---|---|---|---|---|---|'
+  echo '| t1 | Help Center → https://help.example.test/limits | WebFetch | 200 | 4821 | .claude/sources/raw/t1-help.md | "upload limit" | "max 6 GB" → docs/a.md § Business Rules |'
+  echo '| t2 | Blog → https://blog.example.test/posts | WebFetch | 200 | 1200 | .claude/sources/raw/t2-blog.md | "upload" | nothing relevant — confirmed searched |'
+}
+run_contract_block() {
+  echo '## Run contract'
+  echo '| ref | instruction | status | evidence |'
+  echo '|---|---|---|---|'
+  echo '| u1 | cover the signed-in state | satisfied | o2 |'
+}
+
+CO=$(mktemp -d); mk_corpus "$CO"
+{
+  run_contract_block; echo
+  echo '## Observation coverage'
+  echo '| ref | auth state | role | route | viewport | screenshot | snapshot evidence |'
+  echo '|---|---|---|---|---|---|---|'
+  echo '| o1 | guest | — | /pricing | 1280×720 | static/img/s/a.png | "Sign in" present |'
+  echo '| o2 | signed-in | admin | /dash | 1280×720 | static/img/s/a.png | account menu present |'
+  echo; trusted_block
+} >"$CO/.claude/sources/site-full-census.md"
+posttool "$HOOKS/check-census.sh" "$CO" "$CO/.claude/sources/site-full-census.md"
+check_exit 0 "$RC" "site: a fully receipted census passes the write-time shape check"
+subagentstop "$CO" "Recommendation: APPROVED"
+stophook "$CO" false "sess-corpus"
+check_exit 0 "$RC" "site: …and passes Stop end to end"
+
+CF=$(mktemp -d); mk_corpus "$CF"
+printf '{"ok":1}\n' >"$CF/.claude/sources/raw/figma-nodes.json"
+{
+  run_contract_block; echo
+  echo '## Counts'
+  echo '| source type | count | probe | status | bytes | scanned | raw payload |'
+  echo '|---|---|---|---|---|---|---|'
+  echo '| Comment threads | 3 | GET /comments | 200 | 900 | — | .claude/sources/raw/figma-nodes.json |'
+  echo '| Dev-Mode annotations (`annotations` property) | 17 | GET /nodes | 200 | 900 | 400 | .claude/sources/raw/figma-nodes.json |'
+  echo '| Prototype flows (`flowStartingPoints`) | 2 | (same) | 200 | 900 | 400 | (same) |'
+  echo '| Interaction edges (`interactions[]`) | 31 | (same) | 200 | 900 | 400 | (same) |'
+  echo '| Differentiating component variants/properties | 4 | (same) | 200 | 900 | 400 | (same) |'
+  echo '| Constraint-bearing variables | 0 | get_variable_defs | 200 | 900 | — | .claude/sources/raw/figma-nodes.json |'
+  echo; trusted_block
+} >"$CF/.claude/sources/figma-full-census.md"
+posttool "$HOOKS/check-census.sh" "$CF" "$CF/.claude/sources/figma-full-census.md"
+check_exit 0 "$RC" "figma: a fully receipted census passes the write-time shape check"
+subagentstop "$CF" "Recommendation: APPROVED"
+stophook "$CF" false "sess-corpus"
+check_exit 0 "$RC" "figma: …and passes Stop end to end"
+
+echo "== one defect at a time, against that same valid census =="
+# Each variant changes exactly one thing in a census already proven green, so a block
+# can only be attributed to the defect introduced. A defect corpus built from separate
+# hand-written fixtures cannot make that claim.
+defect() { # $1 = sed expression, $2 = name
+  D=$(mktemp -d); mk_corpus "$D"
+  DC="$D/.claude/sources/site-full-census.md"
+  sed "$1" "$CO/.claude/sources/site-full-census.md" >"$DC" 2>"$ERRF"
+  # A sed that matched nothing exits 0 and copies the file through — after which the
+  # assertion below tests the pristine census and "blocks" would be a lie. Every defect
+  # must be proven to have landed before its effect is judged.
+  if cmp -s "$DC" "$CO/.claude/sources/site-full-census.md"; then
+    fail "$2 (the mutation did not apply — this assertion tested nothing)"
+    return
+  fi
+  posttool "$HOOKS/check-census.sh" "$D" "$DC"
+  check_exit 2 "$RC" "$2"
+}
+defect 's#\.claude/sources/raw/t1-help\.md#.claude/sources/raw/never-saved.md#' \
+  "a cited raw payload that was never saved blocks"
+defect 's#| WebFetch | 200 | 4821 |#| WebFetch | n/a | 4821 |#' \
+  "a trusted-source row with no HTTP status blocks"
+defect 's#https://help\.example\.test/limits#https://never-fetched.example.test/x#' \
+  "a source with no verified fetch behind it blocks"
+defect '/^## Run contract$/d' \
+  "a census with no Run contract block blocks"
+defect 's#confirmed searched#confirmed searched (corroboration=RAW-HAS-DATA)#' \
+  "a zero the raw payload contradicts blocks"
+
+# The control. Same harness, same project, census copied through untouched — if this
+# blocked, every assertion above would be meaningless.
+D=$(mktemp -d); mk_corpus "$D"
+cp "$CO/.claude/sources/site-full-census.md" "$D/.claude/sources/site-full-census.md"
+posttool "$HOOKS/check-census.sh" "$D" "$D/.claude/sources/site-full-census.md"
+check_exit 0 "$RC" "the unmutated census passes in the same harness (control)"
+
+# The Bash tier, end to end: a URL the model merely greped for is not a fetch.
+MT=$(mktemp -d); mk_corpus "$MT"
+printf '%s\tBash\thttps://mentioned-only.example.test/x\tmentioned\n' "2026-01-01T00:00:02Z" \
+  >>"$MT/.claude/sources/.evidence-log"
+sed 's#https://help\.example\.test/limits#https://mentioned-only.example.test/x#' \
+  "$CO/.claude/sources/site-full-census.md" >"$MT/.claude/sources/site-full-census.md"
+posttool "$HOOKS/check-census.sh" "$MT" "$MT/.claude/sources/site-full-census.md"
+check_exit 2 "$RC" "a host logged only as 'mentioned' is not proof the source was read"
+printf '%s\tWebFetch\thttps://mentioned-only.example.test/x\tverified\n' "2026-01-01T00:00:03Z" \
+  >>"$MT/.claude/sources/.evidence-log"
+posttool "$HOOKS/check-census.sh" "$MT" "$MT/.claude/sources/site-full-census.md"
+check_exit 0 "$RC" "…and the same census passes once a real fetch is logged"
+
+echo "== lib/common.sh (the shared hook prologue) =="
+LIB="$HOOKS/lib/common.sh"
+[ -f "$LIB" ] && pass "lib/common.sh ships" || fail "lib/common.sh ships"
+# Sourced, never executed — and deliberately outside the hooks/*.sh glob above, so the
+# exec-bit rule that applies to runnable hooks must not apply to it.
+[ -x "$LIB" ] && fail "lib/common.sh must not be executable (it is sourced)" ||
+  pass "lib/common.sh is not executable"
+
+# Every hook must resolve the library through $0, never ${CLAUDE_PLUGIN_ROOT}: hooks.json
+# interpolates that variable into the command string, which does not guarantee it reaches
+# the hook's environment — so a hook that used it would fail to find its own library.
+if grep -l 'CLAUDE_PLUGIN_ROOT.*lib/common\.sh' "$HOOKS"/*.sh >/dev/null 2>&1; then
+  fail "a hook resolves lib/common.sh through CLAUDE_PLUGIN_ROOT"
+else
+  pass "every hook resolves lib/common.sh through \$0"
+fi
+
+# A packaging accident that drops the library must degrade, not crash the turn.
+NOLIB=$(mktemp -d); cp "$HOOKS/check-frontmatter.sh" "$NOLIB/"
+P=$(mktemp -d); make_lore_project "$P"; mkdir -p "$P/docs"
+printf 'no frontmatter\n' >"$P/docs/a.md"
+printf '{"cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$P" "$P/docs/a.md" |
+  CLAUDE_PROJECT_DIR="$P" sh "$NOLIB/check-frontmatter.sh" 2>"$ERRF"
+check_exit 0 "$?" "a hook with no lib/ next to it degrades instead of blocking"
+check_stderr "missing" "…and says so on stderr"
+
+# json_field's text fallback — the path taken when neither jq nor python3 exists.
+# Exercised directly, because a PATH stripped of both would also strip grep and sed.
+jf() { # $1 = key path, $2 = payload
+  ( input=$2
+    # shellcheck source=/dev/null
+    . "$LIB"
+    _json_tool=""
+    json_field "$1" )
+}
+dual='{"session_id":"s1","tool_name":"Write","tool_input":{"file_path":"/proj/docs/a.md"},"tool_response":{"file_path":"/proj/OTHER.md"}}'
+# The old fallback was `s/.*"file_path"...` — `.*` is greedy, so it returned the LAST
+# match in the payload (the tool_response echo) and the `head -n 1` after it was
+# decoration. A Write payload carries both, so this returned the wrong file every time.
+[ "$(jf 'tool_input file_path' "$dual")" = "/proj/docs/a.md" ] &&
+  pass "text fallback honours the key PATH, not the last matching leaf" ||
+  fail "text fallback honours the key PATH (got '$(jf 'tool_input file_path' "$dual")')"
+[ "$(jf 'session_id' "$dual")" = "s1" ] &&
+  pass "text fallback reads a top-level key" || fail "text fallback reads a top-level key"
+# stop_hook_active is a JSON boolean. A string-only scan returned empty for it, which
+# would have disabled the Stop hook's loop guard on a machine with no JSON parser.
+[ "$(jf 'stop_hook_active' '{"stop_hook_active":true,"cwd":"/x"}')" = "true" ] &&
+  pass "text fallback reads an unquoted boolean" || fail "text fallback reads an unquoted boolean"
+[ -z "$(jf 'tool_input url' "$dual")" ] &&
+  pass "text fallback returns empty for an absent key" || fail "text fallback returns empty for an absent key"
+# All three backends must agree, or the degraded path is a different program.
+jf_with() { # $1 = backend, $2 = key path, $3 = payload
+  # shellcheck disable=SC2034  # $input is read by json_field(), per lib/common.sh's contract
+  ( input=$3
+    # shellcheck source=/dev/null
+    . "$LIB"
+    _json_tool=$1
+    json_field "$2" )
+}
+if command -v jq >/dev/null 2>&1; then
+  agree=$(jf_with jq 'tool_input file_path' "$dual")
+  [ "$agree" = "/proj/docs/a.md" ] &&
+    pass "the jq backend agrees with the text fallback" ||
+    fail "the jq backend agrees with the text fallback (got '$agree')"
+fi
+if command -v python3 >/dev/null 2>&1; then
+  agree=$(jf_with python3 'tool_input file_path' "$dual")
+  [ "$agree" = "/proj/docs/a.md" ] &&
+    pass "the python3 backend agrees with the text fallback" ||
+    fail "the python3 backend agrees with the text fallback (got '$agree')"
+  agree=$(jf_with python3 'stop_hook_active' '{"stop_hook_active":true}')
+  [ "$agree" = "true" ] && pass "the python3 backend reads a boolean" ||
+    fail "the python3 backend reads a boolean (got '$agree')"
+fi
 
 echo
 echo "==== $PASS passed, $FAIL failed ===="

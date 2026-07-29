@@ -11,51 +11,20 @@
 # ordinary hand edits. The real gates are check-census.sh (on the census write) and
 # verify-docs.sh (on Stop).
 
+# shellcheck disable=SC2034  # read by json_field() in lib/common.sh, per its contract
 input=$(cat 2>/dev/null || true)
 
-_json_tool=""
-if command -v jq >/dev/null 2>&1; then
-  _json_tool="jq"
-elif command -v python3 >/dev/null 2>&1; then
-  _json_tool="python3"
-fi
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || exit 0
+# shellcheck source=lib/common.sh
+. "$_lib"
 
-json_field() {
-  case "$_json_tool" in
-    jq)
-      printf '%s' "$input" | jq -r "$1 // empty" 2>/dev/null
-      ;;
-    python3)
-      printf '%s' "$input" | python3 -c '
-import json,sys
-try:
-    d=json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-cur=d
-for k in sys.argv[1:]:
-    cur = cur.get(k) if isinstance(cur, dict) else None
-    if cur is None:
-        break
-print(cur if isinstance(cur, str) else "")
-' $2
-      ;;
-    *)
-      printf '%s' "$input" | sed -n "s/.*\"$3\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n 1
-      ;;
-  esac
-}
-
-file_path=$(json_field '.tool_input.file_path' 'tool_input file_path' 'file_path')
-cwd=$(json_field '.cwd' 'cwd' 'cwd')
+file_path=$(json_field 'tool_input file_path')
+cwd=$(json_field 'cwd')
 [ -n "$file_path" ] || exit 0
 
-root="${CLAUDE_PROJECT_DIR:-$cwd}"
-root="${root%/}"
-case "$file_path" in
-  /*) [ -n "$root" ] && rel="${file_path#"$root"/}" || rel="$file_path" ;;
-  *)  rel="$file_path" ;;
-esac
+root=$(lore_root "$cwd")
+rel=$(lore_rel "$file_path" "$root")
 
 # Only a genuinely new content page under docs/.
 case "$rel" in
@@ -63,13 +32,16 @@ case "$rel" in
   *) exit 0 ;;
 esac
 [ -e "$file_path" ] && exit 0          # an overwrite of an existing page, not a new one
-[ -f "$root/.claude/CLAUDE.md" ] || exit 0
-grep -q '@lore-methodology.md' "$root/.claude/CLAUDE.md" 2>/dev/null || exit 0
+lore_is_project "$root" || exit 0
 
 # Already have a census for this run? Then nothing to say.
 ls "$root"/.claude/sources/*-census.md >/dev/null 2>&1 && exit 0
 
-msg="DoD 0: you are creating a new page under docs/ and no source census exists yet at .claude/sources/*-census.md. Before writing prose: record the Run contract (0.4 — every explicit instruction the user gave for this run), fetch every source in this skill's manifest AND every trusted source configured in CLAUDE.md 1, and write each finding into the census with its receipt (0.1 — probe, HTTP status, saved raw payload). A zero-case needs the same receipt (0.2), and a source may only be called inaccessible on an observed status code (0.3)."
+# The § signs are load-bearing: this text is injected verbatim as additionalContext, and
+# the rules it points at are numbered §0.1–§0.4 everywhere else. Stripped of the sign it
+# read "DoD 0", "CLAUDE.md 1", "(0.4)" — section numbers the model cannot resolve back to
+# anything, in the one message whose whole job is to point at them.
+msg="DoD §0: you are creating a new page under docs/ and no source census exists yet at .claude/sources/*-census.md. Before writing prose: record the Run contract (§0.4 — every explicit instruction the user gave for this run), fetch every source in this skill's manifest AND every trusted source configured in CLAUDE.md §1, and write each finding into the census with its receipt (§0.1 — probe, HTTP status, saved raw payload). A zero-case needs the same receipt (§0.2), and a source may only be called inaccessible on an observed status code (§0.3)."
 
 if command -v jq >/dev/null 2>&1; then
   jq -n --arg m "$msg" \

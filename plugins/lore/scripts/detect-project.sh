@@ -20,7 +20,10 @@ if [ -f docusaurus.config.ts ] || [ -f docusaurus.config.js ]; then
   exit 0
 fi
 
-# Positive marker written by /lore:init. Authoritative signal of a Lore project.
+# Positive marker written by /lore:init. It is written by the model, not by a script, so
+# treat it as a strong hint and not as proof: its ABSENCE proves nothing (hence the legacy
+# fallback below), and it is deliberately not the marker the hooks gate on — those key on
+# a .claude/CLAUDE.md that imports the methodology, which the scaffold itself produces.
 if [ -f .claude/lore.json ]; then
   echo "docs-only"
   exit 0

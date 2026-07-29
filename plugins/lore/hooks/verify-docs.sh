@@ -24,56 +24,35 @@
 # (stop_hook_active = true), exit 0 immediately so an unfixable violation cannot
 # loop forever.
 
+# shellcheck disable=SC2034  # read by json_field() in lib/common.sh, per its contract
 input=$(cat)
 
-# --- detect the loop-guard flag (jq → python3 → grep) ---
-stop_active=""
-if command -v jq >/dev/null 2>&1; then
-  stop_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // empty' 2>/dev/null)
-elif command -v python3 >/dev/null 2>&1; then
-  stop_active=$(printf '%s' "$input" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("stop_hook_active",""))
-except Exception: pass' 2>/dev/null)
-else
-  printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && stop_active="true"
-fi
-[ "$stop_active" = "true" ] && exit 0
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || { echo "lore hooks: missing $_lib — Stop checks NOT enforced." >&2; exit 0; }
+# shellcheck source=lib/common.sh
+. "$_lib"
+
+# --- loop guard ---
+# stop_hook_active is a JSON *boolean*, which is why json_field's text fallback has to
+# read unquoted scalars: a string-only scan would return empty here on a machine with no
+# jq and no python3, and the one thing that must never fail open is the loop guard.
+[ "$(json_field 'stop_hook_active')" = "true" ] && exit 0
 
 # --- which session is stopping (scopes the process gates below) ---
-session_id=""
-if command -v jq >/dev/null 2>&1; then
-  session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-elif command -v python3 >/dev/null 2>&1; then
-  session_id=$(printf '%s' "$input" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("session_id",""))
-except Exception: pass' 2>/dev/null)
-else
-  session_id=$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
-fi
+session_id=$(json_field 'session_id')
 
 # --- run all checks from the project root ---
-root="${CLAUDE_PROJECT_DIR:-}"
-if [ -z "$root" ]; then
-  if command -v jq >/dev/null 2>&1; then
-    root=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  elif command -v python3 >/dev/null 2>&1; then
-    root=$(printf '%s' "$input" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("cwd",""))
-except Exception: pass' 2>/dev/null)
-  fi
-fi
+root=$(lore_root "$(json_field 'cwd')")
 [ -n "$root" ] && cd "$root" 2>/dev/null || true
 
 # Nothing to check without a docs/ tree.
 [ -d docs ] || exit 0
 
-# --- guard: a scaffolded Lore docs project only -------------------------------------
+# --- guard: a scaffolded Lore docs project only ---
 # The output checks below are Lore's Definition of Done, not universal truth, and this
 # hook runs in whatever repo the session is in. Plenty of projects keep an image under
 # docs/ — which used to block every turn there, for a rule their author never adopted.
-# Same marker every evidence hook uses.
-[ -f .claude/CLAUDE.md ] || exit 0
-grep -q '@lore-methodology.md' .claude/CLAUDE.md 2>/dev/null || exit 0
+lore_is_project "$(pwd)" || exit 0
 
 blocked=0
 

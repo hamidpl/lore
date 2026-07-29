@@ -17,50 +17,18 @@
 # Receipt: .claude/sources/.validator-receipt  (TAB-separated: iso8601, verdict)
 # Guard: only acts in a scaffolded Lore project.
 
+# shellcheck disable=SC2034  # read by json_field() in lib/common.sh, per its contract
 input=$(cat 2>/dev/null || true)
 
-_json_tool=""
-if command -v jq >/dev/null 2>&1; then
-  _json_tool="jq"
-elif command -v python3 >/dev/null 2>&1; then
-  _json_tool="python3"
-fi
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || exit 0
+# shellcheck source=lib/common.sh
+. "$_lib"
 
-json_field() {
-  case "$_json_tool" in
-    jq)
-      printf '%s' "$input" | jq -r "$1 // empty" 2>/dev/null
-      ;;
-    python3)
-      printf '%s' "$input" | python3 -c '
-import json,sys
-try:
-    d=json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-cur=d
-for k in sys.argv[1:]:
-    cur = cur.get(k) if isinstance(cur, dict) else None
-    if cur is None:
-        break
-print(cur if isinstance(cur, str) else "")
-' $2
-      ;;
-    *)
-      printf '%s' "$input" | sed -n "s/.*\"$3\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n 1
-      ;;
-  esac
-}
+root=$(lore_root "$(json_field 'cwd')")
+lore_is_project "$root" || exit 0
 
-cwd=$(json_field '.cwd' 'cwd' 'cwd')
-root="${CLAUDE_PROJECT_DIR:-$cwd}"
-root="${root%/}"
-[ -n "$root" ] || exit 0
-
-[ -f "$root/.claude/CLAUDE.md" ] || exit 0
-grep -q '@lore-methodology.md' "$root/.claude/CLAUDE.md" 2>/dev/null || exit 0
-
-msg=$(json_field '.last_assistant_message' 'last_assistant_message' 'last_assistant_message')
+msg=$(json_field 'last_assistant_message')
 
 # The validator ends with an explicit recommendation line. Order matters: BLOCKED
 # wins, then the qualified pass, then the clean pass. Anything else is UNKNOWN,

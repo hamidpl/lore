@@ -178,7 +178,7 @@ When clarification isn't available, document the ambiguity explicitly in the doc
 The base final-report structure is defined in `CLAUDE.md` Section 8. In addition, a brief-sourced report MUST include:
 
 - **Brief sources:** document title, date, author, version; the user-story IDs addressed; how many acceptance criteria were used; the source census path (`.claude/sources/brief-{slug}-census.md`) with the trusted sources (§1) covered.
-- **Brief readiness:** which of the three essentials (acceptance criteria, personas/roles, out-of-scope) were present or missing, and whether the user chose to proceed anyway (per §2 step 6).
+- **Brief readiness:** which of the three essentials (acceptance criteria, personas/roles, out-of-scope) were present or missing, and whether the user chose to proceed anyway (per §2 step 7).
 - **Clarifications log:** questions asked / answered / pending (the pending list mirrors the `[CLARIFICATION NEEDED]` markers in the doc); each pending gap names its taxonomy category where one applies.
 
 ---
@@ -191,7 +191,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Entire brief read and analyzed; all gaps identified
 - [ ] Run contract written at step 0 and every `[u#]` row closed (§0.4)
 - [ ] Every configured trusted source (§1) **actually fetched**, and the census at `.claude/sources/brief-{slug}-census.md` has a fully-filled row per source (§0.1–§0.3)
-- [ ] Brief readiness gate run (§2 step 6); missing essentials named and proceed-decision recorded
+- [ ] Brief readiness gate run (§2 step 7); missing essentials named and proceed-decision recorded
 - [ ] All user stories documented as complete scenarios (per `CLAUDE.md` §4)
 - [ ] Gherkin acceptance criteria (if any) mapped structurally per the mapping table
 - [ ] All acceptance criteria converted to explicit business rules (subjective/unquantified ones flagged, not accepted)

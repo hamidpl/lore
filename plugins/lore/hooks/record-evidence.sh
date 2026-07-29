@@ -28,17 +28,18 @@
 
 input=$(cat 2>/dev/null || true)
 
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || exit 0
+# shellcheck source=lib/common.sh
+. "$_lib"
+
 # --- FAST PATH: bail before spawning any JSON parser -------------------------------
 # This hook is on the Bash matcher, so it runs on the highest-frequency tool there is,
 # in every repo where Lore is installed — including repos that have nothing to do with
 # documentation. Parsing first and checking the guard second cost ~16ms on every Bash
 # call in an unrelated project. When CLAUDE_PROJECT_DIR is set (the normal case) the
 # guard is two filesystem ops and we exit without ever starting jq.
-if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
-  _r="${CLAUDE_PROJECT_DIR%/}"
-  [ -f "$_r/.claude/CLAUDE.md" ] || exit 0
-  grep -q '@lore-methodology.md' "$_r/.claude/CLAUDE.md" 2>/dev/null || exit 0
-fi
+lore_env_marker_ok || exit 0
 
 # Everything we record is either a URL or a subagent type. A payload containing
 # neither can be dropped without parsing it — which is the overwhelming majority of
@@ -48,52 +49,12 @@ case "$input" in
   *) exit 0 ;;
 esac
 
-# --- pick a JSON backend once (jq → python3 → sed last resort) ---
-_json_tool=""
-if command -v jq >/dev/null 2>&1; then
-  _json_tool="jq"
-elif command -v python3 >/dev/null 2>&1; then
-  _json_tool="python3"
-fi
-
-# json_field <jq-path> <python-keys> <sed-key>
-json_field() {
-  case "$_json_tool" in
-    jq)
-      printf '%s' "$input" | jq -r "$1 // empty" 2>/dev/null
-      ;;
-    python3)
-      printf '%s' "$input" | python3 -c '
-import json,sys
-try:
-    d=json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-cur=d
-for k in sys.argv[1:]:
-    cur = cur.get(k) if isinstance(cur, dict) else None
-    if cur is None:
-        break
-print(cur if isinstance(cur, str) else "")
-' $2
-      ;;
-    *)
-      printf '%s' "$input" | sed -n "s/.*\"$3\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n 1
-      ;;
-  esac
-}
-
-tool=$(json_field '.tool_name' 'tool_name' 'tool_name')
-cwd=$(json_field '.cwd' 'cwd' 'cwd')
+tool=$(json_field 'tool_name')
+cwd=$(json_field 'cwd')
 [ -n "$tool" ] || exit 0
 
-root="${CLAUDE_PROJECT_DIR:-$cwd}"
-root="${root%/}"
-[ -n "$root" ] || exit 0
-
-# --- guard: a scaffolded Lore project only ---
-[ -f "$root/.claude/CLAUDE.md" ] || exit 0
-grep -q '@lore-methodology.md' "$root/.claude/CLAUDE.md" 2>/dev/null || exit 0
+root=$(lore_root "$cwd")
+lore_is_project "$root" || exit 0
 
 # Create the evidence dir and keep its run artifacts out of git; the census itself
 # stays committed.
@@ -117,14 +78,14 @@ detail=""
 tier="verified"
 case "$tool" in
   WebFetch)
-    detail=$(json_field '.tool_input.url' 'tool_input url' 'url')
+    detail=$(json_field 'tool_input url')
     ;;
   Task)
-    detail=$(json_field '.tool_input.subagent_type' 'tool_input subagent_type' 'subagent_type')
+    detail=$(json_field 'tool_input subagent_type')
     [ -n "$detail" ] && detail="subagent:$detail"
     ;;
   Bash)
-    cmd=$(json_field '.tool_input.command' 'tool_input command' 'command')
+    cmd=$(json_field 'tool_input command')
     # Extract every http(s) URL the command mentioned; one log line each. A URL in a
     # command string is NOT evidence the command fetched it, so these are `mentioned`.
     # A real fetch from a script records itself: figma-probe.sh appends its own
@@ -137,8 +98,8 @@ case "$tool" in
     # apply only to sessions that actually produced docs — otherwise an unrelated
     # `git pull` that touches docs/ would block the next turn in any session,
     # which is a false block on someone who did nothing wrong.
-    fp=$(json_field '.tool_input.file_path' 'tool_input file_path' 'file_path')
-    sid=$(json_field '.session_id' 'session_id' 'session_id')
+    fp=$(json_field 'tool_input file_path')
+    sid=$(json_field 'session_id')
     case "${fp#"$root"/}" in
       docs/*)
         [ -n "$sid" ] || sid="unknown-session"
@@ -151,7 +112,7 @@ case "$tool" in
     ;;
   *)
     # MCP browser tools (mcp__<server>__browser_navigate, …) carry a url too.
-    detail=$(json_field '.tool_input.url' 'tool_input url' 'url')
+    detail=$(json_field 'tool_input url')
     ;;
 esac
 

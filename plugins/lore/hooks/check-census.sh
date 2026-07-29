@@ -30,6 +30,11 @@
 # Scope: ONLY .claude/sources/*-census.md. Everything else exits 0 untouched — the
 # other Lore hooks deliberately skip .claude/, and this one is the single carve-out.
 
+_lib="$(dirname "$0")/lib/common.sh"
+[ -r "$_lib" ] || { echo "lore hooks: missing $_lib — census rules NOT enforced." >&2; exit 0; }
+# shellcheck source=lib/common.sh
+. "$_lib"
+
 problems=""
 add() { problems="$problems
   - $1"; }
@@ -116,48 +121,10 @@ esac
 
 # The same Lore-project guard the other evidence hooks use, so this one never acts in an
 # unrelated repo either. (CLAUDE.md claimed all of them did this; only some did.)
-if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
-  _r="${CLAUDE_PROJECT_DIR%/}"
-  [ -f "$_r/.claude/CLAUDE.md" ] || exit 0
-  grep -q '@lore-methodology.md' "$_r/.claude/CLAUDE.md" 2>/dev/null || exit 0
-fi
+lore_env_marker_ok || exit 0
 
-# --- pick a JSON extraction backend once (jq → python3 → sed last resort) ---
-_json_tool=""
-if command -v jq >/dev/null 2>&1; then
-  _json_tool="jq"
-elif command -v python3 >/dev/null 2>&1; then
-  _json_tool="python3"
-fi
-
-json_field() {
-  case "$_json_tool" in
-    jq)
-      printf '%s' "$input" | jq -r "$1 // empty" 2>/dev/null
-      ;;
-    python3)
-      printf '%s' "$input" | python3 -c '
-import json,sys
-try:
-    d=json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-cur=d
-for k in sys.argv[1:]:
-    cur = cur.get(k) if isinstance(cur, dict) else None
-    if cur is None:
-        break
-print(cur if isinstance(cur, str) else "")
-' $2
-      ;;
-    *)
-      printf '%s' "$input" | sed -n "s/.*\"$3\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n 1
-      ;;
-  esac
-}
-
-file_path=$(json_field '.tool_input.file_path' 'tool_input file_path' 'file_path')
-cwd=$(json_field '.cwd' 'cwd' 'cwd')
+file_path=$(json_field 'tool_input file_path')
+cwd=$(json_field 'cwd')
 
 if [ -z "$file_path" ]; then
   if [ -z "$_json_tool" ] && [ -n "$input" ]; then
@@ -166,12 +133,8 @@ if [ -z "$file_path" ]; then
   exit 0
 fi
 
-root="${CLAUDE_PROJECT_DIR:-$cwd}"
-root="${root%/}"
-case "$file_path" in
-  /*) [ -n "$root" ] && rel="${file_path#"$root"/}" || rel="$file_path" ;;
-  *)  rel="$file_path" ;;
-esac
+root=$(lore_root "$cwd")
+rel=$(lore_rel "$file_path" "$root")
 
 # --- in scope only for a source census ---
 case "$rel" in
@@ -186,8 +149,7 @@ esac
 
 # Guard again from the payload's cwd, for the case where CLAUDE_PROJECT_DIR was unset
 # and the fast path above could not run.
-[ -f "$root/.claude/CLAUDE.md" ] || exit 0
-grep -q '@lore-methodology.md' "$root/.claude/CLAUDE.md" 2>/dev/null || exit 0
+lore_is_project "$root" || exit 0
 
 [ -f "$file_path" ] || exit 0
 

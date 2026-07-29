@@ -16,7 +16,10 @@ jobs:
       - name: Lint shell scripts
         # severity=warning: info/style notes (e.g. SC2086 on intentional unquoted
         # word-splitting, SC2015 on test pass||fail idioms) are advisory, not failures.
-        run: shellcheck -S warning -s sh plugins/lore/hooks/*.sh plugins/lore/scripts/*.sh tests/*.sh
+        # -x follows `. lib/common.sh`, so the shared prologue is checked in the context
+        # of each hook that sources it — without it every hook reports SC1090 and the
+        # library's own callers are never type-checked against it.
+        run: shellcheck -x -S warning -s sh plugins/lore/hooks/*.sh plugins/lore/hooks/lib/*.sh plugins/lore/scripts/*.sh tests/*.sh
 
   validate:
     name: manifests & hook wiring
@@ -52,6 +55,12 @@ jobs:
           for p in plugins/lore/hooks/*.sh plugins/lore/scripts/*.sh; do
             test -x "$p" || { echo "not executable: $p"; fail=1; }
           done
+          # The shared prologue is sourced by every hook, so it must ship — and must NOT
+          # be executable, which is why it lives outside the glob above.
+          test -f plugins/lore/hooks/lib/common.sh ||
+            { echo "missing plugins/lore/hooks/lib/common.sh"; fail=1; }
+          test -x plugins/lore/hooks/lib/common.sh &&
+            { echo "lib/common.sh must not be executable (it is sourced)"; fail=1; }
           exit $fail
       - name: plugin manifest and layout
         # Replaces a `claude plugin validate` step that sat behind `if command -v claude`

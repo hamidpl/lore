@@ -51,6 +51,7 @@ sed -i.bak \
   -e "s/{{LANG_LABEL}}/Farsi/g" \
   -e "s/{{DIRECTION}}/rtl/g" \
   -e "s/{{HTML_LANG}}/fa-IR/g" \
+  -e "s#{{SITE_URL}}#http://localhost:3000#g" \
   -e "s#{{LORE_ATTRIBUTION}}#Built with <a href=\"https://lorekit.net\">Lore</a>#g" \
   "$cfg"
 sed -i.bak "s#customCss: \['./src/css/custom.css'\]#customCss: ['./src/css/custom.css', './src/css/custom-rtl.css']#" "$cfg"
