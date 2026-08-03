@@ -8,6 +8,72 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.8.1
+
+**The first release driven by measurement rather than reasoning.** A workflow audit
+proposed twenty optimizations. Experiments rejected seventeen of them — two of which
+would have opened holes — and a benchmark showed the headline saving of an eighteenth
+never materialised. What shipped is the residue that survived: three small changes, each
+traceable to a number.
+
+### The validator re-read rules it already had
+
+`doc-validator` opened `.claude/CLAUDE.md` and `.claude/lore-methodology.md` on every run.
+Both are already in its context: `CLAUDE.md` `@`-imports the methodology, imports are
+expanded at launch, and a non-fork subagent inherits the whole `CLAUDE.md` hierarchy. The
+prompt even conceded the point — *"both are in context — but read both files explicitly"*.
+
+Verified before changing: a session scaffolded from the docs layer quoted §0.2's first
+bullet with no tool use, and a subagent spawned inside it did the same, reporting it had
+the text *"without reading any file"*. Instrumented runs confirm the behaviour changed —
+baseline read both files, current reads neither.
+
+⚠️ **This did not reduce total tokens.** Measured: 43,187 → 43,990 (+2%). The ~9k of reads
+were genuinely avoided, and the freed budget went to other files instead. Recorded here
+because the opposite is the intuitive assumption and it is wrong.
+
+### One malformed command cost an entire batch
+
+Tracing a full run found **12 of 40 tool calls failing**. The mechanism: `test -s X && echo Y`
+is rejected as *"multiple operations"* and `wc -w < file` as *"input redirection"* — and
+when one call in a parallel batch is rejected, **every sibling issued alongside it is
+discarded**. Two malformed commands destroyed eleven healthy ones and produced three
+round-trips that gathered nothing.
+
+`doc-validator` now requires one operation per Bash call, no chaining, no `<`. It also
+records a rejected command as unrun instead of reissuing it — the same `curl` had been
+retried three times.
+
+Measured, same fixture: **154.1 s vs 216.8 s wall-clock, 32 vs 40 tool calls, 6 vs 12
+failed calls, 41,467 vs 43,990 tokens.** Zero malformed commands in the post-change run.
+Single runs, and duration varied 190–248 s across identical configurations, so treat the
+timing as indicative and the counts as firm. **Reasoning turns did not change: 10 → 10.**
+
+### Two maps of the same territory
+
+`lore-methodology.md` carried two canonical-locations tables — one under Rule 4, one under
+the DoD declaring *"Nothing else may restate it"* — and two copies of the input-type→skill
+table. They are now one each, merged as supersets so no row was lost. This is a
+consistency fix, not a saving: it recovers 274 bytes, against the ~400–600 tokens the
+audit predicted.
+
+### What was deliberately not done
+
+Stop-gate scoping was the audit's #3 item; `.docs-touched` has exactly one writer
+(`Write|Edit`), and its own comment records that it exists so a `git pull` does **not**
+gate — inverting it would have let changes arrive unchecked. Evidence-log rotation
+contradicts the documented append-only invariant. Dropping the validator's hook-covered
+checks assumed hooks had run on those artifacts; `check-census.sh` fires only on write, so
+a carried-over census is unvalidated. All three were rejected on evidence, not taste.
+
+### Known, unfixed
+
+`doc-validator.md` calls `lore:doc-reviewer` *"the single source of truth for how to
+review"* and gives no path, no env var, and no `Skill` tool to invoke it. Stale plugin
+versions persist in the cache — `0.6.3`'s copy still says the canonical rules live in
+`CLAUDE.md`, which stopped being true in 0.6.0. Latent while the copies match; live on any
+machine mid-upgrade. It is a defect, not an optimization, and needs its own change.
+
 ## 0.8.0
 
 **Post-release correctness and the tests that would have caught it.** 0.7.0 shipped the
