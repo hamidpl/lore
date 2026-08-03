@@ -42,16 +42,7 @@ Whenever an error, issue, inconsistency, or misconfiguration occurs during any t
 
 Every fact, rule, or definition must be written in **exactly one canonical location**. Anywhere else that needs it must **reference** it — never **restate** it.
 
-**Canonical locations:**
-
-| Fact category | Canonical location |
-|---------------|--------------------|
-| Methodology: General Rules / DoD / image paths | `.claude/lore-methodology.md` (this file — plugin-owned, do not edit) |
-| Product layer: trusted sources / user roles / product overview / documentation structure | `.claude/CLAUDE.md` |
-| Input-specific workflow logic | the relevant skill in the **Lore** plugin (`lore:{name}`) |
-| Lessons learned | `.claude/lesson-learned.md` |
-| Document structure template | `templates/product-document-template.md` |
-| Skill structure template | `templates/skill-template.md` in the **Lore** plugin |
+**Canonical locations:** see the one table under the DoD heading below ("Canonical locations — the one table"). Rule 4 applies to itself: that map exists once.
 
 - ⛔ Copying the full text of an existing rule into a second place is prohibited. This rule is BLOCKING.
 
@@ -100,9 +91,11 @@ Rule 4 says every fact lives in exactly one place. This is that map. **Nothing e
 | DoD §2, §4, §5, §6, §7, §8 | **this file** |
 | DoD **§1 Trusted Sources** | `.claude/CLAUDE.md` — product layer, yours to edit |
 | DoD **§3 User Roles** | `.claude/CLAUDE.md` — product layer, yours to edit |
+| Product overview and documentation structure | `.claude/CLAUDE.md` — product layer, yours to edit |
 | Input-specific workflow and source manifest | the relevant skill (`skills/{name}/SKILL.md`) |
 | Lessons learned | `.claude/lesson-learned.md` |
 | Document structure | `templates/product-document-template.md` |
+| Skill structure template | `templates/skill-template.md` in the **Lore** plugin |
 
 Two notes on citing sections. **This file is imported by `CLAUDE.md`**, so both are in context — but a reference that names a *file* must name the right one. And when a skill cites a DoD section from inside its own numbered headings, it writes **`DoD §N`**: a skill's `## 3. Core Workflow` and the DoD's `§3 User Roles` are different things, and a bare "§3" inside a skill is ambiguous.
 
@@ -269,12 +262,7 @@ Before delivering, validate against this DoD. If any blocking section (0, 1, 4, 
 
 ## Input-Specific Workflows
 
-| Input Source | Skill to Use |
-|--------------|--------------|
-| **Figma designs** | `lore:figma-to-doc` |
-| **Briefs/Epics** | `lore:brief-to-doc` |
-| **Live Product** | `lore:site-to-doc` |
-| **Review/Audit** | `lore:doc-reviewer` |
+The producer inputs (Figma designs, Briefs/Epics, Live Product) map to their skills in the §0 table above, which also names the sources each one must exhaust. One skill is not a producer and so is not in that table: **Review/Audit → `lore:doc-reviewer`**.
 
 All skills are provided by the **Lore** plugin (`lore:{name}`); see the Prerequisite section in `CLAUDE.md`. Skills complement this system prompt — they add input-specific logic without overriding these global rules.
 
