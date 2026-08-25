@@ -8,7 +8,7 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
-## 0.9.0 (unreleased)
+## 0.9.0
 
 **The validation loop was self-feeding, and the tooling could not tell.** One real
 delivery took **seven** validation rounds — and four of them found defects that had not
