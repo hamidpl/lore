@@ -31,8 +31,8 @@ Four sub-rules make that claim falsifiable. Each is **blocking**:
 
 | Rule | What it requires |
 |------|------------------|
-| **Receipts** | A census row is a *claim*, and a claim needs a receipt: the probe that ran, its HTTP status, the bytes returned, and the on-disk path of the saved raw response. The words *confirmed*, *verified* and *checked* carry no evidentiary weight anywhere. |
-| **Negative results** | A zero is the cheapest result to produce and the one that silently subtracts content — a broken probe and a genuinely empty source return the same string. A zero is valid only beside a successful receipt **and** a corroboration from the raw payload itself. If the payload has the data and the parse returned nothing, that is a **parser failure, not an absence**. |
+| **Receipts** | A census row is a *claim*, and a claim needs a receipt: the probe that ran, its HTTP status, the bytes returned, and the on-disk path of the saved raw response. The words *confirmed*, *verified* and *checked* carry no evidentiary weight anywhere. Nor does your own published documentation: a page you wrote is not evidence about the product, however much it resembles a source — and a *fix* is a new claim, carrying the same obligation as the claim it replaces. |
+| **Negative results** | A zero is the cheapest result to produce and the one that silently subtracts content — a broken probe and a genuinely empty source return the same string. A zero is valid only beside a successful receipt **and** a corroboration from the raw payload itself. If the payload has the data and the parse returned nothing, that is a **parser failure, not an absence**. And before any "not found" is believed, a **control** must pass: the same search, over the same paths, for something already known to be there. A search can come back empty because it skipped a directory or because the text is stored in an escaped form — both look exactly like an empty source. |
 | **No assumed inaccessibility** | A source may be called login-gated or unreachable only on an **observed** status code or auth wall — never inferred from a link's position, a name, or a guess. |
 | **Run contract** | Instructions you give in conversation ("cover the signed-in state too", "include the mobile view") are as binding as any configured source, and the easiest thing to lose because nothing on disk remembers them. They are written down at pre-flight as numbered rows and must each end the run *satisfied, with evidence* — or explicitly waived by you. |
 
@@ -41,6 +41,8 @@ The census is not optional: a run that produced documentation and left no census
 ## Auto-validation
 
 Before delivery, output is validated against the DoD. If a blocking area fails, the work is not delivered — the failure is reported with what's required to fix it. The [`lore:doc-reviewer`](../guides/review-and-validate.md) skill and the `lore:doc-validator` subagent both apply this exact standard, so the same bar is enforced whether a human asks for a review or a producer skill self-checks at completion.
+
+That first review is routine. What happens afterwards is deliberately bounded: **a green verdict ends the delivery**, fixes go in as one batch followed by a single scoped re-review, and any edit made after a green verdict comes back to *you* with its risk rather than triggering another round on its own. Two consecutive rounds whose findings were introduced by the previous round's fixes stop the process for a human decision. See [Review & validate](../guides/review-and-validate.md) for how this plays out in practice.
 
 ## Lessons learned
 

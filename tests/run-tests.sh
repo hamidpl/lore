@@ -295,11 +295,11 @@ check_file_has "$E/.claude/sources/.validator-receipt" "UNKNOWN" "unparseable ve
 # BLOCKED" became a BLOCKED verdict, and any passing mention of APPROVED became a pass.
 check_verdict() { # message expected name
   subagentstop "$E" "$1"
-  if [ "$(cut -f2 "$E/.claude/sources/.validator-receipt")" = "$2" ]; then
-    pass "$3"
-  else
-    fail "$3 (got '$(cut -f2 "$E/.claude/sources/.validator-receipt")', want '$2')"
-  fi
+  # Line 1 only: the receipt's first line is the v1-compatible ts<TAB>verdict, and the
+  # Stop gate reads it with head -n 1 for exactly this reason. Reading the whole file
+  # would pick up the format marker and the per-file digest lines below it.
+  got=$(head -n 1 "$E/.claude/sources/.validator-receipt" | cut -f2)
+  if [ "$got" = "$2" ]; then pass "$3"; else fail "$3 (got '$got', want '$2')"; fi
 }
 check_verdict '## Findings\n\nNothing was BLOCKED by this review.\n\n## Recommendation\n\nAPPROVED' \
   "APPROVED" "a mid-report mention of BLOCKED does not set the verdict"
@@ -313,6 +313,264 @@ check_verdict 'Verdict: APPROVED' \
   "APPROVED" "a labelled verdict line resolves"
 check_verdict '## Recommendation\n\nOK, looks good to me' \
   "UNKNOWN" "a report with no recognisable verdict is UNKNOWN, not a pass"
+
+echo "== record-validator-run.sh receipt v2 (scope + digests) =="
+# The receipt used to carry only (timestamp, verdict), so a narrow APPROVED — "check
+# these two strings" — was indistinguishable from a full one, and the Stop gate could
+# only compare mtimes. v2 records WHICH files were judged and the exact content judged.
+sha_of() { lore_sha "$1"; }
+lore_sha() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum <"$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then shasum -a 256 <"$1" | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then openssl dgst -sha256 <"$1" | awk '{print $NF}'
+  fi
+}
+HAVE_SHA=0
+if command -v sha256sum >/dev/null 2>&1 ||
+   command -v shasum >/dev/null 2>&1 ||
+   command -v openssl >/dev/null 2>&1; then
+  HAVE_SHA=1
+fi
+
+# Read one receipt field: $1 root, $2 path → "status<TAB>sha", empty when absent.
+rcpt_entry() {
+  awk -F'\t' -v p="$2" '$1 == "file" && $4 == p { print $2 "\t" $3; exit }' \
+    "$1/.claude/sources/.validator-receipt" 2>/dev/null
+}
+rcpt_status() { rcpt_entry "$1" "$2" | cut -f1; }
+
+if [ "$HAVE_SHA" -eq 1 ]; then
+  W=$(mktemp -d); make_lore_project "$W"; mkdir -p "$W/docs" "$W/.claude/sources"
+  printf 'page a\n' >"$W/docs/a.md"
+  printf 'page b\n' >"$W/docs/b.md"
+
+  subagentstop "$W" '**Files reviewed:** docs/a.md, docs/b.md\n\nRecommendation: APPROVED'
+  check_file_has "$W/.claude/sources/.validator-receipt" "format" "receipt carries the v2 format marker"
+  [ "$(rcpt_status "$W" docs/a.md)" = "reviewed" ] &&
+    pass "a reviewed file is recorded as reviewed" ||
+    fail "a reviewed file is recorded as reviewed (got '$(rcpt_status "$W" docs/a.md)')"
+  [ "$(rcpt_entry "$W" docs/a.md | cut -f2)" = "$(sha_of "$W/docs/a.md")" ] &&
+    pass "the recorded digest is the file's real sha-256" ||
+    fail "the recorded digest is the file's real sha-256"
+
+  # The line has to survive the decoration a real report carries around it.
+  subagentstop "$W" '# Report\n\n**Files reviewed:** `docs/a.md`, docs/b.md\n\n## Recommendation\n\nAPPROVED'
+  [ "$(rcpt_status "$W" docs/b.md)" = "reviewed" ] &&
+    pass "a decorated Files reviewed line still parses" ||
+    fail "a decorated Files reviewed line still parses (got '$(rcpt_status "$W" docs/b.md)')"
+
+  # A report predating this format asserted a verdict over everything — keep that
+  # meaning rather than marking the whole tree uncovered (widen, never block).
+  W0=$(mktemp -d); make_lore_project "$W0"; mkdir -p "$W0/docs" "$W0/.claude/sources"
+  printf 'page\n' >"$W0/docs/a.md"
+  subagentstop "$W0" 'Recommendation: APPROVED'
+  [ "$(rcpt_status "$W0" docs/a.md)" = "reviewed" ] &&
+    pass "no Files reviewed line → the whole snapshot counts as reviewed (v1 semantics)" ||
+    fail "no Files reviewed line → the whole snapshot counts as reviewed"
+
+  # Scoped re-validation: the receipt accumulates, so re-checking one file does not
+  # discard the standing coverage of the files that did not change.
+  printf 'page b edited\n' >"$W/docs/b.md"
+  subagentstop "$W" '**Files reviewed:** docs/b.md\n\nRecommendation: APPROVED'
+  [ "$(rcpt_status "$W" docs/b.md)" = "reviewed" ] &&
+    pass "scoped round: the re-checked file is reviewed" ||
+    fail "scoped round: the re-checked file is reviewed"
+  [ "$(rcpt_status "$W" docs/a.md)" = "inherited" ] &&
+    pass "scoped round: an unchanged file inherits its green coverage" ||
+    fail "scoped round: an unchanged file inherits (got '$(rcpt_status "$W" docs/a.md)')"
+
+  # The hole this closes: a narrow APPROVED must not bless a file it never opened.
+  printf 'page a changed behind the review\n' >"$W/docs/a.md"
+  subagentstop "$W" '**Files reviewed:** docs/b.md\n\nRecommendation: APPROVED'
+  [ "$(rcpt_status "$W" docs/a.md)" = "uncovered" ] &&
+    pass "a narrow APPROVED does not bless a file changed outside its scope" ||
+    fail "a narrow APPROVED does not bless a file outside its scope (got '$(rcpt_status "$W" docs/a.md)')"
+
+  # A BLOCKED run must not pass coverage forward — inheriting from it would launder it.
+  WB=$(mktemp -d); make_lore_project "$WB"; mkdir -p "$WB/docs" "$WB/.claude/sources"
+  printf 'page\n' >"$WB/docs/a.md"; printf 'page2\n' >"$WB/docs/b.md"
+  subagentstop "$WB" '**Files reviewed:** docs/a.md, docs/b.md\n\nRecommendation: BLOCKED'
+  subagentstop "$WB" '**Files reviewed:** docs/b.md\n\nRecommendation: APPROVED'
+  [ "$(rcpt_status "$WB" docs/a.md)" = "uncovered" ] &&
+    pass "coverage is never inherited from a BLOCKED run" ||
+    fail "coverage is never inherited from a BLOCKED run (got '$(rcpt_status "$WB" docs/a.md)')"
+
+  # History is append-only: how many rounds a delivery took is only reconstructible here.
+  [ "$(grep -c . "$W/.claude/sources/.validator-history")" -eq 4 ] &&
+    pass "every validator run appends one history line" ||
+    fail "every validator run appends one history line (got $(grep -c . "$W/.claude/sources/.validator-history"))"
+  awk -F'\t' 'NF == 4 { n++ } END { exit(n == NR ? 0 : 1) }' "$W/.claude/sources/.validator-history" &&
+    pass "history lines carry ts, verdict and both counts" ||
+    fail "history lines carry ts, verdict and both counts"
+else
+  pass "receipt v2 tests skipped (no sha-256 tool available)"
+fi
+
+echo "== verify-docs.sh gate 4 v2 (digest, waiver, scoped rounds) =="
+# The complaint this answers: after a green verdict, ANY later touch forced another full
+# round — while a genuinely risky bulk edit got exactly the same treatment as a typo fix.
+# The gate now compares content, and routes a real change to the user's decision.
+gate_project() { # $1 root — a producing session with a complete census and one page
+  make_lore_project "$1"; mkdir -p "$1/docs" "$1/.claude/sources"
+  printf 'page a\n' >"$1/docs/a.md"
+  printf 'sess-w\n' >"$1/.claude/sources/.docs-touched"
+  printf '## Run contract\n| u1 | x | satisfied | docs/a.md |\n' >"$1/.claude/sources/brief-w-census.md"
+}
+waive() { # $1 root, then path… — write a user-approved waiver at each file's CURRENT digest
+  r=$1; shift
+  { printf '2026-01-01T00:00:00Z\tuser approved: typo fix, no product claim changed\n'
+    for p in "$@"; do
+      if [ -f "$r/$p" ]; then printf '%s\t%s\n' "$(sha_of "$r/$p")" "$p"
+      else printf 'deleted\t%s\n' "$p"; fi
+    done
+  } >"$r/.claude/sources/.validation-waiver"
+}
+
+if [ "$HAVE_SHA" -eq 1 ]; then
+  X=$(mktemp -d); gate_project "$X"
+  subagentstop "$X" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'
+  stophook "$X" false "sess-w"; check_exit 0 "$RC" "a green, unchanged tree passes"
+
+  # THE REGRESSION THIS RELEASE IS ABOUT: a rewrite with identical content bumps the
+  # mtime, and the old gate blocked on it — a whole re-validation round for nothing.
+  sleep 1; printf 'page a\n' >"$X/docs/a.md"
+  stophook "$X" false "sess-w"
+  check_exit 0 "$RC" "a rewrite with identical content is not a change (mtime churn)"
+
+  # A one-word edit IS a change, whatever its size — "just a spelling fix" applied
+  # tree-wide is what silently falsified 21 pages in the run that produced this rule.
+  printf 'page a corrected\n' >"$X/docs/a.md"
+  stophook "$X" false "sess-w"; check_exit 2 "$RC" "a content edit after a green run blocks"
+  check_stderr "docs/a.md" "the block names the changed file"
+  check_stderr "ASK" "…and tells the model to ask the user rather than re-run silently"
+  check_stderr "scoped re-validation" "…and offers the scoped round"
+  check_stderr "validation-waiver" "…and offers the user-approved waiver"
+
+  # Route 1: the user approves delivering as-is.
+  waive "$X" docs/a.md
+  stophook "$X" false "sess-w"; check_exit 0 "$RC" "a waiver at the exact current digest passes"
+
+  # …and it covers that content only. A further edit silently invalidates it, which is
+  # the whole point: an approval can never extend to a change the user never saw.
+  printf 'page a edited again\n' >"$X/docs/a.md"
+  stophook "$X" false "sess-w"; check_exit 2 "$RC" "a further edit makes the waiver stale"
+
+  # Route 2: the scoped re-validation closes it instead.
+  subagentstop "$X" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'
+  stophook "$X" false "sess-w"; check_exit 0 "$RC" "a scoped re-validation closes the change"
+  [ ! -f "$X/.claude/sources/.validation-waiver" ] &&
+    pass "a validator run consumes the standing waiver" ||
+    fail "a validator run consumes the standing waiver"
+
+  # A new page nobody reviewed, and a partial waiver, must both still block.
+  printf 'brand new\n' >"$X/docs/new.md"
+  stophook "$X" false "sess-w"; check_exit 2 "$RC" "a page created after the run blocks"
+  printf 'page a v3\n' >"$X/docs/a.md"
+  waive "$X" docs/a.md
+  stophook "$X" false "sess-w"; check_exit 2 "$RC" "a waiver covering only one of two changes blocks"
+
+  # A deletion is a change too — the receipt knows a file that is no longer there.
+  XD=$(mktemp -d); gate_project "$XD"
+  subagentstop "$XD" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'
+  rm -f "$XD/docs/a.md"; printf 'other\n' >"$XD/docs/b.md"
+  subagentstop "$XD" '**Files reviewed:** docs/b.md\n\nRecommendation: APPROVED'
+  rm -f "$XD/docs/b.md"
+  stophook "$XD" false "sess-w"; check_exit 2 "$RC" "a file deleted after validation blocks"
+  waive "$XD" docs/b.md
+  stophook "$XD" false "sess-w"; check_exit 0 "$RC" "a waiver naming the deleted file passes"
+
+  # A waiver can never launder a non-green verdict.
+  XR=$(mktemp -d); gate_project "$XR"
+  subagentstop "$XR" '**Files reviewed:** docs/a.md\n\nRecommendation: BLOCKED'
+  waive "$XR" docs/a.md
+  stophook "$XR" false "sess-w"; check_exit 2 "$RC" "a waiver cannot pass a BLOCKED verdict"
+
+  # An `uncovered` file — one a narrow APPROVED never opened — blocks even though its
+  # content has not changed since the receipt was written.
+  XU=$(mktemp -d); gate_project "$XU"; printf 'page b\n' >"$XU/docs/b.md"
+  subagentstop "$XU" '**Files reviewed:** docs/b.md\n\nRecommendation: APPROVED'
+  stophook "$XU" false "sess-w"; check_exit 2 "$RC" "a file no run ever reviewed blocks"
+
+  # The circuit-breaker signal: once rounds accumulate, the block says how many.
+  XH=$(mktemp -d); gate_project "$XH"
+  for _ in 1 2 3; do subagentstop "$XH" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'; done
+  printf 'changed\n' >"$XH/docs/a.md"
+  stophook "$XH" false "sess-w"
+  check_stderr "validator runs recorded" "the block surfaces the round count once rounds pile up"
+
+  # Paths with spaces flow through the digest loop in both directions.
+  XS=$(mktemp -d); gate_project "$XS"; printf 'spaced\n' >"$XS/docs/with space.md"
+  subagentstop "$XS" 'Recommendation: APPROVED'
+  stophook "$XS" false "sess-w"; check_exit 0 "$RC" "a doc filename with a space passes the digest gate"
+  printf 'spaced edit\n' >"$XS/docs/with space.md"
+  stophook "$XS" false "sess-w"; check_exit 2 "$RC" "…and is caught when it changes"
+
+  # A v1 receipt on disk (written before this upgrade) keeps the mtime behaviour.
+  XL=$(mktemp -d); gate_project "$XL"
+  printf '2026-01-01T00:00:00Z\tAPPROVED\n' >"$XL/.claude/sources/.validator-receipt"
+  stophook "$XL" false "sess-w"; check_exit 0 "$RC" "legacy v1 receipt: unchanged docs pass"
+  sleep 1; printf 'edited\n' >"$XL/docs/a.md"
+  stophook "$XL" false "sess-w"; check_exit 2 "$RC" "legacy v1 receipt: the mtime path still blocks"
+else
+  pass "gate 4 v2 tests skipped (no sha-256 tool available)"
+fi
+
+# With no digest tool on PATH the recorder must fall back to the v1 receipt and the gate
+# to its mtime comparison — degraded, but never crashing and never blocking a clean tree.
+XN=$(mktemp -d); gate_project "$XN"
+NOSHA=$(mktemp -d)
+for t in sh sed grep awk head cut cat tr find ls wc dirname sort date mkdir mv rm printf test; do
+  p=$(command -v "$t" 2>/dev/null) && ln -s "$p" "$NOSHA/$t" 2>/dev/null
+done
+printf '{"hook_event_name":"SubagentStop","cwd":"%s","last_assistant_message":"Recommendation: APPROVED"}' "$XN" |
+  PATH="$NOSHA" CLAUDE_PROJECT_DIR="$XN" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+check_exit 0 "$?" "no sha tool: the recorder still exits 0"
+if grep -q "format" "$XN/.claude/sources/.validator-receipt" 2>/dev/null; then
+  fail "no sha tool: falls back to the v1 receipt"
+else
+  pass "no sha tool: falls back to the v1 receipt"
+fi
+printf '{"hook_event_name":"Stop","stop_hook_active":false,"cwd":"%s","session_id":"sess-w"}' "$XN" |
+  PATH="$NOSHA" CLAUDE_PROJECT_DIR="$XN" sh "$HOOKS/verify-docs.sh" 2>"$ERRF"
+check_exit 0 "$?" "no sha tool: the Stop gate degrades to mtime instead of crashing"
+
+echo "== remind-mass-edit.sh (PreToolUse) =="
+# The class of damage no output check can see: nothing is mis-typed, every changed line
+# is individually correct, and only the sentence around it became false.
+M=$(mktemp -d); make_lore_project "$M"; mkdir -p "$M/docs"
+printf 'page\n' >"$M/docs/a.md"
+mass_edit() { # $1 root, $2 tool, $3 tool_input JSON
+  OUT=$(printf '{"hook_event_name":"PreToolUse","cwd":"%s","tool_name":"%s","tool_input":%s}' "$1" "$2" "$3" |
+    CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/remind-mass-edit.sh" 2>"$ERRF")
+  RC=$?
+}
+mass_edit "$M" Edit '{"file_path":"'"$M"'/docs/a.md","old_string":"x","new_string":"y","replace_all":true}'
+check_exit 0 "$RC" "never blocks a bulk edit"
+printf '%s' "$OUT" | grep -q 'additionalContext' &&
+  pass "a replace_all on a docs page gets the checklist" ||
+  fail "a replace_all on a docs page gets the checklist"
+printf '%s' "$OUT" | grep -q 'verbatim' &&
+  pass "the checklist names the fidelity-promise check" ||
+  fail "the checklist names the fidelity-promise check"
+
+mass_edit "$M" Edit '{"file_path":"'"$M"'/docs/a.md","old_string":"x","new_string":"y"}'
+[ -z "$OUT" ] && pass "an ordinary single-occurrence edit is silent" ||
+  fail "an ordinary single-occurrence edit is silent"
+
+mass_edit "$M" Bash '{"command":"sed -i \"\" s/x/y/g docs/*.md"}'
+printf '%s' "$OUT" | grep -q 'additionalContext' &&
+  pass "an in-place sed over docs/ gets the checklist" ||
+  fail "an in-place sed over docs/ gets the checklist"
+mass_edit "$M" Bash '{"command":"grep -rn video docs/"}'
+[ -z "$OUT" ] && pass "a read-only command over docs/ is silent" ||
+  fail "a read-only command over docs/ is silent"
+
+# …and it must stay out of repos that never adopted any of this.
+MN=$(mktemp -d); mkdir -p "$MN/.claude/../docs"
+printf 'not a lore project\n' >"$MN/.claude/CLAUDE.md"
+mass_edit "$MN" Edit '{"file_path":"'"$MN"'/docs/a.md","replace_all":true}'
+[ -z "$OUT" ] && pass "unrelated repo: no bulk-edit reminder" ||
+  fail "unrelated repo: no bulk-edit reminder"
 
 echo "== check-census.sh (PostToolUse) =="
 C=$(mktemp -d); make_lore_project "$C"
@@ -400,6 +658,33 @@ check_stderr "no receipt" "the receiptless positive row is named"
 } >"$CEN"
 posttool "$HOOKS/check-census.sh" "$C" "$CEN"; check_exit 2 "$RC" "a zero the raw payload contradicts blocks"
 check_stderr "parser failure" "names it as a parser failure"
+
+# §0.4: a [u#] row is scoped to ONE run and is never re-examined after that run's
+# delivery. A standing product decision frozen into one diverges silently the day the
+# product owner rules differently — so it must live in the product layer and be
+# referenced from the row, not restated in it.
+{
+  echo '## Run contract'
+  echo '| u1 | Standing: the product spells it "video", never "vidéo" | satisfied | docs/a.md |'
+} >"$CEN"
+posttool "$HOOKS/check-census.sh" "$C" "$CEN"; check_exit 2 "$RC" "a standing decision frozen in a run row blocks"
+check_stderr "standing product decision" "…and says where such a decision belongs"
+
+{
+  echo '## Run contract'
+  echo '| u1 | Standing: product spelling (see CLAUDE.md § Standing decisions, 2026-08-20) | satisfied | docs/a.md |'
+} >"$CEN"
+posttool "$HOOKS/check-census.sh" "$C" "$CEN"; check_exit 0 "$RC" "a standing row referencing the product layer passes"
+
+{
+  echo '## Run contract'
+  echo '| u1 | x | satisfied | docs/a.md |'
+  echo 'Example of what NOT to write:'
+  echo '```markdown'
+  echo '| u9 | Standing: some permanent ruling | satisfied | docs/a.md |'
+  echo '```'
+} >"$CEN"
+posttool "$HOOKS/check-census.sh" "$C" "$CEN"; check_exit 0 "$RC" "a fenced standing-row example is not judged as a row"
 
 # A quoted example of the format is not a claim about this run.
 {

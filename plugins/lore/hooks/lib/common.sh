@@ -22,6 +22,9 @@
 #   lore_carved_out <rel>       → 0 for intentional example trees
 #   lore_env_marker_ok          → cheap pre-parse bail; use as `lore_env_marker_ok || exit 0`
 #   $_json_tool                 → "jq" | "python3" | "" (empty = degraded, warn loudly)
+#   lore_sha256 <file>          → 64-hex sha-256 of the file's content, or nothing
+#   $_sha_tool                  → "sha256sum" | "shasum" | "openssl" | "" (empty = callers
+#                                 degrade to their pre-digest behaviour, never crash)
 #
 # shellcheck disable=SC2154   # $input is the caller's, by contract (see above)
 
@@ -104,6 +107,29 @@ _json_sed_field() { # $1 = space-separated key path
   printf '%s' "$_rest" |
     grep -o "\"$_leaf\"[[:space:]]*:[[:space:]]*[^,}\"[:space:]]*" 2>/dev/null |
     head -n 1 | sed "s/^\"$_leaf\"[[:space:]]*:[[:space:]]*//"
+}
+
+# --- pick a digest backend once (sha256sum → shasum → openssl) ---
+# macOS ships `shasum -a 256`, most Linuxes `sha256sum`; openssl is the long tail.
+_sha_tool=""
+if command -v sha256sum >/dev/null 2>&1; then
+  _sha_tool="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+  _sha_tool="shasum"
+elif command -v openssl >/dev/null 2>&1; then
+  _sha_tool="openssl"
+fi
+
+# lore_sha256 <file> — 64-hex digest on stdout, or nothing on any failure.
+# The file is fed via STDIN, not as an argument: GNU coreutils prefixes the output line
+# with `\` when the filename needs escaping, and the stdin form makes all three
+# backends' output shapes uniform (digest first, no filename column to strip).
+lore_sha256() {
+  case "$_sha_tool" in
+    sha256sum) sha256sum <"$1" 2>/dev/null | awk '{print $1}' ;;
+    shasum)    shasum -a 256 <"$1" 2>/dev/null | awk '{print $1}' ;;
+    openssl)   openssl dgst -sha256 <"$1" 2>/dev/null | awk '{print $NF}' ;;
+  esac
 }
 
 # lore_root <payload cwd> — CLAUDE_PROJECT_DIR wins; trailing slash stripped so every

@@ -9,6 +9,8 @@
 .claude/sources/raw/
 .claude/sources/.evidence-log
 .claude/sources/.validator-receipt
+.claude/sources/.validator-history
+.claude/sources/.validation-waiver
 .claude/sources/.docs-touched
 
 # Scratch space used while installing the Docusaurus viewer

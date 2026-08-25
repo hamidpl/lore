@@ -67,6 +67,10 @@ For §6, actually run the checks rather than eyeballing:
 - Confirm no image files live under `docs/`.
 - Grep `docs/` for tooling references (Rule 5): `.claude/`, `CLAUDE.md`, and the `lore:` namespace. Any match is a blocking failure.
 
+**Before trusting any zero of your own (§0.2).** Every "not found" you report — a missing string, an absent key, an unmatched host — is the result of a search that can come back empty for reasons that have nothing to do with the source: a recursive search that skips the evidence corpus because it is git-ignored, a payload storing the text in an escaped encoding, a platform lacking the flag that would fix either. Run a needle you have already proven is present through the same command over the same paths first; if the control comes back empty too, the probe is broken and its zero is not a finding.
+
+**Quoted-string provenance (§0.1/§5).** Every string the docs present as the product's own wording is a claim about the product, and a file under `docs/` is not evidence for it. Locate each one in the saved payloads under `.claude/sources/raw/` using explicit paths. Found only in another section's payload → wrong attribution (blocking). Quoted as a label for an element whose source node carries no text → naming presented as quotation (blocking). Not found at all → only after the control needle passes and a tolerant retry (zero-width marks stripped, the payload's escape form, Unicode presentation variants) → fabricated (blocking).
+
 For §0.1–§0.4, actually re-execute rather than reading the census:
 - `test -s` every raw-payload path the census cites.
 - `grep` each claimed source host in `.claude/sources/.evidence-log`.
@@ -81,6 +85,7 @@ For §0.1–§0.4, actually re-execute rather than reading the census:
 # 📋 Documentation Review Report
 
 **Document:** [file path]
+**Files reviewed:** [comma-separated project-relative docs/ paths — every file actually opened and judged]
 **Reviewed on:** [date]
 **Overall Status:** [✅ PASS / ⚠️ PASS WITH WARNINGS / ❌ FAIL]
 
@@ -119,8 +124,13 @@ State which re-verifications you executed and what they returned — an unrun ch
 [✅ APPROVED FOR DELIVERY / ⚠️ APPROVED WITH WARNINGS / ❌ BLOCKED — DO NOT DELIVER]
 
 ## Required Actions (if blocked)
-1. **[area] issue** — Location: [line/section] — Fix: [specific fix]
+1. **[area] issue** — Location: [line/section] — Provenance: [pre-existing / introduced-since-last-green / unknown] — Fix: [specific fix]
 ```
+
+Two fields there are machine-read, so keep their exact shape:
+
+- **`Files reviewed:`** — the scope your verdict covers. A scoped re-review (only the files that changed) is a normal mode; list exactly what you judged. Omitting the line makes the verdict cover the whole tree.
+- **Provenance on every finding** — `pre-existing` when the file's current content is what the last green run already judged, `introduced-since-last-green` when it changed since, `unknown` when there is nothing to compare against. Per-file digests from the last recorded run live in `.claude/sources/.validator-receipt` (`file` lines, present when the receipt carries `format<TAB>2`). The ratio of introduced to total findings is what tells the user whether the fixes are converging or feeding the loop.
 
 ### Step 4 — Block or Approve
 

@@ -23,7 +23,8 @@
 #   §0.1  every source row carries a receipt (status + a raw payload that exists), and
 #         every URL claimed appears in the hook-written .evidence-log as a VERIFIED fetch
 #   §0.2  a zero sits beside the same receipt and a corroboration from the raw payload
-#   §0.4  a Run contract block exists
+#   §0.4  a Run contract block exists, and no [u#] row freezes a standing product
+#         decision in place of referencing where that decision lives
 #   site  Observation coverage exists with real rows, and its screenshots exist
 #   figma every manifest source type has a counted row
 #
@@ -159,6 +160,23 @@ lore_is_project "$root" || exit 0
 if ! grep -q '^##[[:space:]]*Run contract' "$file_path" 2>/dev/null; then
   add "§0.4: no '## Run contract' block. Record every explicit user instruction for this run as a [u#] row (or the zero-case 'no explicit run instructions beyond the skill default')."
 fi
+
+# --- §0.4: a standing product decision does not belong in a run row -----------------
+# A [u#] row is scoped to ONE run and is only ever checked at that run's delivery. A
+# permanent product decision frozen into one — as happened — silently diverges the day
+# the product owner rules differently, and nothing can notice. The decision lives in the
+# product layer (CLAUDE.md, with its date); the row references it (Rule 4).
+live_lines "$file_path" | while IFS= read -r line; do
+  case "$line" in '|'*) : ;; *) continue ;; esac
+  printf '%s' "$line" | grep -qE '^\|[[:space:]]*[uU][0-9]+[[:space:]]*\|' || continue
+  printf '%s' "$line" | grep -qi 'standing' || continue
+  printf '%s' "$line" | grep -q 'CLAUDE\.md' && continue
+  printf 'STANDING\t%s\n' "$(printf '%s' "$line" | cut -c1-100)"
+done >"${TMPDIR:-/tmp}/lore-census-standing.$$" 2>/dev/null
+while IFS="$(printf '\t')" read -r _ l; do
+  add "§0.4: a run-contract row carries a standing product decision but does not reference where it lives — '$l'. A [u#] row is scoped to this run and is never re-checked afterwards, so a permanent decision frozen here diverges the moment the product changes. Record the decision in the product layer (CLAUDE.md, with the date it was made) and reference it from this row."
+done <"${TMPDIR:-/tmp}/lore-census-standing.$$"
+rm -f "${TMPDIR:-/tmp}/lore-census-standing.$$" 2>/dev/null
 
 # --- §0.1: EVERY trusted-source row needs a receipt, not only the zero-cases --------
 # Receipts used to be checked only on rows that matched a zero-case phrase, so a row

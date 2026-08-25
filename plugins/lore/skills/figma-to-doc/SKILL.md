@@ -326,7 +326,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure, fix and re-run until it returns green. Only then write the final report (DoD §8). This does not duplicate the DoD — it invokes the canonical validator, and which sections block is that validator's to know, not this skill's to list.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s) — that first round is routine, so run it without asking. If it reports blocking failures, apply the fixes as **one batch** and run **one** scoped round over just the files you touched; do not interleave fixes with rounds, and do not edit a file while it is under review. Beyond that, the delivery boundary and everything it governs — that a green verdict ends the delivery, that a later edit is a new claim to report to the user before any further round, and the two-rounds circuit breaker — is the Auto-Validation Rule's, not this skill's to restate. Only then write the final report (DoD §8). This does not duplicate the DoD: which sections block is the validator's to know.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] All Figma frames reviewed (except `[ignore]` pages)
