@@ -123,15 +123,25 @@ When acceptance criteria arrive as Gherkin (`Given` / `When` / `Then`), map them
 
 Several Gherkin criteria usually collapse into ONE scenario: the shared flow is the Main Flow; each failure variant becomes an Extension, not a scenario of its own.
 
-### Edge-Case Coverage as a Question Engine
+### Edge-Case Coverage — Two Outputs, Two Readers
 
-After drafting each scenario, walk the **edge-case coverage taxonomy** in the template's Scenarios section (`templates/product-document-template.md`), category by category:
+After drafting each scenario, walk the **edge-case coverage taxonomy** in the template's Scenarios section (`templates/product-document-template.md`) category by category. Every applicable category produces **two** things, because two different people need it:
 
-- The brief **addresses** the category → document it as an Extension (anchored per the template).
-- The category **applies but the brief is silent** → a targeted clarification question (it counts against the ~5 cap in "Asking Clarification Questions") or a `[CLARIFICATION NEEDED: ...]` placeholder, **named after the category** so the gap is auditable (e.g. `[CLARIFICATION NEEDED: concurrency — what happens on double-submit?]`).
-- The category **does not apply** → skip it; do not ask about it.
+1. **In the flow** — a marker or Extension at the step it belongs to, for the reader following the scenario;
+2. **In the `## States to Design` table** — one row, for the designer who has to draw the state and needs a flat list rather than a re-read of every scenario. The table's shape and its three status values are the template's (Rule 4).
 
-⛔ A taxonomy gap is NEVER filled by writing a fabricated Extension. The no-invention principle (§2 source principle) outranks coverage: an uncovered category produces a question or a placeholder — nothing else.
+| The brief… | In the flow | Row in States to Design |
+|---|---|---|
+| **addresses** the category | an Extension, anchored per the template | `designed` only if a design already exists for it; otherwise `specified — needs design` |
+| **applies, but the brief is silent** | `[CLARIFICATION NEEDED: {category} — {the question}]` | `unspecified — needs decision + design` |
+| **states the behavior, but nothing is drawn yet** | `[NEEDS DESIGN: {category} — {the state}]` | `specified — needs design` |
+| **does not apply** | nothing | no row |
+
+Both markers carry the **category name** so every gap stays auditable and the table row and the flow marker are traceable to each other.
+
+**The ~5-question cap does not apply to the table.** Asking costs the user's attention, so the upfront round stays capped ("Asking Clarification Questions") — but *listing* a state costs nothing and is the deliverable a designer actually reads. A category below the question cut-off still gets its row and its in-flow marker. Never trim the table to match the number of questions you asked.
+
+⛔ A taxonomy gap is NEVER filled by writing a fabricated Extension — the no-invention principle (§2 source principle) outranks coverage. Note what that rule does and does not forbid: writing what the product *does* in an undescribed state is invention; **naming the state as one that needs designing is not** (the template states this explicitly). A brief that says nothing about the empty state is exactly why that row belongs in the table.
 
 ### Handling Missing Visual Information
 
@@ -166,7 +176,7 @@ When clarification isn't available, document the ambiguity explicitly in the doc
 
 - Scenarios are inferred from user stories but must still meet the full scenario rule in `CLAUDE.md` §4 (Purpose, Roles Involved, Preconditions, Main Flow, Extensions, Postconditions; inline images when available). Acceptance criteria describing failure/edge behavior map to **Extensions**, not to extra happy-path steps.
 - Business rules must be explicit and specific per `CLAUDE.md` §5 — convert vague brief language into concrete rules or mark as `[CLARIFICATION NEEDED]`.
-- **Edge-case coverage:** for every scenario, each applicable category of the template's edge-case coverage taxonomy is either documented as an Extension or surfaced as a question / `[CLARIFICATION NEEDED]` placeholder — never silently absent, never invented.
+- **Edge-case coverage (two outputs):** for every scenario, each applicable category of the template's edge-case coverage taxonomy appears **both** in the flow (an Extension, or a `[CLARIFICATION NEEDED]` / `[NEEDS DESIGN]` marker naming the category) **and** as a row in the `## States to Design` table with one of the template's three status values — never silently absent, never invented. A doc whose scenarios carry such markers but whose table is missing is incomplete: the designer's list is the half that was dropped.
 - **Gherkin mapping:** where acceptance criteria are Gherkin, they are mapped structurally (Given → Preconditions, When/Then → a Main Flow step and its system reaction, failures → Extensions), not paraphrased.
 - After enumerating the user stories/scenarios, if a section will exceed the §2 split threshold, split it into an overview `index.md` + sibling sub-pages per the `CLAUDE.md` §2 split rule.
 - **Responsive view:** a brief has no visuals, so do not fabricate a Mobile & Tablet View section. Only when the brief itself specifies distinct mobile/tablet behavior, capture those differences there (differences only, per the template) — otherwise omit the section.
@@ -180,6 +190,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - **Brief sources:** document title, date, author, version; the user-story IDs addressed; how many acceptance criteria were used; the source census path (`.claude/sources/brief-{slug}-census.md`) with the trusted sources (§1) covered.
 - **Brief readiness:** which of the three essentials (acceptance criteria, personas/roles, out-of-scope) were present or missing, and whether the user chose to proceed anyway (per §2 step 7).
 - **Clarifications log:** questions asked / answered / pending (the pending list mirrors the `[CLARIFICATION NEEDED]` markers in the doc); each pending gap names its taxonomy category where one applies.
+- **States to design:** how many rows the `## States to Design` table carries, split by status (`specified — needs design` / `unspecified — needs decision + design` / `designed`). Report the counts only — the table itself is in the document and is not repeated here (Rule 4). Say plainly if the count of states needing design is large: that is the design work this brief implies, and it is the number a designer plans against.
 
 ---
 
@@ -196,6 +207,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] Gherkin acceptance criteria (if any) mapped structurally per the mapping table
 - [ ] All acceptance criteria converted to explicit business rules (subjective/unquantified ones flagged, not accepted)
 - [ ] Edge-case coverage taxonomy walked per scenario; unaddressed applicable categories surfaced as attributed questions / placeholders, not invented
+- [ ] `## States to Design` table present with one row per applicable category, each carrying one of the template's three status values — and every in-flow `[NEEDS DESIGN]` / `[CLARIFICATION NEEDED]` marker has its matching row (the table is not capped by the question limit)
 - [ ] Clarification questions asked (upfront round capped ~5); placeholders used for unanswered items
 - [ ] No invented features or assumptions
 - [ ] Final report includes brief details + Q&A log

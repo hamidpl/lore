@@ -68,6 +68,7 @@ ensure_sources_dir() {
     {
       echo ".validation-waiver"
       echo ".validator-history"
+      echo ".image-optim"
     } >>"$gi" 2>/dev/null || true
     return 0
   fi
@@ -78,6 +79,7 @@ ensure_sources_dir() {
     echo ".validator-history"
     echo ".validation-waiver"
     echo ".docs-touched"
+    echo ".image-optim"
     echo "raw/"
   } >"$gi" 2>/dev/null || true
   return 0

@@ -98,6 +98,60 @@ variants) still finds nothing.
   which is what separates "the validator keeps complaining" from "our fixes keep breaking
   things" — and feeds the circuit breaker.
 
+### The edge-case sweep now produces a list a designer can act on
+
+`brief-to-doc` already walked the edge-case taxonomy — but it wrote for the wrong reader.
+Its output was questions aimed at the document's author, scattered through the scenarios
+as `[CLARIFICATION NEEDED]` markers. A designer opening the document found no list of
+what still had to be drawn.
+
+Every applicable category now produces **two** things: the marker at the step it belongs
+to, *and* a row in the template's new `## States to Design` table — the flat checklist,
+with three statuses that separate a design task from a product decision:
+`specified — needs design`, `unspecified — needs decision + design`, `designed`.
+`figma-to-doc`'s missing-states check feeds the same table instead of only inline markers.
+
+Two things that had to be said explicitly for this to work at all:
+
+- **Naming a required state is not inventing behavior.** The no-invention rule forbids
+  writing what the product does in an undescribed state; the table writes none of that —
+  it names which state needs designing. Without the carve-out stated in the template,
+  the two rules appear to conflict and the table gets left empty.
+- **The table is exempt from the ~5-question cap.** Asking costs the user's attention;
+  listing costs nothing. Trimming the designer's list to match the number of questions
+  asked was the obvious wrong move.
+
+Also fixed: the canonical taxonomy had **no `loading` category**, while `figma-to-doc`
+carried its own four-item copy that demanded a loading state. Two lists, silently
+diverged, nothing able to catch it. There is now one list, plus a test asserting no skill
+re-lists it and that every category a skill names exists in the template.
+
+### Images are compressed before they are committed
+
+There was no image optimization anywhere. Figma exports at `scale=2` (a 1440px frame
+lands as 2880px) and Playwright screenshots are raw PNG — and both get committed to the
+documentation repo and served by the site, so nothing reclaims that weight later.
+
+`scripts/optimize-images.sh` runs once per run, after every capture has landed.
+**Measured on real UI screenshots: 72% smaller, dimensions unchanged, no visible
+difference.**
+
+- **One batch, not per image — and not for the obvious reason.** Process startup is
+  ~10ms; what per-image really costs is one *agent tool round-trip* each, so forty
+  images means forty round-trips instead of one call.
+- **The quality floor is the safety property.** `pngquant --quality=65-90` exits 99 and
+  leaves the file untouched when it cannot hold the floor, so "don't damage quality" is
+  enforced by the tool, not by anyone's judgement. A lossless pass follows. PNG stays
+  PNG — WebP would save more but changes every extension, doc reference and census row,
+  so it is deferred to its own change.
+- **Idempotence is correctness, not speed.** A second lossy pass degrades the file
+  again, so the fingerprint of each optimized result is recorded and skipped next time.
+  A re-captured screenshot has a new fingerprint and is optimized afresh.
+
+With no optimizer installed it reports `tool=none`, changes nothing, and exits 0 — never
+claiming a saving it did not make, and never failing a run over a missing optional
+binary. The Stop hook warns (never blocks) about large PNGs that never went through it.
+
 ## 0.8.1
 
 **The first release driven by measurement rather than reasoning.** A workflow audit

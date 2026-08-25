@@ -12,6 +12,7 @@
 .claude/sources/.validator-history
 .claude/sources/.validation-waiver
 .claude/sources/.docs-touched
+.claude/sources/.image-optim
 
 # Scratch space used while installing the Docusaurus viewer
 .lore-tmp/

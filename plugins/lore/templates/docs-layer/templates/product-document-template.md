@@ -131,6 +131,7 @@ Then document each scenario with its own `###` sub-heading, repeating the block 
 - **Empty / null** — no data yet, zero results, blank or missing values.
 - **Boundaries** — min/max limits and off-by-one; defects cluster exactly at the limit.
 - **Errors** — network or server failure, timeout, expired session or link.
+- **Loading / latency** — what the user sees while waiting: skeleton, spinner, progress, a slow response, an action that cannot be repeated mid-flight.
 - **Concurrency** — double-submit, two actors changing the same thing at once.
 - **State transitions** — back button mid-flow, re-entry, jumps into an invalid state.
 - **Permissions** — a role without access, or access revoked mid-session.
@@ -149,6 +150,28 @@ _(Optional — delete this heading if the product has no distinct mobile/tablet 
 Document **only what differs** from the desktop view — never re-tell a flow already covered above. Cover the layout changes (single-column stacking, elements hidden/moved/collapsed), the navigation pattern (e.g. a hamburger menu replacing a top bar), and any behavior that genuinely changes on a smaller screen (reference the affected scenario by its number, e.g. "In Scenario 2, …"). If a viewport behaves identically to desktop apart from reflow, say so in one line rather than restating steps.
 
 Embed mobile screenshots with a raw HTML tag — `<img src="/img/{section}/mobile/…" alt="…" />`, never markdown `![…](…)` syntax — images under that `mobile/` path are automatically shown at half width on desktop and full width on small screens, and only the raw tag keeps the `/mobile/` path intact in the built site (see `.claude/CLAUDE.md` §6). Tablet screenshots go under `/img/{section}/tablet/…` (markdown syntax is fine there) and display full width.
+
+## States to Design
+
+_(Optional — delete this heading when every state this feature needs already exists in the design.)_
+
+The consolidated list of states this feature requires, for the designer who has to draw them. The Extensions above say what each state *does*, anchored to its step in the flow; this table is the flat checklist — one place to see everything still missing, without reading every scenario.
+
+One row per state that the edge-case coverage taxonomy above marks as applicable. A category that genuinely does not apply gets **no row** — this is a work list, and padding it with "not applicable" rows is what makes people stop reading it.
+
+| Category | Scenario / step | State | Status |
+|----------|-----------------|-------|--------|
+| Empty / null | Scenario 1, step 4 | No videos match the selected filter | specified — needs design |
+| Loading / latency | Scenario 2, step 2 | Upload in progress, percentage shown | designed |
+| Permissions | Scenario 3, step 1 | Viewer role opens the editor | unspecified — needs decision + design |
+
+**Status** is one of exactly three values:
+
+- **`specified — needs design`** — the source says what happens; no design exists for it. A design task, nothing else.
+- **`unspecified — needs decision + design`** — the source is silent. Someone must decide the behavior *first*; the matching `[CLARIFICATION NEEDED: …]` marker in the flow is the same gap seen from the other side.
+- **`designed`** — the state exists in the design. Listed so the table is a complete picture of the feature's states rather than only its holes.
+
+⛔ **Naming a required state is not inventing behavior.** The no-invention rule forbids writing behavior the source never stated — this table writes none. It names *which state needs designing*; the State column describes the trigger (what situation the user is in), never the response (what the product does about it). Where the response is unknown, that is precisely what `unspecified` records. Leaving the table out because "the brief didn't mention it" inverts the rule: the states a source failed to cover are exactly the ones worth listing.
 
 ## Open Questions
 

@@ -18,7 +18,7 @@ plugins/lore/                      # the plugin itself
   skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
   agents/                          # doc-validator, figma-extractor, site-explorer (worker subagents)
   hooks/                           # hooks.json + 10 shell scripts (output enforcement + evidence gates + methodology sync)
-  scripts/                         # scaffold.sh, detect-project.sh, figma-probe.sh (self-locating)
+  scripts/                         # scaffold.sh, detect-project.sh, figma-probe.sh, optimize-images.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
 tests/run-tests.sh                 # POSIX hook/script test harness (run before release)
 .github/workflows/ci.yml           # shellcheck + manifest + hook tests + scaffold smoke
@@ -108,7 +108,7 @@ Every fact exists in exactly one canonical location; everywhere else references 
 | Product-layer DoD: trusted sources §1, user roles §3 | Consuming repo's `.claude/CLAUDE.md` |
 | Input-specific workflow | The relevant skill (`skills/{name}/SKILL.md`) |
 | Lessons learned | Consuming repo's `.claude/lesson-learned.md` |
-| Document structure template | `templates/docs-layer/templates/product-document-template.md` |
+| Document structure template — including the edge-case coverage taxonomy and the `States to Design` table + its three status values | `templates/docs-layer/templates/product-document-template.md` |
 | Skill structure template | `templates/skill-template.md` |
 
 Copying the full text of an existing rule into a second place is prohibited.
@@ -126,6 +126,10 @@ All skills follow the canonical 7-section structure defined in `plugins/lore/tem
 7. Reference Example
 
 A skill must contain ONLY input-specific content. If something is already a global rule (in `lore-methodology.md` or the repo's `CLAUDE.md`), reference it — don't repeat it.
+
+**The edge-case taxonomy is one list, and the skills only reference it.** Both producer skills walk it per scenario; `figma-to-doc` used to carry its own four-item copy ("empty, error, loading, permission-denied") and the canonical taxonomy had no `loading` category at all — a silent divergence nothing could catch. A test now asserts that no skill re-lists the taxonomy inline and that every category a skill names exists in the template.
+
+Its output is deliberately **two things for two readers**: an Extension or a `[NEEDS DESIGN]`/`[CLARIFICATION NEEDED]` marker at the step it belongs to, *and* a row in the template's `## States to Design` table — the flat list a designer reads without re-reading every scenario. The table's three status values (`specified — needs design` / `unspecified — needs decision + design` / `designed`) separate a design task from a product decision, which one marker could not. The table is also **exempt from the ~5-question cap** in `brief-to-doc`: asking costs the user's attention, listing costs nothing. And the template states explicitly that *naming a required state is not inventing behavior* — without that, the no-invention rule reads as forbidding the table and the model leaves it empty.
 
 **Source manifests (§0 Exhaust Every Source).** §0 (in `lore-methodology.md`) is the single canonical rule that documentation must use *every* available source. Each producer skill's §2 carries a "Sources you must read (per §0)" **source manifest** — the input-specific instantiation of that rule (Figma: comments, annotations, prototype flows/interactions, component variants, constraint-bearing variables; live-site: the observed run + trusted sources; brief: the brief + trusted sources). A new must-read source goes in §0 if it's global, or in the relevant skill's manifest if it's input-specific — never restated in both (Rule 4).
 
@@ -191,6 +195,18 @@ Hook paths in `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`. The wizard *scripts* sel
 The hooks are covered by `tests/run-tests.sh` and CI (`.github/workflows/ci.yml`) — run `sh tests/run-tests.sh` after changing any hook or script.
 
 **CI derives its lists from `hooks.json`; never hardcode them.** The exec-bit and wiring checks used to name four hooks by hand, so five shipped uncovered — and because git tracks the exec bit while the suite invokes hooks as `sh <file>` (which does not need it), one `chmod`-less commit could ship a dead hook with everything green. CI now walks every command in `hooks.json` plus every `.sh` under `hooks/` and `scripts/`, and `run-tests.sh` mirrors the same check so it fails locally first. The old `claude plugin validate` step sat behind `if command -v claude` and never ran on a runner — dead coverage that read as coverage; it is replaced by manifest/layout assertions that do run, plus a check that the README version badge matches `plugin.json`.
+
+## Image Weight (`scripts/optimize-images.sh`)
+
+Both image sources are heavy by default — Figma exports at `scale=2` (a 1440px frame lands as 2880px) and Playwright screenshots are raw PNG — and both are **committed to the consuming repo and served by the site**, so nothing reclaims that weight later. Measured on real UI captures: **72% saved, dimensions unchanged, no visible difference.**
+
+Three design points worth keeping:
+
+- **One batch, after all captures — and the reason is not process cost.** Spawning a compressor per image costs ~10ms; what it actually costs is *one agent tool round-trip per image*, so forty images means forty round-trips instead of one call. The skills therefore run it once, after every capture has landed (figma-to-doc Phase 2 step 8; site-to-doc after the explorer subagent and any responsive pass) — never inside `lore:site-explorer`, which runs once per pass.
+- **The quality floor is the safety property, not a setting.** `pngquant --quality=65-90` exits 99 and leaves the file **untouched** when it cannot hold the floor, so "don't damage quality" is enforced by the tool rather than by anyone's judgement. A lossless pass follows on the result. PNG stays PNG: WebP would save more but changes every extension, doc reference and census row — deliberately deferred.
+- **Idempotence is correctness, not speed.** A second lossy pass over the same file degrades it again, so `.claude/sources/.image-optim` records the fingerprint of each *optimized* result and those files are skipped. A re-captured screenshot has a new fingerprint and is optimized afresh — which is right, since it is a new original.
+
+With no optimizer installed the script reports `tool=none`, changes nothing, and exits 0 — it never claims a saving it did not make, and never fails a run over a missing optional binary. `verify-docs.sh` warns (never blocks) about large PNGs absent from the manifest, for the same reason.
 
 ## Template Layer System
 

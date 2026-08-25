@@ -292,4 +292,23 @@ if [ -d static/img ]; then
   done
 fi
 
+# 6) Heavy images that were never optimized (WARNING only). Figma exports at 2x and raw
+#    screenshots are both committed to the repo and served by the site, so nothing
+#    reclaims that weight later. optimize-images.sh records each file it optimized in
+#    .claude/sources/.image-optim; a large image missing from that manifest was never
+#    put through it.
+#
+#    WARNS, never blocks — the optimizer needs a tool (pngquant/oxipng/optipng) that may
+#    simply not be installed on this machine, and failing a turn over a missing optional
+#    binary is a false block on someone who did nothing wrong.
+if [ -d static/img ]; then
+  optim=.claude/sources/.image-optim
+  find static/img -type f \( -name '*.png' -o -name '*.PNG' \) -size +500k 2>/dev/null |
+  while IFS= read -r f; do
+    if [ ! -f "$optim" ] || ! grep -qF "	$f" "$optim" 2>/dev/null; then
+      echo "WARNING: large unoptimized image ($(wc -c <"$f" 2>/dev/null | tr -d ' ') bytes): $f — run scripts/optimize-images.sh over static/img/ before delivering." >&2
+    fi
+  done
+fi
+
 exit 0

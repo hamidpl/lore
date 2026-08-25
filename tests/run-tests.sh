@@ -980,6 +980,106 @@ else
   pass "no skill invokes figma-probe.sh by a bare relative path"
 fi
 
+echo "== the edge-case taxonomy is one list, and the skills agree with it =="
+# The skills walk the template's taxonomy category by category and name categories in
+# their own prose. Nothing checked that those names still exist in the template — which
+# is how figma-to-doc came to require a "loading" state the taxonomy did not list.
+TPL="$SCRIPT_DIR/../plugins/lore/templates/docs-layer/templates/product-document-template.md"
+SK="$SCRIPT_DIR/../plugins/lore/skills"
+check_file_has "$TPL" '^## States to Design' "the template carries the canonical States to Design section"
+for st in 'specified — needs design' 'unspecified — needs decision + design' 'designed'; do
+  check_file_has "$TPL" "$st" "the template defines the '$st' status"
+done
+# Both producer skills must spell the statuses exactly as the template does — a doc
+# whose status column says something else is unparseable by the reviewer's check.
+for sk in brief-to-doc figma-to-doc; do
+  for st in 'specified — needs design' 'unspecified — needs decision + design'; do
+    check_file_has "$SK/$sk/SKILL.md" "$st" "$sk: uses the template's exact '$st' status"
+  done
+done
+# Every taxonomy category a skill names in prose must exist in the template's list.
+tax_cats=$(awk '/^\*\*Edge-case coverage taxonomy\*\*/ { inb=1; next }
+                inb && /^- \*\*/ { line=$0; sub(/^- \*\*/, "", line); sub(/\*\*.*/, "", line); print tolower(line) }
+                inb && /^Mandatory detail/ { exit }' "$TPL")
+[ -n "$tax_cats" ] && pass "the taxonomy parses into categories" || fail "the taxonomy parses into categories"
+printf '%s\n' "$tax_cats" | grep -q 'loading' &&
+  pass "the taxonomy covers loading/latency (the state figma-to-doc requires)" ||
+  fail "the taxonomy covers loading/latency — figma-to-doc's missing-states check demands it"
+# …and no skill may re-list the taxonomy inline: a local copy is what drifted before.
+if grep -qE 'empty, error, loading, and permission-denied' "$SK/figma-to-doc/SKILL.md"; then
+  fail "figma-to-doc still carries its own copy of the taxonomy list"
+else
+  pass "figma-to-doc references the taxonomy instead of copying it"
+fi
+
+echo "== optimize-images.sh =="
+OI="$SCRIPTS/optimize-images.sh"
+[ -f "$OI" ] && pass "optimize-images.sh ships" || fail "optimize-images.sh ships"
+
+# Path guards. This script rewrites files in place, so it must never be steerable out
+# of the one tree images are allowed to live in (Rule 1 / §6).
+OP=$(mktemp -d); mkdir -p "$OP/static/img/s" "$OP/docs" "$OP/.claude/sources"
+( cd "$OP" && sh "$OI" docs >/dev/null 2>"$ERRF" )
+check_exit 1 "$?" "a path outside static/img/ is refused"
+check_stderr "outside static/img" "…and says why"
+( cd "$OP" && sh "$OI" "static/img/../../etc" >/dev/null 2>"$ERRF" )
+check_exit 1 "$?" "a traversing path is refused"
+
+# An empty tree still prints a receipt: a zero is a claim like any other (§0.2), and
+# "nothing to do" must be visible rather than inferred from silence.
+OUT=$( cd "$OP" && sh "$OI" static/img 2>"$ERRF" )
+check_exit 0 "$?" "an empty tree exits 0"
+printf '%s' "$OUT" | grep -q '^RECEIPT optimize-images ' &&
+  pass "an empty tree still prints a receipt" || fail "an empty tree still prints a receipt"
+
+# A non-PNG is counted as skipped and left untouched — never silently ignored.
+printf 'not an image\n' >"$OP/static/img/s/notes.txt"
+OUT=$( cd "$OP" && sh "$OI" static/img 2>"$ERRF" )
+printf '%s' "$OUT" | grep -q 'skipped=1' &&
+  pass "a non-PNG is counted as skipped" || fail "a non-PNG is counted as skipped (got: $OUT)"
+[ "$(cat "$OP/static/img/s/notes.txt")" = "not an image" ] &&
+  pass "…and left untouched" || fail "…and left untouched"
+
+# The receipt must be machine-parsable: the byte fields are plain integers, because the
+# skills copy this line into the final report and a human reads the numbers.
+printf '%s' "$OUT" | awk '{ for (i=1;i<=NF;i++) if ($i ~ /^(before|after)=/) { split($i,a,"="); if (a[2] !~ /^[0-9]+$/) bad=1 } } END { exit(bad?1:0) }' &&
+  pass "receipt byte fields are plain integers" || fail "receipt byte fields are plain integers"
+
+# With no optimizer on PATH the script must say so and change nothing — never claim a
+# saving it did not make, and never fail a run over a missing optional binary.
+NOOPT=$(mktemp -d)
+for t in sh sed grep awk head cut cat tr find ls wc dirname sort mkdir rm printf test mktemp; do
+  p=$(command -v "$t" 2>/dev/null) && ln -s "$p" "$NOOPT/$t" 2>/dev/null
+done
+printf 'PNG-ish bytes\n' >"$OP/static/img/s/a.png"
+OUT=$( cd "$OP" && PATH="$NOOPT" sh "$OI" static/img 2>"$ERRF" )
+check_exit 0 "$?" "no optimizer installed: still exits 0"
+printf '%s' "$OUT" | grep -q 'tool=none' &&
+  pass "no optimizer installed: reported as tool=none, not as a saving" ||
+  fail "no optimizer installed: reported as tool=none (got: $OUT)"
+check_stderr "no image optimizer found" "…and says how to install one"
+
+# The real thing, when a real optimizer exists. Idempotence is the property that
+# matters most here: a second lossy pass over the same file degrades it again, so an
+# already-optimized file must be skipped, not re-compressed.
+if command -v pngquant >/dev/null 2>&1 || command -v oxipng >/dev/null 2>&1 ||
+   command -v optipng >/dev/null 2>&1; then
+  OUT=$( cd "$OP" && sh "$OI" static/img 2>"$ERRF" )
+  printf '%s' "$OUT" | grep -qE 'files=[1-9]' &&
+    pass "a real optimizer processes the PNG" || fail "a real optimizer processes the PNG (got: $OUT)"
+  OUT2=$( cd "$OP" && sh "$OI" static/img 2>"$ERRF" )
+  printf '%s' "$OUT2" | grep -q 'files=0' &&
+    pass "re-running skips already-optimized files (no repeated lossy pass)" ||
+    fail "re-running skips already-optimized files (got: $OUT2)"
+  check_file_has "$OP/.claude/sources/.image-optim" "static/img/s/a.png" "the optimized file is recorded in the manifest"
+else
+  pass "optimize-images real-run tests skipped (no optimizer installed)"
+fi
+
+# The manifest is a run artifact, not something to commit.
+check_file_has "$SCRIPT_DIR/../plugins/lore/templates/docs-layer/.gitignore" \
+  'image-optim' "the image manifest is git-ignored by the docs layer"
+
 echo "== no document claims a guarantee the code does not provide =="
 # The evidence artifacts are plain files; an agent with shell access can write one.
 # They guard against a step being skipped, not against deliberate forgery. Claiming
