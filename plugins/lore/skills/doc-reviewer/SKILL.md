@@ -48,6 +48,7 @@ Validate each item against its **canonical rule** — do not re-derive the rule;
 | **§2 Scope & Structure** | Valid frontmatter (sidebar_position, title, description, tags); no `#` (H1) in the body — the page title comes from frontmatter, top-level sections are `##` and scenarios are `###`; the Document Info block and all **required** template sections present with content; **optional** sections (marked `_(Optional — delete …)_`) are either filled or removed — never left empty or carrying the `_(Optional …)_` marker; an oversized page past the §2 split threshold (>6 scenarios or >3000 words) that was not split into an overview + sibling pages is a **warning**, and split pages must be mirrored in `sidebars.ts` and cross-linked | methodology §2 + template |
 | **§3 User Roles** | Relevant roles documented using approved names; role differences explained | `CLAUDE.md` §3 (product layer) |
 | ⛔ **§4 Scenarios** | Each has Purpose/Roles Involved/Preconditions/Main Flow/Extensions/Postconditions; **each `###` scenario heading is numbered in order** (`Scenario N: …` per the template); images inline at the right step (not grouped); options, validations, exact messages present; error/validation/empty/edge cases documented as **Extensions** (anchored to their Main Flow step), not omitted or scattered. **Non-blocking warnings:** a scenario with a missing or empty Extensions block → WARNING (near-certain under-documentation — real features have failure paths); and, where the project's template defines an edge-case coverage taxonomy, an applicable category neither documented nor carried as an open question → warning note. These are warnings, not blocking failures | methodology §4 + template |
+| **States to Design** | If the scenarios carry `[NEEDS DESIGN: …]` or `[CLARIFICATION NEEDED: …]` markers, the doc should also carry the `## States to Design` table with a matching row for each — the in-flow marker and the table row are the same gap written for two different readers, and the table (the designer's list) is the half that gets dropped. A marker with no row, or a status value outside the template's three, is a **warning**. Absence of the section when the design covers every applicable state is correct, not a defect | methodology §4 + template |
 | **Mobile & Tablet View** | If the doc references images under `/img/{section}/mobile/` or `/tablet/`, a **Mobile & Tablet View** section must exist (differences from desktop only, not a re-told flow); conversely the section must not be left empty or carrying its `_(Optional …)_` marker. Absence of the section is fine when no responsive view was documented. **⛔ Blocking:** any `/mobile/` image embedded with markdown `![…](…)` syntax instead of the raw `<img …/>` tag — the markdown form loses the `/mobile/` path at build time, so the half-width styling never applies | methodology §6 + template |
 | **§5 Accuracy** | Consistent terminology; UI labels match source; explicit (not vague) rules; KPIs where applicable | methodology §5 |
 | ⛔ **§6 Technical Validity** | Internal links work; image markdown uses `/img/` (not `/static/img/`); files exist under `static/img/`; no images in `/docs/`; no orphan images; `npm run build` passes **if Docusaurus is installed** (otherwise N/A — verify links/images manually) | methodology §6 |
@@ -67,6 +68,10 @@ For §6, actually run the checks rather than eyeballing:
 - Confirm no image files live under `docs/`.
 - Grep `docs/` for tooling references (Rule 5): `.claude/`, `CLAUDE.md`, and the `lore:` namespace. Any match is a blocking failure.
 
+**Before trusting any zero of your own (§0.2).** Every "not found" you report — a missing string, an absent key, an unmatched host — is the result of a search that can come back empty for reasons that have nothing to do with the source: a recursive search that skips the evidence corpus because it is git-ignored, a payload storing the text in an escaped encoding, a platform lacking the flag that would fix either. Run a needle you have already proven is present through the same command over the same paths first; if the control comes back empty too, the probe is broken and its zero is not a finding.
+
+**Quoted-string provenance (§0.1/§5).** Every string the docs present as the product's own wording is a claim about the product, and a file under `docs/` is not evidence for it. Locate each one in the saved payloads under `.claude/sources/raw/` using explicit paths. Found only in another section's payload → wrong attribution (blocking). Quoted as a label for an element whose source node carries no text → naming presented as quotation (blocking). Not found at all → only after the control needle passes and a tolerant retry (zero-width marks stripped, the payload's escape form, Unicode presentation variants) → fabricated (blocking).
+
 For §0.1–§0.4, actually re-execute rather than reading the census:
 - `test -s` every raw-payload path the census cites.
 - `grep` each claimed source host in `.claude/sources/.evidence-log`.
@@ -81,6 +86,7 @@ For §0.1–§0.4, actually re-execute rather than reading the census:
 # 📋 Documentation Review Report
 
 **Document:** [file path]
+**Files reviewed:** [comma-separated project-relative docs/ paths — every file actually opened and judged]
 **Reviewed on:** [date]
 **Overall Status:** [✅ PASS / ⚠️ PASS WITH WARNINGS / ❌ FAIL]
 
@@ -119,8 +125,13 @@ State which re-verifications you executed and what they returned — an unrun ch
 [✅ APPROVED FOR DELIVERY / ⚠️ APPROVED WITH WARNINGS / ❌ BLOCKED — DO NOT DELIVER]
 
 ## Required Actions (if blocked)
-1. **[area] issue** — Location: [line/section] — Fix: [specific fix]
+1. **[area] issue** — Location: [line/section] — Provenance: [pre-existing / introduced-since-last-green / unknown] — Fix: [specific fix]
 ```
+
+Two fields there are machine-read, so keep their exact shape:
+
+- **`Files reviewed:`** — the scope your verdict covers. A scoped re-review (only the files that changed) is a normal mode; list exactly what you judged. Omitting the line makes the verdict cover the whole tree.
+- **Provenance on every finding** — `pre-existing` when the file's current content is what the last green run already judged, `introduced-since-last-green` when it changed since, `unknown` when there is nothing to compare against. Per-file digests from the last recorded run live in `.claude/sources/.validator-receipt` (`file` lines, present when the receipt carries `format<TAB>2`). The ratio of introduced to total findings is what tells the user whether the fixes are converging or feeding the loop.
 
 ### Step 4 — Block or Approve
 
@@ -155,6 +166,7 @@ The deliverable of this skill is the **Review Report** above (not product docume
 - [ ] §6 technical checks actually run, including `npm run build` if Docusaurus is installed (Step 2)
 - [ ] All blocking areas explicitly validated (§0, §0.1, §0.2, §0.3, §0.4, §1, §4, §6, §8, Rule 3, Rule 4, Rule 5)
 - [ ] Extensions presence + taxonomy coverage checked per scenario (empty Extensions, or an unaddressed applicable category → warning)
+- [ ] States to Design cross-checked: every in-flow `[NEEDS DESIGN]` / `[CLARIFICATION NEEDED]` marker has a table row, and every status is one of the template's three (→ warning)
 - [ ] Source census cross-checked (§0): Trusted Sources (§1) coverage block verified for every input type; Figma counts + Coverage map additionally verified when input was Figma; oversized pages flagged per the §2 split rule
 - [ ] **Evidence re-executed, not read (§0.1):** raw payloads tested for existence, claimed hosts found in `.claude/sources/.evidence-log`, §1 URLs re-probed and statuses compared to the claims — with the counts reported (or the reason a check could not run)
 - [ ] **Every zero challenged (§0.2)** against its raw payload; no zero accepted from a failed, empty, or depth-limited read

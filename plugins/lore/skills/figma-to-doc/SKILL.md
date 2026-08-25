@@ -149,7 +149,8 @@ Record the **whole annotation object**, every key, verbatim — never a single n
 | 5 | **Navigate all frames** | Frame inventory with IDs, names, **and each frame's width×height + device class** (mobile / tablet / desktop — see §3 "Responsive / Device Variants") |
 | 6 | **Identify [ignore] pages** | List of skipped pages (or "none") — any page whose name starts with `[ignore]` is out of scope |
 | 7 | **Extract images (individual FRAMEs only)** | Downloaded PNGs at 2x, one per frame; **mobile/tablet variants routed to `mobile/`/`tablet/` sub-paths** (see §3) |
-| 8 | **Summarize findings** | Business rules distilled from annotations + comments + differentiating variants + constraint variables, and navigation flow distilled from prototype interactions, recorded in the census (Counts + raw lists) before any writing |
+| 8 | **Optimize the exported images** | One `RECEIPT optimize-images …` line — run `${CLAUDE_PLUGIN_ROOT}/scripts/optimize-images.sh static/img/{section}` **once, after every frame has been exported**, never per image (a per-image call costs a whole tool round-trip; one batch costs one). Frames come back at `scale=2` and are committed to the repo, so this is where that weight is reclaimed. The script is safe to re-run — it skips what it already optimized — and reports `tool=none` without failing when no optimizer is installed |
+| 9 | **Summarize findings** | Business rules distilled from annotations + comments + differentiating variants + constraint variables, and navigation flow distilled from prototype interactions, recorded in the census (Counts + raw lists) before any writing |
 
 ⛔ **Blocking:** Do NOT start writing until Phase 2 is complete and the census Counts + raw lists exist.
 
@@ -296,7 +297,12 @@ Figma variables can carry **product constraints** — read them via a connected 
 ### Handling Figma Edge Cases
 
 - **Missing information:** Document what IS shown; mark gaps as `[CLARIFICATION NEEDED: ...]`; ask the user.
-- **Missing-states check (taxonomy-driven):** for each documented feature, check the design for frames covering the visual states the template's edge-case coverage taxonomy implies a real feature has — at minimum **empty, error, loading, and permission-denied**. Each absent state becomes a targeted clarification question ("Is there a design for the empty list state?") and, if unanswered, a `[CLARIFICATION NEEDED: ...]` in the relevant scenario's Extensions — never silence, never a described-but-undesigned screen.
+- **Missing-states check (taxonomy-driven):** for each documented feature, walk the template's **edge-case coverage taxonomy** and check the design for a frame covering each category that applies to this feature (do not keep a separate short list here — the taxonomy is canonical, and a local copy of it is how the two drifted apart before). Every applicable category produces a row in the template's `## States to Design` table, which is where the designer reads what is still missing:
+  - a frame exists → `designed`;
+  - no frame, but the behavior is known (an annotation, a comment, or a trusted source states it) → `specified — needs design`, plus `[NEEDS DESIGN: {category} — {the state}]` in the relevant scenario's Extensions;
+  - no frame and no stated behavior → `unspecified — needs decision + design`, plus a targeted question ("Is there a design for the empty list state?") and, if unanswered, `[CLARIFICATION NEEDED: {category} — …]` in that scenario's Extensions.
+
+  Never silence, and never a described-but-undesigned screen presented as if it were designed.
 - **Lorem Ipsum / placeholder text:** Ask for real content; if unavailable insert a placeholder **in the project's documentation language** (§7) — e.g. `[real content pending content-team approval]` — then flag it in the final report.
 - **Conflicting annotation vs comment:** Prefer the annotation (usually closer to current design); ask the user to confirm; note in final report.
 - **Multiple design versions:** Ask which to document; if the latest is clear, document it and note "Documented version X (most recent as of [date])".
@@ -309,6 +315,7 @@ Figma variables can carry **product constraints** — read them via a connected 
 - **Responsive coverage:** if the design contains mobile and/or tablet frames, the **Mobile & Tablet View** section is mandatory (differences only) and those frames are exported into the `mobile/`/`tablet/` sub-paths (§3 "Responsive / Device Variants"). Missing that section when device frames exist is a failure; conversely, if the design has no such frames the section is omitted entirely.
 - **Prototype-flow fidelity:** where prototype wiring exists (E > 0), each scenario's Main Flow navigation steps must be **consistent with the interaction edges** — or any divergence must be explained in the final report (e.g. an annotation overrode the wiring). A Main Flow that contradicts the wiring without a stated reason is a failure.
 - **Flow diagram:** a section with ≥ 2 interaction edges includes a Mermaid `flowchart` near the top of its Scenarios list (per §3).
+- **States to Design:** the missing-states check (§3) fills the template's `## States to Design` table — one row per applicable taxonomy category, with `designed` for states the design covers. A design that covers every applicable state legitimately has no table at all (the section is deleted, per the template's rule for optional sections); a design with gaps that documents them only inline, with no table, has left the designer without the list.
 - All other scenario, accuracy, and technical-validity rules are global — see `CLAUDE.md` §4–§6.
 
 ---
@@ -319,14 +326,15 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 
 - **Figma sources:** file name + URL, pages reviewed, pages skipped (`[ignore]`), and the census counts — **Dev-Mode annotations** (from the `annotations` property), comment threads, **differentiating component variants/properties**, **constraint-bearing variables**, and **trusted sources (§1) covered** (searched, with findings or per-source zero-case) — plus legacy TEXT-node notes if the fallback was used. The full census (raw lists + coverage map) is persisted at `.claude/sources/figma-{key}-census.md`.
 - **Prototype flows & interactions:** count of flows (`flowStartingPoints`) and interaction edges reviewed; the flow diagrams generated (which sections); any interaction/annotation conflicts and how they were resolved; whether Mermaid rendering is active in the project (or the diagram is a plain code block pending `/lore:add-docusaurus`).
-- **Images extracted:** count and storage directories (`static/img/{section}/`), with dimensions/scale.
+- **Images extracted:** count and storage directories (`static/img/{section}/`), with dimensions/scale, plus the `RECEIPT optimize-images …` line (before/after bytes and the saving). If it reported `tool=none`, say so plainly — the frames went in unoptimized, and that is a fact about the delivery.
+- **States to design:** how many `## States to Design` rows the docs carry, split by status. Counts only; the tables live in the documents (Rule 4).
 - **Device coverage:** how many desktop / tablet / mobile frames were found and documented (or "no mobile/tablet frames present" — the Mobile & Tablet View section was omitted).
 
 ---
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure, fix and re-run until it returns green. Only then write the final report (DoD §8). This does not duplicate the DoD — it invokes the canonical validator, and which sections block is that validator's to know, not this skill's to list.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s) — that first round is routine, so run it without asking. If it reports blocking failures, apply the fixes as **one batch** and run **one** scoped round over just the files you touched; do not interleave fixes with rounds, and do not edit a file while it is under review. Beyond that, the delivery boundary and everything it governs — that a green verdict ends the delivery, that a later edit is a new claim to report to the user before any further round, and the two-rounds circuit breaker — is the Auto-Validation Rule's, not this skill's to restate. Only then write the final report (DoD §8). This does not duplicate the DoD: which sections block is the validator's to know.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] All Figma frames reviewed (except `[ignore]` pages)
@@ -341,9 +349,10 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. In addition
 - [ ] **Annotations read schema-agnostically:** whole annotation objects recorded, no single field name keyed on; the content pass sent no `depth`
 - [ ] Every configured trusted source (§1) **actually fetched** and recorded in the census **Trusted Sources coverage block** — never delegated to the extractor
 - [ ] Images exported as individual FRAMEs at 2x, stored under `static/img/{section}/`
+- [ ] `optimize-images.sh` run **once** after the last frame export; its RECEIPT line recorded in the final report
 - [ ] Frames classified by device; mobile/tablet frames (if any) exported to `mobile/`/`tablet/` sub-paths and the Mobile & Tablet View section written (differences only) — or section omitted because none exist
 - [ ] Scenario headings numbered per the template (`Scenario N: …`)
-- [ ] Missing-states check run per feature (empty / error / loading / permission-denied frames); absent states raised as clarification questions, not invented
+- [ ] Missing-states check run per feature against the template's edge-case coverage taxonomy; every applicable category has a `## States to Design` row (`designed` / `specified — needs design` / `unspecified — needs decision + design`) and absent states are raised as questions or `[NEEDS DESIGN]` markers, not invented
 - [ ] Images placed inline at correct scenario steps (per `CLAUDE.md` §4)
 - [ ] Temporary/composite files cleaned up
 - [ ] Final report includes Figma file details + extracted-image list

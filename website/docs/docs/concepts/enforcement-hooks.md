@@ -30,8 +30,9 @@ The second family exists because of a specific failure. A rule enforced only by 
 |------|--------------|
 | **Evidence recorder** | Never blocks. Appends one line per fetch and subagent run to an append-only log. **You don't write this file** — the tooling does — so a source that was never fetched does not appear in it by accident. Entries are *tiered*: a fetch a tool actually performed counts as evidence; a URL that merely appeared inside a shell command does not. |
 | **Census check** | Blocks a source census whose rows have no receipt (the probe, its HTTP status, the saved raw payload), whose cited payloads are missing, whose claimed sources have no verified fetch behind them, or which records a zero the raw payload contradicts. |
-| **Validator recorder** | Never blocks. Records each review run and the verdict it returned. |
+| **Validator recorder** | Never blocks. Records each review run: its verdict, **which files it actually reviewed**, and a fingerprint of every documentation page as it stood at that moment. Also keeps an append-only history of every run. |
 | **Census reminder** | Never blocks. When a new page is created and no census exists yet, it restates the obligation at the moment of the action. |
+| **Bulk-edit reminder** | Never blocks. Before a tree-wide identical edit of your documentation, it surfaces the checks that class of edit needs — because nothing in it is *mis-typed*, so no output check can see the damage. |
 
 ### Validated twice, at different strictnesses
 
@@ -49,9 +50,22 @@ A **Stop** hook does the final sweep. It blocks on misplaced images and bad imag
 - a session that wrote documentation but left **no source census at all**;
 - a census that is still incomplete;
 - an explicit user instruction still open in the run contract (`satisfied` needs evidence beside it; `waived` needs your approval);
-- documentation that changed without a fresh, green review run.
+- documentation whose **content** differs from what the last green review actually judged.
 
 It also warns about images nothing references, and it is loop-aware so it won't trap you on an unfixable violation.
+
+### A change after a green review is your call, not another round
+
+The last check used to compare timestamps, which was wrong in both directions. A `git pull`, a rebase or an editor save that restores identical bytes forced a whole re-validation round for nothing — and when something genuinely *had* changed, the only available response was "run it again", so a one-word typo fix and a sweeping find-and-replace were treated identically. Neither reached you.
+
+It now compares content, page by page:
+
+- **an unchanged rewrite is a non-event** — no round, no prompt;
+- **a real change stops the turn and comes to you.** You are told which files changed and what the risk is, and you choose: re-review exactly those files, or approve delivering as they are.
+
+Your approval is recorded against that exact content, so a further edit quietly retires it — an approval can never stretch to cover a change you never saw. And it cannot override a failed review: a blocking verdict has to be fixed, not waived.
+
+Resist the instinct that "it was only a spelling fix". The rule exists because of one: a single word replaced across a project landed inside quoted interface text and silently falsified twenty-one pages, while every changed line still read correctly on its own.
 
 ## Scope and safety
 

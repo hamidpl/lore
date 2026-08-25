@@ -8,6 +8,150 @@ All notable changes to the Lore plugin are documented here. Versioning is
 Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
 which is reserved for the first mature, general-use release.
 
+## 0.9.0
+
+**The validation loop was self-feeding, and the tooling could not tell.** One real
+delivery took **seven** validation rounds — and four of them found defects that had not
+existed the round before. The diagnosis that matters: this is not a validator that keeps
+complaining. `lore:doc-validator` is read-only and changes nothing; the loop lives in the
+*fixing*, which happens under time pressure, one edit at a time, sometimes while a round
+is still in flight — and a fix is a claim that passed none of the checks the original
+passed.
+
+### The receipt now records what was validated, not just that something was
+
+`.validator-receipt` carried `(timestamp, verdict)`. So a narrow APPROVED — "check these
+two strings" — was indistinguishable from a full audit, and the Stop gate, having only an
+mtime to compare, had exactly one response to any later change: *re-run it*. A one-word
+typo fix and a 154-hit tree-wide replacement got the same treatment, and neither reached
+the user's judgement.
+
+The receipt is now a hook-written per-file snapshot: sha-256 of every `docs/` page plus a
+coverage status — `reviewed` (named in the report's new `Files reviewed:` line),
+`inherited` (unchanged since a previous **green** receipt; never inherited from a BLOCKED
+run), `waived`, or `uncovered`. **The digest snapshot alone never grants coverage**: a
+file the validator never opened stays `uncovered` no matter how many green runs pass over
+it. Line 1 keeps the old `ts<TAB>verdict` shape, so an old reader still works; with no
+sha tool on PATH the hook writes the v1 receipt and the gate falls back to mtime.
+
+### The Stop gate compares content, and asks instead of looping
+
+`find docs -newer <receipt>` was wrong in both directions. A `git pull`, a rebase or an
+editor save that restores identical bytes forced a whole re-validation round for nothing;
+and a real change only ever produced "re-run it". Now:
+
+- an unchanged rewrite is a **non-event** — the false blocks are gone;
+- a real change (edited / new / deleted / uncovered) blocks with a message that names the
+  files and tells the model to **report the change and its risk to the user and ask** —
+  offering a scoped re-validation of exactly those files, or a **user-approved waiver**.
+
+The waiver (`.claude/sources/.validation-waiver`) names each file at its **exact current
+digest**, so a later edit silently invalidates it: an approval can never stretch to cover
+a change the user never saw. It cannot launder a non-green verdict, and the next validator
+run folds it into the receipt and deletes it.
+
+### The delivery boundary, batched fixes, and a circuit breaker
+
+New in the Auto-Validation Rule (canonical in `lore-methodology.md`): a green verdict
+**ends that delivery** — a later edit is the next one; fixes go in as **one batch**
+followed by **one** scoped round, and no file is edited while it is under review (the two
+rounds that finally came back clean in the real run were the two that did this); and
+**two consecutive rounds finding fix-introduced defects means stop and put the decision to
+the user**, not open a third. The producer skills' old instruction — *"fix and re-run
+until it returns green"* — was itself the loop, and is gone. `.validator-history` is
+append-only, so "how many rounds did this take" is now a number rather than a memory.
+
+### Zeros: prove the probe, don't name a flag
+
+Two independent mechanisms made the validator's own searches silently return nothing: the
+environment's `grep` skipped the evidence corpus because `raw/` is git-ignored, and some
+payloads store text as `\uXXXX` escapes where a raw UTF-8 needle cannot match. Both exit
+cleanly with zero hits, and no portable flag fixes both. §0.2 therefore prescribes a
+**control needle** — a string already proven present, through the same command over the
+same paths — rather than any tool or flag. Note the shape: *the tool enforcing §0.2 was
+itself failing §0.2*.
+
+That rule had to land first, because of what it gates: the validator now runs an
+always-on **quoted-string provenance sweep** (a fabricated or mis-attributed UI string was
+this project's most repeated defect, and was only ever caught when someone asked for it by
+hand). A BLOCKING sweep over a broken probe is worse than no sweep — in one round it
+nearly condemned a dozen correct strings as fabricated — so "not found" is a verdict only
+after the control passes and a tolerant retry (zero-width marks, escape forms, Unicode
+variants) still finds nothing.
+
+### Also
+
+- **Nothing under `docs/` is evidence about the product** (new, under §0.1). Citing our
+  own normalised output to prove what the product does is how a *correct* sentence got
+  "fixed" into a wrong one across 21 pages. And **a fix is a new claim**, carrying the
+  same receipt obligation as the claim it replaces.
+- **`remind-mass-edit.sh`** (new, advisory): before a tree-wide identical edit of `docs/`,
+  injects the checklist the incident produced — fidelity-promise wording, text whose
+  subject *is* the replaced word, rows that become duplicates, Unicode variants the
+  replacement misses. No output check can see this damage: nothing is mis-typed, every
+  changed line is correct, only the surrounding sentence became false.
+- **Standing product decisions get a home.** A permanent ruling frozen into a `[u#]` row
+  diverged silently months later, because those rows are checked once and never again.
+  They now belong in the product layer with their date; `check-census.sh` blocks a
+  `Standing:` row that references nothing.
+- Findings now carry a provenance label (`pre-existing` / `introduced-since-last-green`),
+  which is what separates "the validator keeps complaining" from "our fixes keep breaking
+  things" — and feeds the circuit breaker.
+
+### The edge-case sweep now produces a list a designer can act on
+
+`brief-to-doc` already walked the edge-case taxonomy — but it wrote for the wrong reader.
+Its output was questions aimed at the document's author, scattered through the scenarios
+as `[CLARIFICATION NEEDED]` markers. A designer opening the document found no list of
+what still had to be drawn.
+
+Every applicable category now produces **two** things: the marker at the step it belongs
+to, *and* a row in the template's new `## States to Design` table — the flat checklist,
+with three statuses that separate a design task from a product decision:
+`specified — needs design`, `unspecified — needs decision + design`, `designed`.
+`figma-to-doc`'s missing-states check feeds the same table instead of only inline markers.
+
+Two things that had to be said explicitly for this to work at all:
+
+- **Naming a required state is not inventing behavior.** The no-invention rule forbids
+  writing what the product does in an undescribed state; the table writes none of that —
+  it names which state needs designing. Without the carve-out stated in the template,
+  the two rules appear to conflict and the table gets left empty.
+- **The table is exempt from the ~5-question cap.** Asking costs the user's attention;
+  listing costs nothing. Trimming the designer's list to match the number of questions
+  asked was the obvious wrong move.
+
+Also fixed: the canonical taxonomy had **no `loading` category**, while `figma-to-doc`
+carried its own four-item copy that demanded a loading state. Two lists, silently
+diverged, nothing able to catch it. There is now one list, plus a test asserting no skill
+re-lists it and that every category a skill names exists in the template.
+
+### Images are compressed before they are committed
+
+There was no image optimization anywhere. Figma exports at `scale=2` (a 1440px frame
+lands as 2880px) and Playwright screenshots are raw PNG — and both get committed to the
+documentation repo and served by the site, so nothing reclaims that weight later.
+
+`scripts/optimize-images.sh` runs once per run, after every capture has landed.
+**Measured on real UI screenshots: 72% smaller, dimensions unchanged, no visible
+difference.**
+
+- **One batch, not per image — and not for the obvious reason.** Process startup is
+  ~10ms; what per-image really costs is one *agent tool round-trip* each, so forty
+  images means forty round-trips instead of one call.
+- **The quality floor is the safety property.** `pngquant --quality=65-90` exits 99 and
+  leaves the file untouched when it cannot hold the floor, so "don't damage quality" is
+  enforced by the tool, not by anyone's judgement. A lossless pass follows. PNG stays
+  PNG — WebP would save more but changes every extension, doc reference and census row,
+  so it is deferred to its own change.
+- **Idempotence is correctness, not speed.** A second lossy pass degrades the file
+  again, so the fingerprint of each optimized result is recorded and skipped next time.
+  A re-captured screenshot has a new fingerprint and is optimized afresh.
+
+With no optimizer installed it reports `tool=none`, changes nothing, and exits 0 — never
+claiming a saving it did not make, and never failing a run over a missing optional
+binary. The Stop hook warns (never blocks) about large PNGs that never went through it.
+
 ## 0.8.1
 
 **The first release driven by measurement rather than reasoning.** A workflow audit

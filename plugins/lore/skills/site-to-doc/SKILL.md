@@ -131,6 +131,8 @@ Pass the subagent: the base URL, **the auth state this run is meant to observe**
 
 > **Fallback (no subagent MCP access):** if the `lore:site-explorer` subagent cannot reach the browser tools in your environment, run the scenario **in the main context** using the same `browser_*` tools directly — but warn the user this consumes more tokens, and keep the page budget tight.
 
+**Optimize the captures — once, after every pass.** When the subagent has returned and any responsive pass is done, run `${CLAUDE_PLUGIN_ROOT}/scripts/optimize-images.sh static/img/{section}` a single time over all of them, before writing. Not per screenshot and not inside the subagent: each call is a whole tool round-trip, so one batch of forty costs what one image would. Raw PNG screenshots are committed to the repo and served by the site, so this is the only point where that weight is reclaimed. Re-running is safe (already-optimized files are skipped), and with no optimizer installed it reports `tool=none` and changes nothing rather than failing. Put the `RECEIPT optimize-images …` line in the final report (§8).
+
 ### Capture rules
 
 - **Deterministic viewport:** resize to **1280×720** before capturing (`browser_resize`) so images are stable across runs and diffs between doc versions are meaningful. Two responsive presets — **mobile `390×844`** and **tablet `768×1024`** — are available for documenting the responsive/mobile-web view; run them **only when the user opted in at Pre-Flight step 6**. Route those captures to `static/img/{section}/mobile/…` and `static/img/{section}/tablet/…` respectively (same `{feature}-{NN}-{state}.png` naming). The `/mobile/` sub-path makes those tall shots render at half width on desktop — that display convention is global (`CLAUDE.md` §6); follow the path and embed mobile shots with the raw `<img …/>` tag per §6.
@@ -298,7 +300,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 - **Auth-state coverage:** which states were observed (guest / signed-in per role) for which routes, and — explicitly — any state in scope that was **not** observed, with the reason. "Only the guest view was seen" is a finding to report, never something to leave implicit.
 - **Authentication method** used (manual Login Checkpoint / reused persistent session / injected storage-state) — **never any secret or file contents**.
 - **User roles tested** vs. could-not-test (with reason).
-- **Screenshots captured** (count + storage directories).
+- **Screenshots captured** (count + storage directories), and the `RECEIPT optimize-images …` line from the optimization pass (before/after bytes and the saving). If it reported `tool=none`, say so plainly — the images went in unoptimized, and that is a fact about the delivery, not a detail to omit.
 - **Budget used** (scenarios / pages) against the default.
 - **Discrepancies found** between design/brief and live site.
 - **Edge cases tested** — by taxonomy category (probed / not applicable / skipped for budget), the three-value probe results at limits, and any unexpected/undocumented behaviors discovered.
@@ -308,7 +310,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 
 ## 6. Completion Checklist
 
-**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s). If it reports any BLOCKING failure, fix and re-run until it returns green. Only then write the final report (DoD §8). This does not duplicate the DoD — it invokes the canonical validator, and which sections block is that validator's to know, not this skill's to list.
+**Mandatory self-verification (before delivery):** run the `lore:doc-validator` subagent (Task tool) on the produced document(s) — that first round is routine, so run it without asking. If it reports blocking failures, apply the fixes as **one batch** and run **one** scoped round over just the files you touched; do not interleave fixes with rounds, and do not edit a file while it is under review. Beyond that, the delivery boundary and everything it governs — that a green verdict ends the delivery, that a later edit is a new claim to report to the user before any further round, and the two-rounds circuit breaker — is the Auto-Validation Rule's, not this skill's to restate. Only then write the final report (DoD §8). This does not duplicate the DoD: which sections block is the validator's to know.
 
 - [ ] `lore:doc-validator` run and returned APPROVED (no blocking failures)
 - [ ] Playwright MCP tooling confirmed available (or install command given and resolved)
@@ -321,6 +323,7 @@ The base final-report structure is defined in `CLAUDE.md` Section 8. The Final R
 - [ ] Happy path and validation errors exercised; applicable taxonomy edge-case categories probed (three-value probe at limits, state transitions included) or skips recorded
 - [ ] Exact UI text / error messages captured verbatim (from snapshots)
 - [ ] Screenshots captured for all significant states, named `{feature}-{NN}-{state}.png` under `static/img/{section}/`
+- [ ] `optimize-images.sh` run **once** over all captures after the last pass; its RECEIPT line recorded in the final report
 - [ ] Responsive coverage decided with the user (Pre-Flight step 6): if opted in, responsive pass run and Mobile & Tablet View section written (mobile/tablet shots under `mobile/`/`tablet/`); if declined, noted in the final report
 - [ ] Scenario headings numbered per the template (`Scenario N: …`)
 - [ ] No screenshot images pulled into context beyond a 1–2 image spot-check

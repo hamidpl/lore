@@ -60,14 +60,28 @@ lore_is_project "$root" || exit 0
 # stays committed.
 ensure_sources_dir() {
   mkdir -p "$root/.claude/sources" 2>/dev/null || return 1
-  [ -f "$root/.claude/sources/.gitignore" ] && return 0
+  gi="$root/.claude/sources/.gitignore"
+  if [ -f "$gi" ]; then
+    # A project scaffolded before the waiver/history artifacts existed has a .gitignore
+    # without them — append the missing entries once, then leave the file alone.
+    grep -qF '.validation-waiver' "$gi" 2>/dev/null && return 0
+    {
+      echo ".validation-waiver"
+      echo ".validator-history"
+      echo ".image-optim"
+    } >>"$gi" 2>/dev/null || true
+    return 0
+  fi
   {
     echo "# Run artifacts backing the census receipts (DoD 0.1). Not committed."
     echo ".evidence-log"
     echo ".validator-receipt"
+    echo ".validator-history"
+    echo ".validation-waiver"
     echo ".docs-touched"
+    echo ".image-optim"
     echo "raw/"
-  } >"$root/.claude/sources/.gitignore" 2>/dev/null || true
+  } >"$gi" 2>/dev/null || true
   return 0
 }
 

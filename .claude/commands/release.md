@@ -19,10 +19,11 @@ The canonical step list and the exact version-string locations live in the **Ver
 - ⛔ Do not bump, branch, push, or tag before the user answers.
 
 ## 2. Bump every version string together
-Per CLAUDE.md §Versioning, bump ALL of these so they match (don't bump only `plugin.json`):
+Per CLAUDE.md §Versioning, bump BOTH of these so they match (don't bump only `plugin.json`) — CI asserts they agree, so a half-bumped release fails the PR:
 - `plugins/lore/.claude-plugin/plugin.json` → `version`
 - `README.md` → the `img.shields.io/badge/version-X.Y.Z` badge URL (hardcoded — does not auto-track the manifest)
-- `website/landing/src/config.ts` → `SITE.version`
+
+⛔ **There is no third string.** `website/landing/src/config.ts` used to carry `SITE.version`; it had zero consumers, so bumping it was pure ceremony and its stale fallback could ship a wrong badge. It was deleted in 0.7.0 — do not reintroduce it (CLAUDE.md §Versioning).
 
 The **site header badges** (lorekit.net / docs.lorekit.net) resolve from the git tag at build time — no manual edit, but they only update on a post-tag redeploy (step 6).
 

@@ -169,24 +169,101 @@ if [ -d .claude/sources ]; then
   #    writing documentation. It is a plain file, and an agent with shell access can
   #    write one; the gate is here to stop a step from being skipped by accident, not
   #    to withstand a deliberate forgery (see DoD §0 and the plugin's threat model).
+  #
+  #    Coverage is judged per file, per DIGEST, against the v2 receipt's hook-written
+  #    snapshot — not per mtime. A rewrite that changes no bytes (touch, rebase,
+  #    checkout) is a non-event; a one-word edit is a real change, because in this run
+  #    "one trivial spelling fix" applied tree-wide silently falsified 21 pages. What
+  #    changed after a green run is a NEW CLAIM (Auto-Validation Rule): the model must
+  #    report it to the user and ask — scoped re-validation of exactly those files, or
+  #    a user-approved waiver — never silently spin another full round.
   receipt=.claude/sources/.validator-receipt
+  waiver=.claude/sources/.validation-waiver
+  history=.claude/sources/.validator-history
+  tab=$(printf '\t')
   if [ ! -f "$receipt" ]; then
     echo "BLOCKED: documentation exists under docs/ but lore:doc-validator has never run in this project. Run it (Task tool) and fix anything it reports before delivering." >&2
     blocked=1
-  elif changed=$(find docs -type f \( -name '*.md' -o -name '*.mdx' \) \
-        -newer "$receipt" 2>/dev/null | head -n 5) && [ -n "$changed" ]; then
-    echo "BLOCKED: these docs changed after the last lore:doc-validator run — re-run it before delivering:" >&2
-    echo "$changed" >&2
-    blocked=1
   else
-    verdict=$(cut -f2 "$receipt" 2>/dev/null)
+    verdict=$(head -n 1 "$receipt" 2>/dev/null | cut -f2)
+    green=0
     case "$verdict" in
-      "APPROVED"|"APPROVED WITH WARNINGS") : ;;
-      *)
+      "APPROVED"|"APPROVED WITH WARNINGS") green=1 ;;
+    esac
+
+    if [ -z "$_sha_tool" ] || ! grep -q "^format${tab}2\$" "$receipt" 2>/dev/null; then
+      # --- legacy path: a v1 one-line receipt, or no digest tool on this machine ---
+      if changed=$(find docs -type f \( -name '*.md' -o -name '*.mdx' \) \
+            -newer "$receipt" 2>/dev/null | head -n 5) && [ -n "$changed" ]; then
+        echo "BLOCKED: these docs changed after the last lore:doc-validator run — re-run it before delivering:" >&2
+        echo "$changed" >&2
+        blocked=1
+      elif [ "$green" -eq 0 ]; then
         echo "BLOCKED: the last lore:doc-validator run returned '${verdict:-UNKNOWN}'. Fix the reported failures and re-run until it returns APPROVED." >&2
         blocked=1
-        ;;
-    esac
+      fi
+    else
+      # --- v2 path: digest comparison against the receipt snapshot -----------------
+      # unvalidated = new (not in the snapshot) + edited (digest differs) + uncovered
+      # (in the snapshot but validated by nothing) + deleted (in the snapshot, gone
+      # from disk). TAB-separated "kind<TAB>path", one per line.
+      unvalidated=$(
+        find docs -type f \( -name '*.md' -o -name '*.mdx' \) 2>/dev/null |
+        while IFS= read -r f; do
+          cur=$(lore_sha256 "$f")
+          [ -n "$cur" ] || continue
+          entry=$(awk -F'\t' -v p="$f" \
+            '$1 == "file" && $4 == p { print $2 FS $3; exit }' "$receipt" 2>/dev/null)
+          if [ -z "$entry" ]; then
+            printf 'new\t%s\n' "$f"
+          elif [ "${entry#*"$tab"}" != "$cur" ]; then
+            printf 'edited\t%s\n' "$f"
+          elif [ "${entry%%"$tab"*}" = "uncovered" ]; then
+            printf 'unvalidated\t%s\n' "$f"
+          fi
+        done
+        awk -F'\t' '$1 == "file" { print $4 }' "$receipt" 2>/dev/null |
+        while IFS= read -r p; do
+          [ -f "$p" ] || printf 'deleted\t%s\n' "$p"
+        done
+      )
+
+      if [ -z "$unvalidated" ]; then
+        if [ "$green" -eq 0 ]; then
+          echo "BLOCKED: the last lore:doc-validator run returned '${verdict:-UNKNOWN}'. Fix the reported failures and re-run until it returns APPROVED." >&2
+          blocked=1
+        fi
+      elif [ "$green" -eq 0 ]; then
+        # A waiver can never launder a non-green verdict.
+        echo "BLOCKED: the last lore:doc-validator run returned '${verdict:-UNKNOWN}'. Fix the reported failures and re-run until it returns APPROVED." >&2
+        blocked=1
+      else
+        # Every unvalidated entry must be covered by the user-approved waiver at its
+        # EXACT current digest (literal `deleted` for a removed file). Any later edit
+        # changes the digest, so a waiver can never cover a change the user did not see.
+        uncovered=$(printf '%s\n' "$unvalidated" |
+          while IFS="$tab" read -r kind p; do
+            [ -n "$p" ] || continue
+            if [ "$kind" = "deleted" ]; then want="deleted"; else want=$(lore_sha256 "$p"); fi
+            [ -f "$waiver" ] &&
+              awk -F'\t' -v s="$want" -v p="$p" \
+                'NR > 1 { sub(/\r$/, ""); if ($1 == s && $2 == p) ok = 1 }
+                 END { exit(ok ? 0 : 1) }' "$waiver" 2>/dev/null ||
+              printf '%s\t%s\n' "$kind" "$p"
+          done)
+        if [ -n "$uncovered" ]; then
+          echo "BLOCKED: these docs changed after the last green lore:doc-validator run:" >&2
+          printf '%s\n' "$uncovered" | sed 's/^/  /' >&2
+          echo "A post-validation change is a new, unvalidated claim (Auto-Validation Rule). REPORT the change and its risk to the user and ASK which way they want to go — do not silently re-run:" >&2
+          echo "  1) scoped re-validation: run lore:doc-validator on exactly the files listed above;" >&2
+          echo "  2) user-approved waiver: ONLY with the user's explicit approval, write .claude/sources/.validation-waiver — line 1: <timestamp><TAB><the user-approved reason>; then one line per file: <sha-256 of its CURRENT content><TAB><path> (digest via \`shasum -a 256 <file>\` or \`sha256sum <file>\`, first column; the literal \`deleted\` as the digest for a removed file)." >&2
+          if [ -f "$history" ] && [ "$(grep -c . "$history" 2>/dev/null)" -ge 3 ]; then
+            echo "(validator runs recorded so far: $(grep -c . "$history") — see .claude/sources/.validator-history; if the last two rounds both found defects introduced by fixes, stop and put the decision to the user instead of running another round.)" >&2
+          fi
+          blocked=1
+        fi
+      fi
+    fi
   fi
 
   fi
@@ -212,6 +289,25 @@ if [ -d static/img ]; then
   while IFS= read -r f; do
     rel="img/${f#static/img/}"
     printf '%s' "$haystack" | grep -qF "$rel" || echo "WARNING: orphan image not referenced anywhere: $f" >&2
+  done
+fi
+
+# 6) Heavy images that were never optimized (WARNING only). Figma exports at 2x and raw
+#    screenshots are both committed to the repo and served by the site, so nothing
+#    reclaims that weight later. optimize-images.sh records each file it optimized in
+#    .claude/sources/.image-optim; a large image missing from that manifest was never
+#    put through it.
+#
+#    WARNS, never blocks — the optimizer needs a tool (pngquant/oxipng/optipng) that may
+#    simply not be installed on this machine, and failing a turn over a missing optional
+#    binary is a false block on someone who did nothing wrong.
+if [ -d static/img ]; then
+  optim=.claude/sources/.image-optim
+  find static/img -type f \( -name '*.png' -o -name '*.PNG' \) -size +500k 2>/dev/null |
+  while IFS= read -r f; do
+    if [ ! -f "$optim" ] || ! grep -qF "	$f" "$optim" 2>/dev/null; then
+      echo "WARNING: large unoptimized image ($(wc -c <"$f" 2>/dev/null | tr -d ' ') bytes): $f — run scripts/optimize-images.sh over static/img/ before delivering." >&2
+    fi
   done
 fi
 
