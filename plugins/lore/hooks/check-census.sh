@@ -57,9 +57,8 @@ section_rows() { # $1 file, $2 heading regex
 }
 
 # Every non-fenced line of the file, so row checks never judge a quoted example.
-live_lines() { # $1 file
-  awk '/^```/ { fence = !fence; next } !fence { print }' "$1" 2>/dev/null
-}
+# The implementation lives in lib/common.sh (check-citation-loss.sh shares it).
+live_lines() { lore_live_lines "$1"; }
 
 has_status() { printf '%s' "$1" | grep -qE '(^|[^0-9])[1-5][0-9][0-9]([^0-9]|$)'; }
 has_raw()    { printf '%s' "$1" | grep -qE '\.claude/sources/raw/[^ |]+'; }
