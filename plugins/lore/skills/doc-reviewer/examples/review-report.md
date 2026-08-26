@@ -40,8 +40,8 @@ two ⛔ failures. Locations are illustrative.
 
 ## Required Actions (if blocked)
 
-1. **§4 Scenario** — Location: "Import tasks from a CSV file", end of Main Flow (~line 58) — Fix: add a **Postconditions** block stating that valid tasks are created and skipped rows are not; move the oversized-file case into an **Extensions** block anchored to the upload step.
-2. **§6 Image path** — Location: line ~52 — Fix: change `![preview](/static/img/tasks/import-preview.png)` to `![preview](/img/tasks/import-preview.png)`. The physical file stays at `static/img/tasks/import-preview.png`.
+1. **§4 Scenario** — Class: content — Targets: docs/tasks/import.md#Scenario 2: Import tasks from a CSV file — Evidence: .claude/sources/brief-tasks-census.md row [b3] ("skipped rows are reported, not created"); the scenario's Main Flow step 6 in the page itself — Counter: the Postconditions could be read as implied by step 6, but the template makes the block mandatory (§4) — Provenance: pre-existing — Severity: blocking — Fix: add a **Postconditions** block stating that valid tasks are created and skipped rows are not, citing [b3]; move the oversized-file case into an **Extensions** block anchored to the upload step.
+2. **§6 Image path** — Class: mechanical — Targets: docs/tasks/import.md#Scenario 2: Import tasks from a CSV file — Evidence: `test -f static/img/tasks/import-preview.png` → exists; `npm run build` → broken asset `/static/img/tasks/import-preview.png` — Counter: none; the build itself fails on this path — Provenance: pre-existing — Severity: blocking — Fix: old: «![preview](/static/img/tasks/import-preview.png)» new: «![preview](/img/tasks/import-preview.png)». The physical file stays at `static/img/tasks/import-preview.png`.
 
 ## Non-blocking warnings (address before next release)
 

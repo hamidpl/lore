@@ -31,7 +31,7 @@ _One-line product description not set yet — add it via `/lore:config`._
 
 ## Prerequisite: Lore Plugin (Documentation Factory)
 
-The documentation **methodology** — the four skills (`lore:figma-to-doc`, `lore:brief-to-doc`, `lore:site-to-doc`, `lore:doc-reviewer`), the supporting subagents (`lore:doc-validator`, `lore:figma-extractor`, `lore:site-explorer`), the BLOCKING-rule enforcement hooks, and the always-on rules in `lore-methodology.md` — is provided by the shared **Lore** plugin, not by this repo. This file (`CLAUDE.md`) carries the product-specific layer (trusted sources §1, user roles §3, product overview, documentation structure) and imports the plugin's methodology rules.
+The documentation **methodology** — the four skills (`lore:figma-to-doc`, `lore:brief-to-doc`, `lore:site-to-doc`, `lore:doc-reviewer`), the supporting subagents (`lore:doc-validator`, `lore:doc-reviser`, `lore:figma-extractor`, `lore:site-explorer`), the BLOCKING-rule enforcement hooks, and the always-on rules in `lore-methodology.md` — is provided by the shared **Lore** plugin, not by this repo. This file (`CLAUDE.md`) carries the product-specific layer (trusted sources §1, user roles §3, product overview, documentation structure) and imports the plugin's methodology rules.
 
 The plugin is wired into this repo at project scope in `.claude/settings.json` (`extraKnownMarketplaces` → `hamidpl/lore`, `enabledPlugins` → `lore@lore-marketplace`), so anyone who clones and trusts this repo gets it automatically. For manual install/enable/update steps, see the [Lore README](https://github.com/hamidpl/lore) — it is the single source of truth for those commands (Rule 4).
 

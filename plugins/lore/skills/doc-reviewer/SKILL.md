@@ -125,17 +125,22 @@ State which re-verifications you executed and what they returned — an unrun ch
 [✅ APPROVED FOR DELIVERY / ⚠️ APPROVED WITH WARNINGS / ❌ BLOCKED — DO NOT DELIVER]
 
 ## Required Actions (if blocked)
-1. **[area] issue** — Location: [line/section] — Provenance: [pre-existing / introduced-since-last-green / unknown] — Fix: [specific fix]
+1. **[area] issue** — Class: [mechanical / content / evidence / decision] — Targets: [docs/file.md#Section; every file+section the fix touches] — Evidence: [.claude/sources/raw/<payload> ("needle") | .evidence-log line | command + what it returned] — Counter: [the strongest reason this might NOT be a defect] — Provenance: [pre-existing / introduced-since-last-green / unknown] — Severity: [blocking / warning] — Fix: [mechanical → old: «exact text» new: «exact text»; content → what to add or rewrite, inside Targets only, citing which evidence; evidence → which census row or receipt is missing; decision → the question for the user]
 ```
 
-Two fields there are machine-read, so keep their exact shape:
+Two fields there are machine-read, so keep their exact shape — and the finding fields are a contract, not decoration:
+
+- **`Class`** decides who acts on the finding, and the routing is fixed: `mechanical` and `content` go to `lore:doc-reviser` as one batch; `evidence` goes back to extraction (a missing receipt is unfinished work, not a revision); `decision` goes to the user. A finding with no class is treated as `decision`.
+- **`Targets`** is the reviser's entire authority — list every file and section the fix legitimately touches, including a cross-reference on another page. What is not listed cannot be edited.
+- **`Evidence`** is what the finding rests on and what the reviser re-opens before applying the fix. **A blocking finding with no `Evidence:` entry does not count toward the verdict** — drop it or downgrade it to a warning before you compute the recommendation. "It looked wrong" is not evidence; a payload path with the needle, an evidence-log line, or the command you ran and what it returned is.
+- **`Counter`** is your own strongest objection to the finding. Write it honestly: validators disagree with each other far more about what to flag than about what is fine, and a false blocking finding costs a whole fix round in which roughly a third of previously-correct content gets damaged.
 
 - **`Files reviewed:`** — the scope your verdict covers. A scoped re-review (only the files that changed) is a normal mode; list exactly what you judged. Omitting the line makes the verdict cover the whole tree.
 - **Provenance on every finding** — `pre-existing` when the file's current content is what the last green run already judged, `introduced-since-last-green` when it changed since, `unknown` when there is nothing to compare against. Per-file digests from the last recorded run live in `.claude/sources/.validator-receipt` (`file` lines, present when the receipt carries `format<TAB>2`). The ratio of introduced to total findings is what tells the user whether the fixes are converging or feeding the loop.
 
 ### Step 4 — Block or Approve
 
-- **Any blocking failure (⛔ items)** → ❌ **DO NOT DELIVER.** Present the report, name the failed blocking areas, give specific fix instructions, and offer to fix.
+- **Any blocking failure (⛔ items)** → ❌ **DO NOT DELIVER.** Present the report, name the failed blocking areas, give specific fix instructions, and offer to hand the `mechanical`/`content` findings to `lore:doc-reviser` as one batch (the Auto-Validation Rule governs what happens after).
 - **No blocking failures** → ✅ **APPROVE.** Present the report and note any non-blocking warnings as future improvements.
 
 ### Fixing Common Issues (reference)

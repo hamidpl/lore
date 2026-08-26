@@ -65,10 +65,20 @@ posttool_tool() {
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
-# Run the SubagentStop hook: $1 project root, $2 last_assistant_message
+# Run the SubagentStop hook: $1 project root, $2 last_assistant_message, [$3 agent_type]
 subagentstop() {
-  printf '{"hook_event_name":"SubagentStop","cwd":"%s","last_assistant_message":"%s"}' "$1" "$2" |
+  if [ -n "${3:-}" ]; then
+    printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"%s","last_assistant_message":"%s"}' "$1" "$3" "$2"
+  else
+    printf '{"hook_event_name":"SubagentStop","cwd":"%s","last_assistant_message":"%s"}' "$1" "$2"
+  fi |
     CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+  RC=$?
+}
+# Run a PreToolUse hook as if inside a subagent: $1 hook, $2 root, $3 agent_type, $4 tool, $5 inner JSON
+pretool_agent() {
+  OUT=$(printf '{"hook_event_name":"PreToolUse","cwd":"%s","agent_type":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
+    CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF")
   RC=$?
 }
 # Mark a directory as a scaffolded Lore project (the guard every evidence hook uses)
@@ -424,6 +434,89 @@ pretool_tool "$HOOKS/check-citation-loss.sh" "$NLC" "Edit" \
   '{"file_path":"'"$NLC"'/docs/page.md","old_string":"Rule A ([source](https://help.example.org/rules)).","new_string":"Rule A."}'
 check_exit 0 "$RC" "a non-Lore repo is never gated"
 
+echo "== record-validator-run.sh records lore:doc-reviser rounds =="
+# The reviser shares the validator's SubagentStop hook and history file: one parser,
+# one record, and the Stop gate can count fix rounds next to validation rounds.
+RV=$(mktemp -d); make_lore_project "$RV"; mkdir -p "$RV/docs"; printf 'a\n' >"$RV/docs/a.md"
+subagentstop "$RV" '**Files edited:** docs/a.md, docs/b.md\n\n1. applied\n2. skipped-needs-scope' "lore:doc-reviser"
+check_exit 0 "$RC" "a reviser round never blocks"
+HV="$RV/.claude/sources/.validator-history"
+if awk -F'\t' '$2=="REVISED" && $3=="2" && $4=="2" { f=1 } END { exit !f }' "$HV" 2>/dev/null; then
+  pass "a reviser round is a REVISED history line carrying the edited-file count"; else fail "a reviser round is a REVISED history line carrying the edited-file count"; fi
+[ ! -e "$RV/.claude/sources/.validator-receipt" ] && pass "a reviser round never writes a verdict receipt" || fail "a reviser round never writes a verdict receipt"
+subagentstop "$RV" 'Nothing to apply.\n\n1. not-mine' "doc-reviser"
+if awk -F'\t' '$2=="REVISED" && $3=="0"' "$HV" | grep -q .; then
+  pass "a reviser that changed nothing records a zero-file round"; else fail "a reviser that changed nothing records a zero-file round"; fi
+# Prose cannot inject a file: the label must open a line, and tokens must be docs/ paths.
+subagentstop "$RV" 'As noted, files edited: docs/x.md were fine.\n**Files edited:** notes.txt, docs/c.md' "lore:doc-reviser"
+if awk -F'\t' '$2=="REVISED" && $3=="1"' "$HV" | grep -q .; then
+  pass "only docs/ tokens on a line the label opens are counted"; else fail "only docs/ tokens on a line the label opens are counted"; fi
+# Without agent_type (older runtime) the reviser is recognised by its own machine-read line …
+subagentstop "$RV" '**Files edited:** docs/a.md\n\n1. applied'
+[ "$(grep -c "$(printf '\tREVISED\t')" "$HV")" -eq 4 ] && pass "a runtime without agent_type still records the round from the Files edited: line" || fail "a runtime without agent_type still records the round from the Files edited: line"
+# … and a validator report is never mistaken for one.
+subagentstop "$RV" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'
+[ -f "$RV/.claude/sources/.validator-receipt" ] && pass "a validator report still writes the receipt" || fail "a validator report still writes the receipt"
+[ "$(grep -c "$(printf '\tREVISED\t')" "$HV")" -eq 4 ] && pass "a validator report is not counted as a reviser round" || fail "a validator report is not counted as a reviser round"
+
+echo "== guard-reviser-edit.sh (PreToolUse, reviser only) =="
+# The reviser's authority — docs/ only, one exact occurrence, never a Write — is a
+# denial here, not a sentence in its agent file. Everyone else is untouched.
+GR=$(mktemp -d); make_lore_project "$GR"; mkdir -p "$GR/docs" "$GR/.claude/sources"
+printf 'x\n' >"$GR/docs/a.md"; printf 'c\n' >"$GR/.claude/sources/figma-k-census.md"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-reviser" "Write" '{"file_path":"'"$GR"'/docs/a.md","content":"y"}'
+check_exit 2 "$RC" "the reviser may not Write"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "doc-reviser" "Edit" '{"file_path":"'"$GR"'/.claude/sources/figma-k-census.md","old_string":"c","new_string":"d"}'
+check_exit 2 "$RC" "the reviser may not edit the census"
+check_stderr "outside docs/" "…and the message names the boundary"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-reviser" "Edit" '{"file_path":"'"$GR"'/docs/a.md","old_string":"x","new_string":"y","replace_all":true}'
+check_exit 2 "$RC" "the reviser may not replace_all"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-reviser" "Edit" '{"file_path":"'"$GR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "one exact edit under docs/ passes"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-validator" "Write" '{"file_path":"'"$GR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "another agent is untouched"
+pretool_tool "$HOOKS/guard-reviser-edit.sh" "$GR" "Write" '{"file_path":"'"$GR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "the main thread is untouched"
+NGR=$(mktemp -d); mkdir -p "$NGR/.claude" "$NGR/docs"; printf 'no import\n' >"$NGR/.claude/CLAUDE.md"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$NGR" "lore:doc-reviser" "Write" '{"file_path":"'"$NGR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "a non-Lore repo is never gated"
+
+echo "== the reviser, the validator and the skills agree on the fix contract =="
+# The first test that reads agents/*.md: authority lives in tool lists and hooks, and
+# the finding fields live in exactly one place (Rule 4).
+AGD="$SCRIPT_DIR/../plugins/lore/agents"
+RVA="$AGD/doc-reviser.md"
+[ -f "$RVA" ] && pass "agents/doc-reviser.md ships" || fail "agents/doc-reviser.md ships"
+tl=$(awk '/^tools:/ { print; exit }' "$RVA")
+case "$tl" in
+  *Write*|*Bash*|*WebFetch*) fail "the reviser's tool list withholds Write, Bash and WebFetch ($tl)" ;;
+  *Edit*) pass "the reviser's tool list withholds Write, Bash and WebFetch" ;;
+  *) fail "the reviser's tool list must include Edit ($tl)" ;;
+esac
+grep -q '^model:' "$RVA" && pass "the reviser pins a model" || fail "the reviser pins a model"
+grep -q '^Files edited:\|`Files edited:`' "$RVA" && pass "the reviser is told about its machine-read line" || fail "the reviser is told about its machine-read line"
+RVW="$SCRIPT_DIR/../plugins/lore/skills/doc-reviewer/SKILL.md"
+for f in 'Class:' 'Targets:' 'Evidence:' 'Counter:' 'Severity:' 'Fix:'; do
+  grep -q "$f" "$RVW" || fail "doc-reviewer's Required Actions template carries $f"
+done
+pass "doc-reviewer's Required Actions template carries every finding field"
+for f in 'Class:' 'Targets:' 'Evidence:' 'Counter:'; do
+  grep -q "$f" "$SCRIPT_DIR/../plugins/lore/skills/doc-reviewer/examples/review-report.md" || fail "the example report carries $f"
+done
+pass "the example report carries the finding fields"
+grep -q 'Class' "$AGD/doc-validator.md" && pass "the validator names the fields" || fail "the validator names the fields"
+grep -q 'Evidence: \[' "$AGD/doc-validator.md" && fail "the validator must not redefine the finding fields (Rule 4)" || pass "the validator does not redefine the finding fields"
+if grep -rq 'every fix is made by the main agent' "$SCRIPT_DIR/../plugins/lore"; then
+  fail "no plugin file still says every fix is made by the main agent"
+else
+  pass "no plugin file still says every fix is made by the main agent"
+fi
+for s in figma-to-doc site-to-doc brief-to-doc; do
+  c=$(grep -c 'lore:doc-reviser' "$SCRIPT_DIR/../plugins/lore/skills/$s/SKILL.md")
+  [ "$c" -eq 1 ] && pass "$s hands fixes to the reviser exactly once" || fail "$s hands fixes to the reviser exactly once (found $c)"
+done
+grep -q 'lore:doc-reviser' "$SCRIPT_DIR/../plugins/lore/templates/docs-layer/.claude/lore-methodology.md" && pass "the methodology names the reviser" || fail "the methodology names the reviser"
+
 echo "== record-validator-run.sh (SubagentStop) =="
 subagentstop "$E" "Recommendation: APPROVED"
 check_exit 0 "$RC" "never blocks"
@@ -639,7 +732,12 @@ if [ "$HAVE_SHA" -eq 1 ]; then
   for _ in 1 2 3; do subagentstop "$XH" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'; done
   printf 'changed\n' >"$XH/docs/a.md"
   stophook "$XH" false "sess-w"
-  check_stderr "validator runs recorded" "the block surfaces the round count once rounds pile up"
+  check_stderr "validator runs recorded so far: 3" "the block surfaces the round count once rounds pile up"
+  check_stderr "reviser rounds: 0" "…and counts reviser rounds separately (none yet)"
+  # A reviser round lands in the same history and is counted on its own.
+  subagentstop "$XH" '**Files edited:** docs/a.md\n\n1. applied' "lore:doc-reviser"
+  stophook "$XH" false "sess-w"
+  check_stderr "validator runs recorded so far: 3, reviser rounds: 1" "a REVISED history line is counted as a reviser round, not a validator run"
 
   # Paths with spaces flow through the digest loop in both directions.
   XS=$(mktemp -d); gate_project "$XS"; printf 'spaced\n' >"$XS/docs/with space.md"

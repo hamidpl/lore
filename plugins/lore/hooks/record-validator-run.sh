@@ -30,7 +30,10 @@
 # History: .claude/sources/.validator-history — APPEND-ONLY, one line per run
 #   (iso8601, verdict, reviewed-count, total-docs-count). The receipt keeps only the
 #   latest state, which is all the Stop gate needs; how many rounds a delivery took, and
-#   how the verdicts moved, is only reconstructible from this file.
+#   how the verdicts moved, is only reconstructible from this file. A lore:doc-reviser
+#   round is recorded here too, same shape, verdict column `REVISED`, both counts = the
+#   number of files its `Files edited:` line named — so the Stop gate's circuit-breaker
+#   message can count fix rounds as well as validation rounds.
 # Degrade: with no sha tool on PATH the hook writes the v1 one-line receipt and the Stop
 #   gate falls back to its mtime path — never crash, never block.
 # Guard: only acts in a scaffolded Lore project.
@@ -47,6 +50,45 @@ root=$(lore_root "$(json_field 'cwd')")
 lore_is_project "$root" || exit 0
 
 msg=$(json_field 'last_assistant_message')
+
+# --- a lore:doc-reviser round -------------------------------------------------------
+# The same SubagentStop matcher covers the reviser, and its round goes into the SAME
+# history file as a `REVISED` line — one file, one parser, and the Stop gate can say
+# "validator runs N, reviser rounds M" from it. The reviser never yields a verdict, so
+# nothing about the receipt changes. Identified by the runtime's agent_type; on a
+# runtime without that field, by the reviser's own machine-read line (`Files edited:`
+# opening a line) in the absence of any verdict line.
+agent_type=$(json_field 'agent_type')
+edited=$(printf '%s' "$msg" | awk '
+  {
+    line = $0
+    gsub(/[*_`#>]/, "", line)
+    sub(/^[^A-Za-z]+/, "", line)
+    if (tolower(line) !~ /^files edited[[:space:]]*:/) next
+    line = substr(line, index(line, ":") + 1)
+    n = split(line, toks, ",")
+    for (i = 1; i <= n; i++) {
+      t = toks[i]
+      sub(/^[[:space:]]+/, "", t); sub(/[[:space:]]+$/, "", t)
+      p = index(t, "docs/")
+      if (p == 0) continue
+      t = substr(t, p)
+      if (t ~ /\.(md|mdx)$/) print t
+    }
+  }' 2>/dev/null | sort -u)
+is_reviser=0
+case "$agent_type" in
+  doc-reviser|lore:doc-reviser) is_reviser=1 ;;
+  '') [ -n "$edited" ] && is_reviser=1 ;;
+esac
+if [ "$is_reviser" -eq 1 ]; then
+  mkdir -p "$root/.claude/sources" 2>/dev/null || exit 0
+  n=0
+  [ -n "$edited" ] && n=$(printf '%s\n' "$edited" | grep -c .)
+  printf '%s\t%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')" \
+    "REVISED" "$n" "$n" >>"$root/.claude/sources/.validator-history" 2>/dev/null || true
+  exit 0
+fi
 
 # The validator ends with an explicit recommendation line. Order matters: BLOCKED
 # wins, then the qualified pass, then the clean pass. Anything else is UNKNOWN,
