@@ -5,8 +5,9 @@ All notable changes to the Lore plugin are documented here. Versioning is
 `plugins/lore/.claude-plugin/plugin.json`. Consumers update with
 `/plugin marketplace update lore-marketplace` then `/plugin update lore@lore-marketplace`.
 
-Lore is **pre-1.0**: minor releases may include breaking changes until `1.0.0`,
-which is reserved for the first mature, general-use release.
+From `1.0.0` onward, breaking changes land only in a major release; minor releases
+add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
+are the pre-1.0 history, where a minor could still break.
 
 ## 0.9.0
 
