@@ -31,6 +31,8 @@ The second family exists because of a specific failure. A rule enforced only by 
 | **Evidence recorder** | Never blocks. Appends one line per fetch and subagent run to an append-only log. **You don't write this file** — the tooling does — so a source that was never fetched does not appear in it by accident. Entries are *tiered*: a fetch a tool actually performed counts as evidence; a URL that merely appeared inside a shell command does not. |
 | **Census check** | Blocks a source census whose rows have no receipt (the probe, its HTTP status, the saved raw payload), whose cited payloads are missing, whose claimed sources have no verified fetch behind them, or which records a zero the raw payload contradicts. |
 | **Validator recorder** | Never blocks. Records each review run: its verdict, **which files it actually reviewed**, and a fingerprint of every documentation page as it stood at that moment. Also keeps an append-only history of every run. |
+| **Citation guard** | Blocks an edit that would remove a source link whose fetch is recorded in the log. A citation is the receipt for the claim it sits on, and losing one during a fix is the single failure that no amount of careful instruction prevents. Move it, or tell the reader why the claim is going — but it does not disappear as a side effect of another edit. A link the log never saw fetched is not a receipt and is not gated. |
+| **Worker evidence gate** | Blocks an extraction worker from finishing while nothing backs what it is about to report — no saved payload on disk, no fetch recorded against it. A worker returns a summary, and a summary with no receipt behind it is exactly what the evidence model exists to refuse. The worker is sent back to fetch properly rather than having its numbers accepted. |
 | **Census reminder** | Never blocks. When a new page is created and no census exists yet, it restates the obligation at the moment of the action. |
 | **Bulk-edit reminder** | Never blocks. Before a tree-wide identical edit of your documentation, it surfaces the checks that class of edit needs — because nothing in it is *mis-typed*, so no output check can see the damage. |
 
@@ -67,6 +69,16 @@ Your approval is recorded against that exact content, so a further edit quietly 
 
 Resist the instinct that "it was only a spelling fix". The rule exists because of one: a single word replaced across a project landed inside quoted interface text and silently falsified twenty-one pages, while every changed line still read correctly on its own.
 
+### While a review is blocking, fixes go through the reviser
+
+The expensive loop was never the reviewing — it was the *fixing*. A blocking review used to be answered by the same session that wrote the page, editing under time pressure, one finding at a time, sometimes while a round was still in flight. Each of those edits is a fresh claim that has passed none of the checks the original passed.
+
+So while the standing verdict is blocking, an edit to your documentation is allowed only inside a [`lore:doc-reviser`](../reference/skills-and-subagents.md#subagents) run — a hook denies it otherwise and says what to do instead. The findings go over as **one batch**, the reviser touches only what they name, and then exactly the files it changed are re-reviewed. Findings that are not text fixes never reach it: a missing receipt goes back to source collection, and a product question comes to you.
+
+A green verdict lifts the restriction immediately — from that point the change gate above takes over, and the decision is yours again.
+
+This one was measured before it shipped. In the first runs of the rule as prose, the session read it and then applied the batch itself anyway, both times; enforcement is what made the routing real.
+
 ## Scope and safety
 
 - **Hooks act only in a Lore documentation project.** A plugin is installed per user, so its hooks run in whatever repository you happen to be working in. Every hook therefore checks for a Lore project first and exits immediately otherwise. The rules here are Lore's Definition of Done, not universal truth — a project that never adopted them is untouched, even if it happens to keep Markdown or images in a folder named `docs`.
@@ -82,5 +94,7 @@ They guard against a step being **skipped**, not against deliberate forgery. Eve
 - A source fetched before you upgraded is not in the log, so the first run afterwards re-fetches it.
 - Matching claimed sources against the log is by host — deliberately permissive, to keep false blocks near zero.
 - Documentation written outside the normal file tools leaves no session marker and is therefore not process-gated.
+- **A receipt records the fetch, not the source's later life.** It carries the response status and a fingerprint of what came back, so you can tell *what* was read — but nothing re-checks a source between the moment it was fetched and delivery. A page whose source changed in between still looks green.
+- **Some limits on the reviser depend on your Claude Code version.** Which agent is editing is not visible to every hook on every version; where it is not, the reviser's narrower rules (never a sweeping replace, never outside the documentation folder) rest on instruction rather than enforcement. Its inability to fetch or create files is enforced everywhere, by the tools it is granted.
 
 The result: the most common documentation mistakes — wrong image paths, missing frontmatter, tooling leaks — are caught immediately; and the far more expensive mistake, a source silently skipped and then certified as checked, no longer has a quiet path to delivery.

@@ -19,7 +19,7 @@ export const t = {
   },
   hero: {
     wordmark: 'Lore',
-    eyebrow: 'Claude Code plugin · Beta',
+    eyebrow: 'Claude Code plugin',
     titleLead: 'Turn designs, briefs, and living products into',
     titleEmph: 'documentation that lasts',
     subtitle:

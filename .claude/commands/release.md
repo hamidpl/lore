@@ -14,7 +14,7 @@ The canonical step list and the exact version-string locations live in the **Ver
 - Review what changed since the last tag: `git log $(git describe --tags --abbrev=0)..HEAD --oneline` plus the diff. Summarize what is user-facing vs internal-only.
 
 ## 1. Ask the version — GATE, never skip
-- Propose a semver bump from the changes: **patch** for fixes, **minor** for features. Lore is pre-1.0, so a minor may include breaking changes.
+- Propose a semver bump from the changes: **patch** for fixes, **minor** for backward-compatible features, **major** for anything that breaks an existing project (a removed/renamed command, an incompatible template layout, or a rule that changes what a project must do to deliver).
 - If `$ARGUMENTS` already names a version, confirm it back to the user; otherwise **ASK** which version.
 - ⛔ Do not bump, branch, push, or tag before the user answers.
 
