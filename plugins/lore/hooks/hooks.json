@@ -1,5 +1,5 @@
 {
-  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules + upkeep. Paths are resolved relative to the project root (CLAUDE_PROJECT_DIR / payload cwd); JSON is parsed via jq → python3 → sed, warning loudly if none are available. OUTPUT SHAPE: check-image-path.sh blocks (exit 2) any docs/ markdown or MDX referencing /static/img/, or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown/MDX missing valid frontmatter keys (§2/§6). check-no-tooling-refs.sh blocks (exit 2) any docs/ markdown/MDX referencing the authoring tooling — .claude/ paths, CLAUDE.md citations, or lore:* skill/subagent names (Rule 5/§6). EVIDENCE (§0.1–§0.4): record-evidence.sh keeps an append-only, tiered log of fetches and subagent runs (never blocks) — the model does not author it, and only `verified` entries (a fetching tool actually ran) count as proof, while a URL merely seen inside a Bash command is logged `mentioned`; a fetch made inside a subagent carries that subagent's id, and figma-probe.sh records the HTTP status and the sha-256 of the saved payload; check-citation-loss.sh (PreToolUse Edit|Write) blocks (exit 2) an edit to a docs/ page that would remove a citation whose host has a verified fetch in that log — a fix is a new claim, and a lost receipt is the one revision damage no prompt-level rule reliably prevents; check-census.sh owns every census rule in two modes — as a Write|Edit hook it blocks (exit 2) on SHAPE (a missing Run contract block, a trusted-source row without its HTTP status and saved raw payload, a zero the raw payload contradicts, a cited payload that is missing, a URL with no verified fetch behind it), and as `--complete <file>` it is invoked by verify-docs.sh at Stop to block on COMPLETENESS (a site census with no observed states, a Figma census with no counted row per manifest source type) — shape at write so the prescribed pre-flight census is writable, completeness at Stop so a placeholder cannot pass; record-validator-run.sh records each lore:doc-validator run and its verdict, matched at the start of a line so prose cannot set it, plus a per-file sha-256 snapshot of docs/ and which files that run actually reviewed (receipt v2), and appends one line per run to an append-only .validator-history (never blocks); remind-census.sh injects a just-in-time reminder when a new docs/ page is created with no census yet, and remind-mass-edit.sh injects the incident-derived checklist before a tree-wide identical edit of docs/ (both never block). verify-docs.sh (Stop) blocks (exit 2) images under docs/, /static/img/ refs, a producing session that left no census at all, an incomplete census, run-contract rows whose status is not exactly satisfied-with-evidence or waived, and documentation that changed since the last green validator run — compared by DIGEST, not mtime, so an unchanged rewrite is a non-event while a one-word edit is a new claim the model must report to the user, to be closed either by a scoped re-validation of exactly those files or by a user-approved .validation-waiver naming each file at its exact current digest; it warns about orphan images and honors stop_hook_active to avoid loops. The evidence artifacts guard against a skipped step, not a deliberate forgery — they are plain files, and an agent with shell access can write one. sync-lore-files.sh (SessionStart) keeps plugin-owned files (lore-methodology.md) in sync with the installed plugin version — silent copy + a one-line notice on update; only touches a project whose CLAUDE.md imports the methodology file. Scope carve-out: templates/** and _templates/** intentional examples are ignored, and .claude/** is ignored by every hook EXCEPT check-census.sh, whose whole job is the evidence artifact that lives there.",
+  "description": "Lore documentation factory — deterministic enforcement of BLOCKING DoD rules + upkeep. Paths are resolved relative to the project root (CLAUDE_PROJECT_DIR / payload cwd); JSON is parsed via jq → python3 → sed, warning loudly if none are available. OUTPUT SHAPE: check-image-path.sh blocks (exit 2) any docs/ markdown or MDX referencing /static/img/, or any image written under docs/ (§6/Rule 1). check-frontmatter.sh blocks (exit 2) any docs/ markdown/MDX missing valid frontmatter keys (§2/§6). check-no-tooling-refs.sh blocks (exit 2) any docs/ markdown/MDX referencing the authoring tooling — .claude/ paths, CLAUDE.md citations, or lore:* skill/subagent names (Rule 5/§6). EVIDENCE (§0.1–§0.4): record-evidence.sh keeps an append-only, tiered log of fetches and subagent runs (never blocks) — the model does not author it, and only `verified` entries (a fetching tool actually ran) count as proof, while a URL merely seen inside a Bash command is logged `mentioned`; a fetch made inside a subagent carries that subagent's id, and figma-probe.sh records the HTTP status and the sha-256 of the saved payload; check-citation-loss.sh (PreToolUse Edit|Write) blocks (exit 2) an edit to a docs/ page that would remove a citation whose host has a verified fetch in that log — a fix is a new claim, and a lost receipt is the one revision damage no prompt-level rule reliably prevents; check-census.sh owns every census rule in two modes — as a Write|Edit hook it blocks (exit 2) on SHAPE (a missing Run contract block, a trusted-source row without its HTTP status and saved raw payload, a zero the raw payload contradicts, a cited payload that is missing, a URL with no verified fetch behind it), and as `--complete <file>` it is invoked by verify-docs.sh at Stop to block on COMPLETENESS (a site census with no observed states, a Figma census with no counted row per manifest source type) — shape at write so the prescribed pre-flight census is writable, completeness at Stop so a placeholder cannot pass; record-validator-run.sh records each lore:doc-validator run and its verdict, matched at the start of a line so prose cannot set it, plus a per-file sha-256 snapshot of docs/ and which files that run actually reviewed (receipt v2), and appends one line per run to an append-only .validator-history (never blocks) — and records each lore:doc-reviser round in that same history as a REVISED line, so the Stop gate can count fix rounds as well as validation rounds; guard-reviser-edit.sh (PreToolUse Edit|Write) blocks (exit 2) a lore:doc-reviser subagent that tries to Write, to replace_all, or to edit anything outside docs/ — the reviser's authority is the targets the validator named, and this turns that from prose into a denial (a runtime without agent_type on the payload leaves it to prose); guard-under-review.sh blocks (exit 2) any edit to docs/ while the standing validator verdict is BLOCKED unless it happens inside a lore:doc-reviser run — the run is bracketed by a hook-written marker set on the reviser's Task PreToolUse and cleared on its PostToolUse/SubagentStop, so the routing rule holds on every runtime, not only those that stamp agent_type on tool payloads; require-worker-evidence.sh (SubagentStop lore:figma-extractor) blocks (exit 2, which re-prompts the worker) an extraction worker whose summary carries no RECEIPT line naming a raw payload that exists on disk and no fetch attributed to it in the evidence log — so a parallel worker cannot hand the merge a count with nothing behind it; remind-census.sh injects a just-in-time reminder when a new docs/ page is created with no census yet, and remind-mass-edit.sh injects the incident-derived checklist before a tree-wide identical edit of docs/ (both never block). verify-docs.sh (Stop) blocks (exit 2) images under docs/, /static/img/ refs, a producing session that left no census at all, an incomplete census, run-contract rows whose status is not exactly satisfied-with-evidence or waived, and documentation that changed since the last green validator run — compared by DIGEST, not mtime, so an unchanged rewrite is a non-event while a one-word edit is a new claim the model must report to the user, to be closed either by a scoped re-validation of exactly those files or by a user-approved .validation-waiver naming each file at its exact current digest; it warns about orphan images and honors stop_hook_active to avoid loops. The evidence artifacts guard against a skipped step, not a deliberate forgery — they are plain files, and an agent with shell access can write one. sync-lore-files.sh (SessionStart) keeps plugin-owned files (lore-methodology.md) in sync with the installed plugin version — silent copy + a one-line notice on update; only touches a project whose CLAUDE.md imports the methodology file. Scope carve-out: templates/** and _templates/** intentional examples are ignored, and .claude/** is ignored by every hook EXCEPT check-census.sh, whose whole job is the evidence artifact that lives there.",
   "hooks": {
     "SessionStart": [
       {
@@ -37,6 +37,19 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-citation-loss.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-reviser-edit.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh"
           }
         ]
       }
@@ -71,15 +84,33 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/record-evidence.sh"
           }
         ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh"
+          }
+        ]
       }
     ],
     "SubagentStop": [
       {
-        "matcher": "lore:doc-validator|doc-validator",
+        "matcher": "lore:doc-validator|doc-validator|lore:doc-reviser|doc-reviser",
         "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/record-validator-run.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "lore:figma-extractor|figma-extractor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/require-worker-evidence.sh"
           }
         ]
       }

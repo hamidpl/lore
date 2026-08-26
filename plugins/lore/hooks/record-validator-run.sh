@@ -30,7 +30,10 @@
 # History: .claude/sources/.validator-history — APPEND-ONLY, one line per run
 #   (iso8601, verdict, reviewed-count, total-docs-count). The receipt keeps only the
 #   latest state, which is all the Stop gate needs; how many rounds a delivery took, and
-#   how the verdicts moved, is only reconstructible from this file.
+#   how the verdicts moved, is only reconstructible from this file. A lore:doc-reviser
+#   round is recorded here too, same shape, verdict column `REVISED`, both counts = the
+#   number of files its `Files edited:` line named — so the Stop gate's circuit-breaker
+#   message can count fix rounds as well as validation rounds.
 # Degrade: with no sha tool on PATH the hook writes the v1 one-line receipt and the Stop
 #   gate falls back to its mtime path — never crash, never block.
 # Guard: only acts in a scaffolded Lore project.
@@ -48,8 +51,49 @@ lore_is_project "$root" || exit 0
 
 msg=$(json_field 'last_assistant_message')
 
-# The validator ends with an explicit recommendation line. Order matters: BLOCKED
-# wins, then the qualified pass, then the clean pass. Anything else is UNKNOWN,
+# --- a lore:doc-reviser round -------------------------------------------------------
+# The same SubagentStop matcher covers the reviser, and its round goes into the SAME
+# history file as a `REVISED` line — one file, one parser, and the Stop gate can say
+# "validator runs N, reviser rounds M" from it. The reviser never yields a verdict, so
+# nothing about the receipt changes. Identified by the runtime's agent_type; on a
+# runtime without that field, by the reviser's own machine-read line (`Files edited:`
+# opening a line) in the absence of any verdict line.
+agent_type=$(json_field 'agent_type')
+edited=$(printf '%s' "$msg" | awk '
+  {
+    line = $0
+    gsub(/[*_`#>]/, "", line)
+    sub(/^[^A-Za-z]+/, "", line)
+    if (tolower(line) !~ /^files edited[[:space:]]*:/) next
+    line = substr(line, index(line, ":") + 1)
+    n = split(line, toks, ",")
+    for (i = 1; i <= n; i++) {
+      t = toks[i]
+      sub(/^[[:space:]]+/, "", t); sub(/[[:space:]]+$/, "", t)
+      p = index(t, "docs/")
+      if (p == 0) continue
+      t = substr(t, p)
+      if (t ~ /\.(md|mdx)$/) print t
+    }
+  }' 2>/dev/null | sort -u)
+is_reviser=0
+case "$agent_type" in
+  doc-reviser|lore:doc-reviser) is_reviser=1 ;;
+  '') [ -n "$edited" ] && is_reviser=1 ;;
+esac
+if [ "$is_reviser" -eq 1 ]; then
+  mkdir -p "$root/.claude/sources" 2>/dev/null || exit 0
+  # the reviser run is over: close the bracket guard-under-review.sh opened
+  rm -f "$root/.claude/sources/.reviser-active" 2>/dev/null
+  n=0
+  [ -n "$edited" ] && n=$(printf '%s\n' "$edited" | grep -c .)
+  printf '%s\t%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')" \
+    "REVISED" "$n" "$n" >>"$root/.claude/sources/.validator-history" 2>/dev/null || true
+  exit 0
+fi
+
+# The validator ends with an explicit recommendation line, and that is the one that
+# counts: the LAST line that opens with a verdict token wins. Anything else is UNKNOWN,
 # which the Stop gate treats as "not green".
 #
 # The verdict must OPEN a line — a bare substring search read the verdict out of
@@ -57,8 +101,16 @@ msg=$(json_field 'last_assistant_message')
 # passing → APPROVED). Markdown decoration, a leading emoji and a "Recommendation:"
 # style label are stripped before the comparison, so `❌ **BLOCKED — DO NOT DELIVER**`
 # and `Verdict: APPROVED` both resolve, while mid-sentence mentions do not.
+#
+# Two things the earlier "BLOCKED anywhere wins" precedence got wrong, both measured:
+# a scoped re-validation that names the previous round's verdict ("Previous verdict:
+# BLOCKED", or a round-summary table row `| 1 | BLOCKED |`, whose leading pipes the
+# decoration strip removes) was recorded as BLOCKED although its recommendation was
+# APPROVED — and cost a whole extra round. So table rows are skipped, and position
+# decides, not severity.
 verdict=$(printf '%s' "$msg" | awk '
   {
+    if ($0 ~ /^[[:space:]]*\|/) next                 # a table row is never the verdict line
     line = $0
     gsub(/[*_`#>]/, "", line)                       # markdown emphasis / headings
     sub(/^[^A-Za-z]+/, "", line)                    # emoji, bullets, whitespace
@@ -66,15 +118,11 @@ verdict=$(printf '%s' "$msg" | awk '
     sub(/^(Recommendation|Verdict|Result|Status)[Ss]?[[:space:]]*/, "", line)
     sub(/^[^A-Za-z]+/, "", line)                    # the separator after a label
     up = toupper(line)
-    if (up ~ /^BLOCKED([^A-Z]|$)/) b = 1
-    else if (up ~ /^APPROVED WITH WARNINGS([^A-Z]|$)/) w = 1
-    else if (up ~ /^APPROVED([^A-Z]|$)/) a = 1
+    if (up ~ /^BLOCKED([^A-Z]|$)/) v = "BLOCKED"
+    else if (up ~ /^APPROVED WITH WARNINGS([^A-Z]|$)/) v = "APPROVED WITH WARNINGS"
+    else if (up ~ /^APPROVED([^A-Z]|$)/) v = "APPROVED"
   }
-  END {
-    if (b) print "BLOCKED"
-    else if (w) print "APPROVED WITH WARNINGS"
-    else if (a) print "APPROVED"
-  }
+  END { if (v != "") print v }
 ' 2>/dev/null)
 
 # Fallback: the verdict is defined to sit at the END of the report, so if nothing

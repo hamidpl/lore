@@ -30,7 +30,7 @@ check_stderr() { # pattern name
 
 # Run a PostToolUse hook: $1 hook, $2 project root, $3 absolute file_path
 posttool() {
-  printf '{"cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$2" "$3" |
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$2" "$3" |
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
@@ -55,20 +55,30 @@ pretool_tool() {
 }
 # Run a PostToolUse hook as if inside a subagent: $1 hook, $2 root, $3 agent_id, $4 tool, $5 inner JSON
 posttool_agent() {
-  printf '{"cwd":"%s","agent_id":"%s","agent_type":"lore:figma-extractor","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","agent_id":"%s","agent_type":"lore:figma-extractor","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
 # Run a PostToolUse hook with an arbitrary tool: $1 hook, $2 root, $3 tool, $4 inner JSON
 posttool_tool() {
-  printf '{"cwd":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" |
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" |
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
-# Run the SubagentStop hook: $1 project root, $2 last_assistant_message
+# Run the SubagentStop hook: $1 project root, $2 last_assistant_message, [$3 agent_type]
 subagentstop() {
-  printf '{"hook_event_name":"SubagentStop","cwd":"%s","last_assistant_message":"%s"}' "$1" "$2" |
+  if [ -n "${3:-}" ]; then
+    printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"%s","last_assistant_message":"%s"}' "$1" "$3" "$2"
+  else
+    printf '{"hook_event_name":"SubagentStop","cwd":"%s","last_assistant_message":"%s"}' "$1" "$2"
+  fi |
     CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+  RC=$?
+}
+# Run a PreToolUse hook as if inside a subagent: $1 hook, $2 root, $3 agent_type, $4 tool, $5 inner JSON
+pretool_agent() {
+  OUT=$(printf '{"hook_event_name":"PreToolUse","cwd":"%s","agent_type":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
+    CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF")
   RC=$?
 }
 # Mark a directory as a scaffolded Lore project (the guard every evidence hook uses)
@@ -424,6 +434,181 @@ pretool_tool "$HOOKS/check-citation-loss.sh" "$NLC" "Edit" \
   '{"file_path":"'"$NLC"'/docs/page.md","old_string":"Rule A ([source](https://help.example.org/rules)).","new_string":"Rule A."}'
 check_exit 0 "$RC" "a non-Lore repo is never gated"
 
+echo "== record-validator-run.sh records lore:doc-reviser rounds =="
+# The reviser shares the validator's SubagentStop hook and history file: one parser,
+# one record, and the Stop gate can count fix rounds next to validation rounds.
+RV=$(mktemp -d); make_lore_project "$RV"; mkdir -p "$RV/docs"; printf 'a\n' >"$RV/docs/a.md"
+subagentstop "$RV" '**Files edited:** docs/a.md, docs/b.md\n\n1. applied\n2. skipped-needs-scope' "lore:doc-reviser"
+check_exit 0 "$RC" "a reviser round never blocks"
+HV="$RV/.claude/sources/.validator-history"
+if awk -F'\t' '$2=="REVISED" && $3=="2" && $4=="2" { f=1 } END { exit !f }' "$HV" 2>/dev/null; then
+  pass "a reviser round is a REVISED history line carrying the edited-file count"; else fail "a reviser round is a REVISED history line carrying the edited-file count"; fi
+[ ! -e "$RV/.claude/sources/.validator-receipt" ] && pass "a reviser round never writes a verdict receipt" || fail "a reviser round never writes a verdict receipt"
+subagentstop "$RV" 'Nothing to apply.\n\n1. not-mine' "doc-reviser"
+if awk -F'\t' '$2=="REVISED" && $3=="0"' "$HV" | grep -q .; then
+  pass "a reviser that changed nothing records a zero-file round"; else fail "a reviser that changed nothing records a zero-file round"; fi
+# Prose cannot inject a file: the label must open a line, and tokens must be docs/ paths.
+subagentstop "$RV" 'As noted, files edited: docs/x.md were fine.\n**Files edited:** notes.txt, docs/c.md' "lore:doc-reviser"
+if awk -F'\t' '$2=="REVISED" && $3=="1"' "$HV" | grep -q .; then
+  pass "only docs/ tokens on a line the label opens are counted"; else fail "only docs/ tokens on a line the label opens are counted"; fi
+# Without agent_type (older runtime) the reviser is recognised by its own machine-read line …
+subagentstop "$RV" '**Files edited:** docs/a.md\n\n1. applied'
+[ "$(grep -c "$(printf '\tREVISED\t')" "$HV")" -eq 4 ] && pass "a runtime without agent_type still records the round from the Files edited: line" || fail "a runtime without agent_type still records the round from the Files edited: line"
+# … and a validator report is never mistaken for one.
+subagentstop "$RV" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'
+[ -f "$RV/.claude/sources/.validator-receipt" ] && pass "a validator report still writes the receipt" || fail "a validator report still writes the receipt"
+[ "$(grep -c "$(printf '\tREVISED\t')" "$HV")" -eq 4 ] && pass "a validator report is not counted as a reviser round" || fail "a validator report is not counted as a reviser round"
+
+echo "== guard-reviser-edit.sh (PreToolUse, reviser only) =="
+# The reviser's authority — docs/ only, one exact occurrence, never a Write — is a
+# denial here, not a sentence in its agent file. Everyone else is untouched.
+GR=$(mktemp -d); make_lore_project "$GR"; mkdir -p "$GR/docs" "$GR/.claude/sources"
+printf 'x\n' >"$GR/docs/a.md"; printf 'c\n' >"$GR/.claude/sources/figma-k-census.md"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-reviser" "Write" '{"file_path":"'"$GR"'/docs/a.md","content":"y"}'
+check_exit 2 "$RC" "the reviser may not Write"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "doc-reviser" "Edit" '{"file_path":"'"$GR"'/.claude/sources/figma-k-census.md","old_string":"c","new_string":"d"}'
+check_exit 2 "$RC" "the reviser may not edit the census"
+check_stderr "outside docs/" "…and the message names the boundary"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-reviser" "Edit" '{"file_path":"'"$GR"'/docs/a.md","old_string":"x","new_string":"y","replace_all":true}'
+check_exit 2 "$RC" "the reviser may not replace_all"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-reviser" "Edit" '{"file_path":"'"$GR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "one exact edit under docs/ passes"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$GR" "lore:doc-validator" "Write" '{"file_path":"'"$GR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "another agent is untouched"
+pretool_tool "$HOOKS/guard-reviser-edit.sh" "$GR" "Write" '{"file_path":"'"$GR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "the main thread is untouched"
+NGR=$(mktemp -d); mkdir -p "$NGR/.claude" "$NGR/docs"; printf 'no import\n' >"$NGR/.claude/CLAUDE.md"
+pretool_agent "$HOOKS/guard-reviser-edit.sh" "$NGR" "lore:doc-reviser" "Write" '{"file_path":"'"$NGR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "a non-Lore repo is never gated"
+
+echo "== guard-under-review.sh (fixes go through the reviser, or not at all) =="
+# Measured twice out of two: the main agent read the routing rule and applied the batch
+# itself. So while the standing verdict is BLOCKED, a docs/ edit is denied unless a
+# reviser run is in progress — known by bracketing the reviser's Task, not by agent_type.
+UR=$(mktemp -d); make_lore_project "$UR"; mkdir -p "$UR/docs" "$UR/.claude/sources"
+printf 'x\n' >"$UR/docs/a.md"; printf 'c\n' >"$UR/.claude/sources/brief-x-census.md"
+GU="$HOOKS/guard-under-review.sh"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "no receipt yet (drafting): edits pass"
+printf '2026-01-01T00:00:00Z\tAPPROVED\nformat\t2\n' >"$UR/.claude/sources/.validator-receipt"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "after a green verdict: edits pass (the digest gate owns that case)"
+printf '2026-01-01T00:00:00Z\tBLOCKED\nformat\t2\n' >"$UR/.claude/sources/.validator-receipt"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 2 "$RC" "verdict BLOCKED, no reviser running: a docs/ edit is denied"
+check_stderr "lore:doc-reviser" "…and the message says who applies fixes"
+pretool_tool "$GU" "$UR" "Write" '{"file_path":"'"$UR"'/docs/b.md","content":"new"}'
+check_exit 2 "$RC" "…a Write under docs/ too"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/.claude/sources/brief-x-census.md","old_string":"c","new_string":"d"}'
+check_exit 0 "$RC" "the census (evidence-class fix) is never gated"
+# the bracket: Task PreToolUse opens it, Task PostToolUse closes it
+pretool_tool "$GU" "$UR" "Task" '{"subagent_type":"lore:doc-reviser","prompt":"apply"}'
+check_exit 0 "$RC" "the reviser's Task PreToolUse never blocks"
+[ -f "$UR/.claude/sources/.reviser-active" ] && pass "…and opens the reviser bracket" || fail "…and opens the reviser bracket"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "inside the bracket: the edit passes"
+posttool_tool "$GU" "$UR" "Task" '{"subagent_type":"lore:doc-reviser","prompt":"apply"}'
+[ ! -f "$UR/.claude/sources/.reviser-active" ] && pass "the reviser's Task PostToolUse closes the bracket" || fail "the reviser's Task PostToolUse closes the bracket"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 2 "$RC" "after the bracket closes: denied again"
+pretool_tool "$GU" "$UR" "Task" '{"subagent_type":"lore:doc-validator","prompt":"check"}'
+[ ! -f "$UR/.claude/sources/.reviser-active" ] && pass "another subagent's Task opens nothing" || fail "another subagent's Task opens nothing"
+# a stale marker (crashed reviser) does not hold the door open
+printf '1000000000\n' >"$UR/.claude/sources/.reviser-active"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 2 "$RC" "a marker older than 30 minutes is ignored"
+rm -f "$UR/.claude/sources/.reviser-active"
+# the reviser's own SubagentStop also closes it
+date -u '+%s' >"$UR/.claude/sources/.reviser-active"
+subagentstop "$UR" '**Files edited:** docs/a.md' "lore:doc-reviser"
+[ ! -f "$UR/.claude/sources/.reviser-active" ] && pass "the reviser's SubagentStop closes the bracket too" || fail "the reviser's SubagentStop closes the bracket too"
+# a runtime that does stamp agent_type lets the reviser through on that alone
+pretool_agent "$GU" "$UR" "lore:doc-reviser" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "agent_type=doc-reviser on the payload passes without a marker"
+NUR=$(mktemp -d); mkdir -p "$NUR/.claude" "$NUR/docs"; printf 'no import\n' >"$NUR/.claude/CLAUDE.md"
+pretool_tool "$GU" "$NUR" "Edit" '{"file_path":"'"$NUR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "a non-Lore repo is never gated"
+
+echo "== require-worker-evidence.sh (SubagentStop, extraction workers) =="
+# A parallel extraction worker returns a summary; a summary with no receipt is the
+# laundering surface. The worker is returned to work (exit 2 re-prompts it) until every
+# RECEIPT it returns names a payload on disk and the log holds a verified Figma fetch.
+workerstop() { # $1 root, $2 message, $3 agent_id, $4 stop_hook_active
+  printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"lore:figma-extractor","agent_id":"%s","stop_hook_active":%s,"last_assistant_message":"%s"}' "$1" "$3" "${4:-false}" "$2" |
+    CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/require-worker-evidence.sh" 2>"$ERRF"
+  RC=$?
+}
+WK=$(mktemp -d); make_lore_project "$WK"; mkdir -p "$WK/.claude/sources/raw"
+printf '{"nodes":{}}' >"$WK/.claude/sources/raw/figma-K-nodes-1-2.json"
+workerstop "$WK" 'Summary.\nRECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-1-2.json scanned=3\nCOUNT annotations=0 corroboration=raw-confirms-none' "w1"
+check_exit 2 "$RC" "a RECEIPT with no verified Figma fetch in the log is not enough"
+printf '%s\tfigma-probe\thttps://api.figma.com/v1/files/K/nodes?ids=1:2 status=200\tverified\n' 2026-01-01T00:00:00Z >"$WK/.claude/sources/.evidence-log"
+workerstop "$WK" 'Summary.\nRECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-1-2.json scanned=3\nCOUNT annotations=0 corroboration=raw-confirms-none' "w1"
+check_exit 0 "$RC" "a RECEIPT naming a payload on disk, plus a verified fetch, lets the worker finish"
+workerstop "$WK" 'annotations: 0, flows: 0 — nothing found.' "w1"
+check_exit 2 "$RC" "a summary with counts and no RECEIPT returns the worker to work"
+check_stderr "RECEIPT" "…and says what a receipt is"
+workerstop "$WK" 'RECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-9-9.json scanned=3' "w1"
+check_exit 2 "$RC" "a RECEIPT naming a payload that is not on disk is a claim, not a receipt"
+check_stderr "missing or empty" "…and names the missing payload"
+workerstop "$WK" 'annotations: 0 — nothing found.' "w1" true
+check_exit 0 "$RC" "stop_hook_active guards the loop"
+# attribution path (runtime ≥ 2.1.69): a verified line carrying this worker's id suffices
+printf '%s\tWebFetch\thttps://api.figma.com/v1/files/K/comments\tverified\tw2\n' 2026-01-01T00:00:00Z >>"$WK/.claude/sources/.evidence-log"
+workerstop "$WK" 'comments: 3 (see log)' "w2"
+check_exit 0 "$RC" "a fetch attributed to this worker's agent_id counts as its receipt"
+workerstop "$WK" 'comments: 3 (see log)' "w3"
+check_exit 2 "$RC" "…but another worker's attributed fetch does not"
+NWK=$(mktemp -d); mkdir -p "$NWK/.claude"; printf 'no import\n' >"$NWK/.claude/CLAUDE.md"
+workerstop "$NWK" 'nothing' "w1"
+check_exit 0 "$RC" "a non-Lore repo is never gated"
+
+echo "== fan-out is Figma-only, thresholded, and merged deterministically (prose contract) =="
+FTD="$SCRIPT_DIR/../plugins/lore/skills/figma-to-doc/SKILL.md"
+grep -q 'Fan out only when asked' "$FTD" && pass "figma-to-doc makes fan-out opt-in (measured: slower at 36 frames)" || fail "figma-to-doc makes fan-out opt-in (measured: slower at 36 frames)"
+grep -q 'at least 4 sections and at least 48 frames' "$FTD" && pass "figma-to-doc states the size heuristic" || fail "figma-to-doc states the size heuristic"
+grep -q 'at most 4 at once' "$FTD" && pass "figma-to-doc caps the worker count" || fail "figma-to-doc caps the worker count"
+grep -q 'never.*another worker.s summary' "$FTD" && pass "workers never receive another worker's summary" || fail "workers never receive another worker's summary"
+grep -q 're-runs \*\*that scope sequentially\*\*' "$FTD" && pass "a missing scope is re-run, never filled from memory" || fail "a missing scope is re-run, never filled from memory"
+grep -q 'sequentially' "$SCRIPT_DIR/../plugins/lore/skills/site-to-doc/SKILL.md" && pass "site-to-doc keeps the explorer sequential" || fail "site-to-doc keeps the explorer sequential"
+grep -q 'one of several workers' "$SCRIPT_DIR/../plugins/lore/agents/figma-extractor.md" && pass "the extractor knows it may be one of several" || fail "the extractor knows it may be one of several"
+
+echo "== the reviser, the validator and the skills agree on the fix contract =="
+# The first test that reads agents/*.md: authority lives in tool lists and hooks, and
+# the finding fields live in exactly one place (Rule 4).
+AGD="$SCRIPT_DIR/../plugins/lore/agents"
+RVA="$AGD/doc-reviser.md"
+[ -f "$RVA" ] && pass "agents/doc-reviser.md ships" || fail "agents/doc-reviser.md ships"
+tl=$(awk '/^tools:/ { print; exit }' "$RVA")
+case "$tl" in
+  *Write*|*Bash*|*WebFetch*) fail "the reviser's tool list withholds Write, Bash and WebFetch ($tl)" ;;
+  *Edit*) pass "the reviser's tool list withholds Write, Bash and WebFetch" ;;
+  *) fail "the reviser's tool list must include Edit ($tl)" ;;
+esac
+grep -q '^model:' "$RVA" && pass "the reviser pins a model" || fail "the reviser pins a model"
+grep -q '^Files edited:\|`Files edited:`' "$RVA" && pass "the reviser is told about its machine-read line" || fail "the reviser is told about its machine-read line"
+RVW="$SCRIPT_DIR/../plugins/lore/skills/doc-reviewer/SKILL.md"
+for f in 'Class:' 'Targets:' 'Evidence:' 'Counter:' 'Severity:' 'Fix:'; do
+  grep -q "$f" "$RVW" || fail "doc-reviewer's Required Actions template carries $f"
+done
+pass "doc-reviewer's Required Actions template carries every finding field"
+for f in 'Class:' 'Targets:' 'Evidence:' 'Counter:'; do
+  grep -q "$f" "$SCRIPT_DIR/../plugins/lore/skills/doc-reviewer/examples/review-report.md" || fail "the example report carries $f"
+done
+pass "the example report carries the finding fields"
+grep -q 'Class' "$AGD/doc-validator.md" && pass "the validator names the fields" || fail "the validator names the fields"
+grep -q 'Evidence: \[' "$AGD/doc-validator.md" && fail "the validator must not redefine the finding fields (Rule 4)" || pass "the validator does not redefine the finding fields"
+if grep -rq 'every fix is made by the main agent' "$SCRIPT_DIR/../plugins/lore"; then
+  fail "no plugin file still says every fix is made by the main agent"
+else
+  pass "no plugin file still says every fix is made by the main agent"
+fi
+for s in figma-to-doc site-to-doc brief-to-doc; do
+  c=$(grep -c 'lore:doc-reviser' "$SCRIPT_DIR/../plugins/lore/skills/$s/SKILL.md")
+  [ "$c" -eq 1 ] && pass "$s hands fixes to the reviser exactly once" || fail "$s hands fixes to the reviser exactly once (found $c)"
+done
+grep -q 'lore:doc-reviser' "$SCRIPT_DIR/../plugins/lore/templates/docs-layer/.claude/lore-methodology.md" && pass "the methodology names the reviser" || fail "the methodology names the reviser"
+
 echo "== record-validator-run.sh (SubagentStop) =="
 subagentstop "$E" "Recommendation: APPROVED"
 check_exit 0 "$RC" "never blocks"
@@ -456,6 +641,14 @@ check_verdict 'Verdict: APPROVED' \
   "APPROVED" "a labelled verdict line resolves"
 check_verdict '## Recommendation\n\nOK, looks good to me' \
   "UNKNOWN" "a report with no recognisable verdict is UNKNOWN, not a pass"
+# Measured in the F2 pilot: a scoped re-validation that recounts the previous round
+# was recorded as BLOCKED although it recommended APPROVED — one whole round wasted.
+check_verdict '**Previous verdict:** BLOCKED (round 1)\n\nAll four findings resolved.\n\n## Recommendation\n\n✅ APPROVED FOR DELIVERY' \
+  "APPROVED" "a report that names the previous BLOCKED verdict still records its own APPROVED"
+check_verdict '| Round | Result |\n|---|---|\n| 1 | BLOCKED |\n| 2 | APPROVED |\n\n## Recommendation\n\nAPPROVED WITH WARNINGS' \
+  "APPROVED WITH WARNINGS" "a round-summary table row never sets the verdict"
+check_verdict '## Recommendation\n\nAPPROVED\n\n## Required Actions\n\nBLOCKED items from the earlier round are listed here for reference only: none remain' \
+  "BLOCKED" "the last verdict-opening line wins, whatever its severity"
 
 echo "== record-validator-run.sh receipt v2 (scope + digests) =="
 # The receipt used to carry only (timestamp, verdict), so a narrow APPROVED — "check
@@ -639,7 +832,12 @@ if [ "$HAVE_SHA" -eq 1 ]; then
   for _ in 1 2 3; do subagentstop "$XH" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED'; done
   printf 'changed\n' >"$XH/docs/a.md"
   stophook "$XH" false "sess-w"
-  check_stderr "validator runs recorded" "the block surfaces the round count once rounds pile up"
+  check_stderr "validator runs recorded so far: 3" "the block surfaces the round count once rounds pile up"
+  check_stderr "reviser rounds: 0" "…and counts reviser rounds separately (none yet)"
+  # A reviser round lands in the same history and is counted on its own.
+  subagentstop "$XH" '**Files edited:** docs/a.md\n\n1. applied' "lore:doc-reviser"
+  stophook "$XH" false "sess-w"
+  check_stderr "validator runs recorded so far: 3, reviser rounds: 1" "a REVISED history line is counted as a reviser round, not a validator run"
 
   # Paths with spaces flow through the digest loop in both directions.
   XS=$(mktemp -d); gate_project "$XS"; printf 'spaced\n' >"$XS/docs/with space.md"
@@ -1227,13 +1425,28 @@ echo "== no document claims a guarantee the code does not provide =="
 # The evidence artifacts are plain files; an agent with shell access can write one.
 # They guard against a step being skipped, not against deliberate forgery. Claiming
 # otherwise is what made the last release believe it had closed this class of bug.
-if grep -rn 'cannot be faked\|cannot be fabricated\|the turn cannot end' \
-     "$SCRIPT_DIR/../plugins/lore" "$SCRIPT_DIR/../CLAUDE.md" "$SCRIPT_DIR/../CHANGELOG.md" >/dev/null 2>&1; then
+# Only AFFIRMATIVE claims belong in this list. "tamper-proof" deliberately does not:
+# it is the wording of the disclaimer itself ("a guard against a skipped step, *not* a
+# tamper-proof record"), so matching it would fail the suite on the very sentences that
+# state the limit correctly.
+#
+# THE SCAN PATHS ARE PART OF THE TEST. Until 1.0 this checked plugins/lore, CLAUDE.md
+# and CHANGELOG.md — and the overclaim that actually shipped ("evidence gates that make
+# a skipped source impossible to hide") sat in the ROOT README, the one document every
+# user reads first, which was never scanned. A tripwire that misses the most public file
+# in the repo is worse than none: it reads as coverage. The public-facing docs are in
+# scope now, in every language.
+overclaim_re='cannot be faked\|cannot be fabricated\|the turn cannot end\|impossible to hide\|impossible to fake\|impossible to forge'
+overclaim_paths="$SCRIPT_DIR/../plugins/lore $SCRIPT_DIR/../CLAUDE.md $SCRIPT_DIR/../CHANGELOG.md $SCRIPT_DIR/../README.md"
+[ -d "$SCRIPT_DIR/../website/docs/docs" ] && overclaim_paths="$overclaim_paths $SCRIPT_DIR/../website/docs/docs"
+[ -d "$SCRIPT_DIR/../website/docs/i18n" ] && overclaim_paths="$overclaim_paths $SCRIPT_DIR/../website/docs/i18n"
+# shellcheck disable=SC2086  # deliberate word-splitting: the paths are a plain list
+if grep -rn "$overclaim_re" $overclaim_paths >/dev/null 2>&1; then
   fail "an overclaim about unforgeability survives"
-  grep -rn 'cannot be faked\|cannot be fabricated\|the turn cannot end' \
-    "$SCRIPT_DIR/../plugins/lore" "$SCRIPT_DIR/../CLAUDE.md" "$SCRIPT_DIR/../CHANGELOG.md" >&2
+  # shellcheck disable=SC2086
+  grep -rn "$overclaim_re" $overclaim_paths >&2
 else
-  pass "no unforgeability overclaim remains"
+  pass "no unforgeability overclaim remains (plugin, CLAUDE.md, CHANGELOG, README, docs site)"
 fi
 
 echo "== detect-project.sh =="

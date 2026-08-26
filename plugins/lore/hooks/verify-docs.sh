@@ -258,7 +258,9 @@ if [ -d .claude/sources ]; then
           echo "  1) scoped re-validation: run lore:doc-validator on exactly the files listed above;" >&2
           echo "  2) user-approved waiver: ONLY with the user's explicit approval, write .claude/sources/.validation-waiver — line 1: <timestamp><TAB><the user-approved reason>; then one line per file: <sha-256 of its CURRENT content><TAB><path> (digest via \`shasum -a 256 <file>\` or \`sha256sum <file>\`, first column; the literal \`deleted\` as the digest for a removed file)." >&2
           if [ -f "$history" ] && [ "$(grep -c . "$history" 2>/dev/null)" -ge 3 ]; then
-            echo "(validator runs recorded so far: $(grep -c . "$history") — see .claude/sources/.validator-history; if the last two rounds both found defects introduced by fixes, stop and put the decision to the user instead of running another round.)" >&2
+            vruns=$(awk -F'\t' '$2 != "REVISED"' "$history" 2>/dev/null | grep -c . || true)
+            rruns=$(awk -F'\t' '$2 == "REVISED"' "$history" 2>/dev/null | grep -c . || true)
+            echo "(validator runs recorded so far: ${vruns:-0}, reviser rounds: ${rruns:-0} — see .claude/sources/.validator-history; two reviser rounds since the last green verdict, or two consecutive rounds of defects introduced by fixes, means stop and put the decision to the user instead of running another round.)" >&2
           fi
           blocked=1
         fi
