@@ -1425,13 +1425,28 @@ echo "== no document claims a guarantee the code does not provide =="
 # The evidence artifacts are plain files; an agent with shell access can write one.
 # They guard against a step being skipped, not against deliberate forgery. Claiming
 # otherwise is what made the last release believe it had closed this class of bug.
-if grep -rn 'cannot be faked\|cannot be fabricated\|the turn cannot end' \
-     "$SCRIPT_DIR/../plugins/lore" "$SCRIPT_DIR/../CLAUDE.md" "$SCRIPT_DIR/../CHANGELOG.md" >/dev/null 2>&1; then
+# Only AFFIRMATIVE claims belong in this list. "tamper-proof" deliberately does not:
+# it is the wording of the disclaimer itself ("a guard against a skipped step, *not* a
+# tamper-proof record"), so matching it would fail the suite on the very sentences that
+# state the limit correctly.
+#
+# THE SCAN PATHS ARE PART OF THE TEST. Until 1.0 this checked plugins/lore, CLAUDE.md
+# and CHANGELOG.md — and the overclaim that actually shipped ("evidence gates that make
+# a skipped source impossible to hide") sat in the ROOT README, the one document every
+# user reads first, which was never scanned. A tripwire that misses the most public file
+# in the repo is worse than none: it reads as coverage. The public-facing docs are in
+# scope now, in every language.
+overclaim_re='cannot be faked\|cannot be fabricated\|the turn cannot end\|impossible to hide\|impossible to fake\|impossible to forge'
+overclaim_paths="$SCRIPT_DIR/../plugins/lore $SCRIPT_DIR/../CLAUDE.md $SCRIPT_DIR/../CHANGELOG.md $SCRIPT_DIR/../README.md"
+[ -d "$SCRIPT_DIR/../website/docs/docs" ] && overclaim_paths="$overclaim_paths $SCRIPT_DIR/../website/docs/docs"
+[ -d "$SCRIPT_DIR/../website/docs/i18n" ] && overclaim_paths="$overclaim_paths $SCRIPT_DIR/../website/docs/i18n"
+# shellcheck disable=SC2086  # deliberate word-splitting: the paths are a plain list
+if grep -rn "$overclaim_re" $overclaim_paths >/dev/null 2>&1; then
   fail "an overclaim about unforgeability survives"
-  grep -rn 'cannot be faked\|cannot be fabricated\|the turn cannot end' \
-    "$SCRIPT_DIR/../plugins/lore" "$SCRIPT_DIR/../CLAUDE.md" "$SCRIPT_DIR/../CHANGELOG.md" >&2
+  # shellcheck disable=SC2086
+  grep -rn "$overclaim_re" $overclaim_paths >&2
 else
-  pass "no unforgeability overclaim remains"
+  pass "no unforgeability overclaim remains (plugin, CLAUDE.md, CHANGELOG, README, docs site)"
 fi
 
 echo "== detect-project.sh =="

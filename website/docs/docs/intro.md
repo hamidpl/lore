@@ -10,8 +10,8 @@ tags: [introduction, overview]
 
 **Lore is a reusable, product-agnostic documentation factory packaged as a [Claude Code](https://code.claude.com/docs/en/plugins) plugin.** Install it in any documentation repository to get the same authoring skills, review subagents, and blocking-rule enforcement hooks — maintained once, consumed everywhere.
 
-:::info Beta
-Lore is pre-1.0. It works end-to-end, but commands, templates, and conventions may still change before `1.0.0`. See [Versioning](./versioning.md) to pin a stable tag.
+:::info Stable
+Lore follows [semantic versioning](https://semver.org): breaking changes to commands, templates, or conventions land only in a major release. See [Versioning](./versioning.md) to pin a fixed tag.
 :::
 
 ## The problem it solves

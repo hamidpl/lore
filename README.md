@@ -9,7 +9,7 @@
 
 > 🌐 **Website:** [lorekit.net](https://lorekit.net) · **Docs:** [docs.lorekit.net](https://docs.lorekit.net)
 
-> **Status: beta (pre-1.0).** Lore works end-to-end, but commands, templates, and conventions may still change before `1.0.0`. Pin to a git tag if you need stability (see [Versioning](#versioning)).
+> **Stable.** Lore follows [semantic versioning](https://semver.org): breaking changes to commands, templates, or conventions land only in a major release. Pin to a git tag if you want to control exactly when you take an update (see [Versioning](#versioning)).
 
 **Lore** is a [Claude Code plugin](https://code.claude.com/docs/en/plugins) that packages a reusable, product-agnostic **documentation factory**. Install it in any documentation repo to get the same skills, review subagents, and BLOCKING-rule enforcement hooks — maintained once, consumed everywhere.
 
@@ -35,7 +35,8 @@ That is exactly what product documentation should be. Documentation rots, and ev
 | Subagent | `lore:doc-validator` | Read-only DoD validator (run by producer skills before delivery) |
 | Subagent | `lore:figma-extractor` | Heavy Figma extraction worker (keeps main context clean) |
 | Subagent | `lore:site-explorer` | Heavy live-site exploration worker — drives the browser, captures screenshots (keeps main context clean) |
-| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter, plus the evidence gates that make a skipped source impossible to hide |
+| Subagent | `lore:doc-reviser` | Narrow-contract fixer — applies the validator's findings as one batch, only where they point, and cannot fetch |
+| Hooks | `hooks/hooks.json` | BLOCKING enforcement of image paths and frontmatter, plus the evidence gates that leave a skipped source visible at delivery |
 
 ## How it works
 
