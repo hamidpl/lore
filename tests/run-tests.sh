@@ -529,6 +529,49 @@ NUR=$(mktemp -d); mkdir -p "$NUR/.claude" "$NUR/docs"; printf 'no import\n' >"$N
 pretool_tool "$GU" "$NUR" "Edit" '{"file_path":"'"$NUR"'/docs/a.md","old_string":"x","new_string":"y"}'
 check_exit 0 "$RC" "a non-Lore repo is never gated"
 
+echo "== require-worker-evidence.sh (SubagentStop, extraction workers) =="
+# A parallel extraction worker returns a summary; a summary with no receipt is the
+# laundering surface. The worker is returned to work (exit 2 re-prompts it) until every
+# RECEIPT it returns names a payload on disk and the log holds a verified Figma fetch.
+workerstop() { # $1 root, $2 message, $3 agent_id, $4 stop_hook_active
+  printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"lore:figma-extractor","agent_id":"%s","stop_hook_active":%s,"last_assistant_message":"%s"}' "$1" "$3" "${4:-false}" "$2" |
+    CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/require-worker-evidence.sh" 2>"$ERRF"
+  RC=$?
+}
+WK=$(mktemp -d); make_lore_project "$WK"; mkdir -p "$WK/.claude/sources/raw"
+printf '{"nodes":{}}' >"$WK/.claude/sources/raw/figma-K-nodes-1-2.json"
+workerstop "$WK" 'Summary.\nRECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-1-2.json scanned=3\nCOUNT annotations=0 corroboration=raw-confirms-none' "w1"
+check_exit 2 "$RC" "a RECEIPT with no verified Figma fetch in the log is not enough"
+printf '%s\tfigma-probe\thttps://api.figma.com/v1/files/K/nodes?ids=1:2 status=200\tverified\n' 2026-01-01T00:00:00Z >"$WK/.claude/sources/.evidence-log"
+workerstop "$WK" 'Summary.\nRECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-1-2.json scanned=3\nCOUNT annotations=0 corroboration=raw-confirms-none' "w1"
+check_exit 0 "$RC" "a RECEIPT naming a payload on disk, plus a verified fetch, lets the worker finish"
+workerstop "$WK" 'annotations: 0, flows: 0 — nothing found.' "w1"
+check_exit 2 "$RC" "a summary with counts and no RECEIPT returns the worker to work"
+check_stderr "RECEIPT" "…and says what a receipt is"
+workerstop "$WK" 'RECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-9-9.json scanned=3' "w1"
+check_exit 2 "$RC" "a RECEIPT naming a payload that is not on disk is a claim, not a receipt"
+check_stderr "missing or empty" "…and names the missing payload"
+workerstop "$WK" 'annotations: 0 — nothing found.' "w1" true
+check_exit 0 "$RC" "stop_hook_active guards the loop"
+# attribution path (runtime ≥ 2.1.69): a verified line carrying this worker's id suffices
+printf '%s\tWebFetch\thttps://api.figma.com/v1/files/K/comments\tverified\tw2\n' 2026-01-01T00:00:00Z >>"$WK/.claude/sources/.evidence-log"
+workerstop "$WK" 'comments: 3 (see log)' "w2"
+check_exit 0 "$RC" "a fetch attributed to this worker's agent_id counts as its receipt"
+workerstop "$WK" 'comments: 3 (see log)' "w3"
+check_exit 2 "$RC" "…but another worker's attributed fetch does not"
+NWK=$(mktemp -d); mkdir -p "$NWK/.claude"; printf 'no import\n' >"$NWK/.claude/CLAUDE.md"
+workerstop "$NWK" 'nothing' "w1"
+check_exit 0 "$RC" "a non-Lore repo is never gated"
+
+echo "== fan-out is Figma-only, thresholded, and merged deterministically (prose contract) =="
+FTD="$SCRIPT_DIR/../plugins/lore/skills/figma-to-doc/SKILL.md"
+grep -q 'at least 2 sections and at least 12 frames' "$FTD" && pass "figma-to-doc states the fan-out threshold" || fail "figma-to-doc states the fan-out threshold"
+grep -q 'at most 4 at once' "$FTD" && pass "figma-to-doc caps the worker count" || fail "figma-to-doc caps the worker count"
+grep -q 'never.*another worker.s summary' "$FTD" && pass "workers never receive another worker's summary" || fail "workers never receive another worker's summary"
+grep -q 're-runs \*\*that scope sequentially\*\*' "$FTD" && pass "a missing scope is re-run, never filled from memory" || fail "a missing scope is re-run, never filled from memory"
+grep -q 'sequentially' "$SCRIPT_DIR/../plugins/lore/skills/site-to-doc/SKILL.md" && pass "site-to-doc keeps the explorer sequential" || fail "site-to-doc keeps the explorer sequential"
+grep -q 'one of several workers' "$SCRIPT_DIR/../plugins/lore/agents/figma-extractor.md" && pass "the extractor knows it may be one of several" || fail "the extractor knows it may be one of several"
+
 echo "== the reviser, the validator and the skills agree on the fix contract =="
 # The first test that reads agents/*.md: authority lives in tool lists and hooks, and
 # the finding fields live in exactly one place (Rule 4).
