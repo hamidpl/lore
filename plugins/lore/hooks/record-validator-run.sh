@@ -92,8 +92,8 @@ if [ "$is_reviser" -eq 1 ]; then
   exit 0
 fi
 
-# The validator ends with an explicit recommendation line. Order matters: BLOCKED
-# wins, then the qualified pass, then the clean pass. Anything else is UNKNOWN,
+# The validator ends with an explicit recommendation line, and that is the one that
+# counts: the LAST line that opens with a verdict token wins. Anything else is UNKNOWN,
 # which the Stop gate treats as "not green".
 #
 # The verdict must OPEN a line — a bare substring search read the verdict out of
@@ -101,8 +101,16 @@ fi
 # passing → APPROVED). Markdown decoration, a leading emoji and a "Recommendation:"
 # style label are stripped before the comparison, so `❌ **BLOCKED — DO NOT DELIVER**`
 # and `Verdict: APPROVED` both resolve, while mid-sentence mentions do not.
+#
+# Two things the earlier "BLOCKED anywhere wins" precedence got wrong, both measured:
+# a scoped re-validation that names the previous round's verdict ("Previous verdict:
+# BLOCKED", or a round-summary table row `| 1 | BLOCKED |`, whose leading pipes the
+# decoration strip removes) was recorded as BLOCKED although its recommendation was
+# APPROVED — and cost a whole extra round. So table rows are skipped, and position
+# decides, not severity.
 verdict=$(printf '%s' "$msg" | awk '
   {
+    if ($0 ~ /^[[:space:]]*\|/) next                 # a table row is never the verdict line
     line = $0
     gsub(/[*_`#>]/, "", line)                       # markdown emphasis / headings
     sub(/^[^A-Za-z]+/, "", line)                    # emoji, bullets, whitespace
@@ -110,15 +118,11 @@ verdict=$(printf '%s' "$msg" | awk '
     sub(/^(Recommendation|Verdict|Result|Status)[Ss]?[[:space:]]*/, "", line)
     sub(/^[^A-Za-z]+/, "", line)                    # the separator after a label
     up = toupper(line)
-    if (up ~ /^BLOCKED([^A-Z]|$)/) b = 1
-    else if (up ~ /^APPROVED WITH WARNINGS([^A-Z]|$)/) w = 1
-    else if (up ~ /^APPROVED([^A-Z]|$)/) a = 1
+    if (up ~ /^BLOCKED([^A-Z]|$)/) v = "BLOCKED"
+    else if (up ~ /^APPROVED WITH WARNINGS([^A-Z]|$)/) v = "APPROVED WITH WARNINGS"
+    else if (up ~ /^APPROVED([^A-Z]|$)/) v = "APPROVED"
   }
-  END {
-    if (b) print "BLOCKED"
-    else if (w) print "APPROVED WITH WARNINGS"
-    else if (a) print "APPROVED"
-  }
+  END { if (v != "") print v }
 ' 2>/dev/null)
 
 # Fallback: the verdict is defined to sit at the END of the report, so if nothing

@@ -597,6 +597,14 @@ check_verdict 'Verdict: APPROVED' \
   "APPROVED" "a labelled verdict line resolves"
 check_verdict '## Recommendation\n\nOK, looks good to me' \
   "UNKNOWN" "a report with no recognisable verdict is UNKNOWN, not a pass"
+# Measured in the F2 pilot: a scoped re-validation that recounts the previous round
+# was recorded as BLOCKED although it recommended APPROVED — one whole round wasted.
+check_verdict '**Previous verdict:** BLOCKED (round 1)\n\nAll four findings resolved.\n\n## Recommendation\n\n✅ APPROVED FOR DELIVERY' \
+  "APPROVED" "a report that names the previous BLOCKED verdict still records its own APPROVED"
+check_verdict '| Round | Result |\n|---|---|\n| 1 | BLOCKED |\n| 2 | APPROVED |\n\n## Recommendation\n\nAPPROVED WITH WARNINGS' \
+  "APPROVED WITH WARNINGS" "a round-summary table row never sets the verdict"
+check_verdict '## Recommendation\n\nAPPROVED\n\n## Required Actions\n\nBLOCKED items from the earlier round are listed here for reference only: none remain' \
+  "BLOCKED" "the last verdict-opening line wins, whatever its severity"
 
 echo "== record-validator-run.sh receipt v2 (scope + digests) =="
 # The receipt used to carry only (timestamp, verdict), so a narrow APPROVED — "check
