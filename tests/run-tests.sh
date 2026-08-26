@@ -30,7 +30,7 @@ check_stderr() { # pattern name
 
 # Run a PostToolUse hook: $1 hook, $2 project root, $3 absolute file_path
 posttool() {
-  printf '{"cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$2" "$3" |
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$2" "$3" |
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
@@ -55,13 +55,13 @@ pretool_tool() {
 }
 # Run a PostToolUse hook as if inside a subagent: $1 hook, $2 root, $3 agent_id, $4 tool, $5 inner JSON
 posttool_agent() {
-  printf '{"cwd":"%s","agent_id":"%s","agent_type":"lore:figma-extractor","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","agent_id":"%s","agent_type":"lore:figma-extractor","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
 # Run a PostToolUse hook with an arbitrary tool: $1 hook, $2 root, $3 tool, $4 inner JSON
 posttool_tool() {
-  printf '{"cwd":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" |
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" |
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
   RC=$?
 }
@@ -479,6 +479,54 @@ pretool_tool "$HOOKS/guard-reviser-edit.sh" "$GR" "Write" '{"file_path":"'"$GR"'
 check_exit 0 "$RC" "the main thread is untouched"
 NGR=$(mktemp -d); mkdir -p "$NGR/.claude" "$NGR/docs"; printf 'no import\n' >"$NGR/.claude/CLAUDE.md"
 pretool_agent "$HOOKS/guard-reviser-edit.sh" "$NGR" "lore:doc-reviser" "Write" '{"file_path":"'"$NGR"'/docs/a.md","content":"y"}'
+check_exit 0 "$RC" "a non-Lore repo is never gated"
+
+echo "== guard-under-review.sh (fixes go through the reviser, or not at all) =="
+# Measured twice out of two: the main agent read the routing rule and applied the batch
+# itself. So while the standing verdict is BLOCKED, a docs/ edit is denied unless a
+# reviser run is in progress — known by bracketing the reviser's Task, not by agent_type.
+UR=$(mktemp -d); make_lore_project "$UR"; mkdir -p "$UR/docs" "$UR/.claude/sources"
+printf 'x\n' >"$UR/docs/a.md"; printf 'c\n' >"$UR/.claude/sources/brief-x-census.md"
+GU="$HOOKS/guard-under-review.sh"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "no receipt yet (drafting): edits pass"
+printf '2026-01-01T00:00:00Z\tAPPROVED\nformat\t2\n' >"$UR/.claude/sources/.validator-receipt"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "after a green verdict: edits pass (the digest gate owns that case)"
+printf '2026-01-01T00:00:00Z\tBLOCKED\nformat\t2\n' >"$UR/.claude/sources/.validator-receipt"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 2 "$RC" "verdict BLOCKED, no reviser running: a docs/ edit is denied"
+check_stderr "lore:doc-reviser" "…and the message says who applies fixes"
+pretool_tool "$GU" "$UR" "Write" '{"file_path":"'"$UR"'/docs/b.md","content":"new"}'
+check_exit 2 "$RC" "…a Write under docs/ too"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/.claude/sources/brief-x-census.md","old_string":"c","new_string":"d"}'
+check_exit 0 "$RC" "the census (evidence-class fix) is never gated"
+# the bracket: Task PreToolUse opens it, Task PostToolUse closes it
+pretool_tool "$GU" "$UR" "Task" '{"subagent_type":"lore:doc-reviser","prompt":"apply"}'
+check_exit 0 "$RC" "the reviser's Task PreToolUse never blocks"
+[ -f "$UR/.claude/sources/.reviser-active" ] && pass "…and opens the reviser bracket" || fail "…and opens the reviser bracket"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "inside the bracket: the edit passes"
+posttool_tool "$GU" "$UR" "Task" '{"subagent_type":"lore:doc-reviser","prompt":"apply"}'
+[ ! -f "$UR/.claude/sources/.reviser-active" ] && pass "the reviser's Task PostToolUse closes the bracket" || fail "the reviser's Task PostToolUse closes the bracket"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 2 "$RC" "after the bracket closes: denied again"
+pretool_tool "$GU" "$UR" "Task" '{"subagent_type":"lore:doc-validator","prompt":"check"}'
+[ ! -f "$UR/.claude/sources/.reviser-active" ] && pass "another subagent's Task opens nothing" || fail "another subagent's Task opens nothing"
+# a stale marker (crashed reviser) does not hold the door open
+printf '1000000000\n' >"$UR/.claude/sources/.reviser-active"
+pretool_tool "$GU" "$UR" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 2 "$RC" "a marker older than 30 minutes is ignored"
+rm -f "$UR/.claude/sources/.reviser-active"
+# the reviser's own SubagentStop also closes it
+date -u '+%s' >"$UR/.claude/sources/.reviser-active"
+subagentstop "$UR" '**Files edited:** docs/a.md' "lore:doc-reviser"
+[ ! -f "$UR/.claude/sources/.reviser-active" ] && pass "the reviser's SubagentStop closes the bracket too" || fail "the reviser's SubagentStop closes the bracket too"
+# a runtime that does stamp agent_type lets the reviser through on that alone
+pretool_agent "$GU" "$UR" "lore:doc-reviser" "Edit" '{"file_path":"'"$UR"'/docs/a.md","old_string":"x","new_string":"y"}'
+check_exit 0 "$RC" "agent_type=doc-reviser on the payload passes without a marker"
+NUR=$(mktemp -d); mkdir -p "$NUR/.claude" "$NUR/docs"; printf 'no import\n' >"$NUR/.claude/CLAUDE.md"
+pretool_tool "$GU" "$NUR" "Edit" '{"file_path":"'"$NUR"'/docs/a.md","old_string":"x","new_string":"y"}'
 check_exit 0 "$RC" "a non-Lore repo is never gated"
 
 echo "== the reviser, the validator and the skills agree on the fix contract =="

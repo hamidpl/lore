@@ -83,6 +83,8 @@ case "$agent_type" in
 esac
 if [ "$is_reviser" -eq 1 ]; then
   mkdir -p "$root/.claude/sources" 2>/dev/null || exit 0
+  # the reviser run is over: close the bracket guard-under-review.sh opened
+  rm -f "$root/.claude/sources/.reviser-active" 2>/dev/null
   n=0
   [ -n "$edited" ] && n=$(printf '%s\n' "$edited" | grep -c .)
   printf '%s\t%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')" \

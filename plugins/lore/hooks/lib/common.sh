@@ -191,12 +191,14 @@ lore_ensure_sources_dir() {
   if [ -f "$_gi" ]; then
     # A project scaffolded before the waiver/history artifacts existed has a .gitignore
     # without them — append the missing entries once, then leave the file alone.
-    grep -qF '.validation-waiver' "$_gi" 2>/dev/null && return 0
-    {
-      echo ".validation-waiver"
-      echo ".validator-history"
-      echo ".image-optim"
-    } >>"$_gi" 2>/dev/null || true
+    if ! grep -qF '.validation-waiver' "$_gi" 2>/dev/null; then
+      {
+        echo ".validation-waiver"
+        echo ".validator-history"
+        echo ".image-optim"
+      } >>"$_gi" 2>/dev/null || true
+    fi
+    grep -qF '.reviser-active' "$_gi" 2>/dev/null || echo ".reviser-active" >>"$_gi" 2>/dev/null || true
     return 0
   fi
   {
@@ -207,6 +209,7 @@ lore_ensure_sources_dir() {
     echo ".validation-waiver"
     echo ".docs-touched"
     echo ".image-optim"
+    echo ".reviser-active"
     echo "raw/"
   } >"$_gi" 2>/dev/null || true
   return 0
