@@ -47,6 +47,18 @@ pretool() {
     CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF")
   RC=$?
 }
+# Run a PreToolUse hook with an arbitrary tool: $1 hook, $2 root, $3 tool, $4 inner JSON
+pretool_tool() {
+  OUT=$(printf '{"hook_event_name":"PreToolUse","cwd":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" |
+    CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF")
+  RC=$?
+}
+# Run a PostToolUse hook as if inside a subagent: $1 hook, $2 root, $3 agent_id, $4 tool, $5 inner JSON
+posttool_agent() {
+  printf '{"cwd":"%s","agent_id":"%s","agent_type":"lore:figma-extractor","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" "$5" |
+    CLAUDE_PROJECT_DIR="$2" sh "$1" 2>"$ERRF"
+  RC=$?
+}
 # Run a PostToolUse hook with an arbitrary tool: $1 hook, $2 root, $3 tool, $4 inner JSON
 posttool_tool() {
   printf '{"cwd":"%s","tool_name":"%s","tool_input":%s}' "$2" "$3" "$4" |
@@ -280,6 +292,137 @@ NL=$(mktemp -d); mkdir -p "$NL/.claude"; printf 'no import here\n' >"$NL/.claude
 posttool_tool "$HOOKS/record-evidence.sh" "$NL" "WebFetch" '{"url":"https://nope.example.org/"}'
 check_exit 0 "$RC" "non-Lore repo: exits 0"
 [ ! -e "$NL/.claude/sources" ] && pass "non-Lore repo: nothing written" || fail "non-Lore repo: nothing written"
+
+echo "== record-evidence.sh attributes a fetch to the subagent that made it =="
+# Inside a subagent the runtime puts agent_id on the payload; the log keeps it as field 5
+# so a fetch by one of several parallel workers is attributable. On the main thread the
+# line stays 4 fields — every reader uses NF >= 4 and treats both alike.
+AG=$(mktemp -d); make_lore_project "$AG"
+posttool_agent "$HOOKS/record-evidence.sh" "$AG" "agent-w1" "WebFetch" '{"url":"https://w1.example.org/a"}'
+check_exit 0 "$RC" "a subagent fetch never blocks"
+if awk -F'\t' '$3 ~ /w1\.example\.org/ && NF == 5 && $5 == "agent-w1" { f=1 } END { exit !f }' "$AG/.claude/sources/.evidence-log"; then
+  pass "a subagent fetch is logged with its agent_id as field 5"; else fail "a subagent fetch is logged with its agent_id as field 5"; fi
+posttool_tool "$HOOKS/record-evidence.sh" "$AG" "WebFetch" '{"url":"https://main.example.org/a"}'
+if awk -F'\t' '$3 ~ /main\.example\.org/ && NF == 4 { f=1 } END { exit !f }' "$AG/.claude/sources/.evidence-log"; then
+  pass "a main-thread fetch stays a 4-field line"; else fail "a main-thread fetch stays a 4-field line"; fi
+# An agent_id carrying a tab cannot forge a sha column.
+posttool_agent "$HOOKS/record-evidence.sh" "$AG" 'x\tdeadbeef' "WebFetch" '{"url":"https://tab.example.org/a"}'
+if awk -F'\t' '$3 ~ /tab\.example\.org/ && NF > 5 { f=1 } END { exit !f }' "$AG/.claude/sources/.evidence-log"; then
+  fail "a tab inside agent_id cannot add log fields"; else pass "a tab inside agent_id cannot add log fields"; fi
+
+echo "== lib/common.sh shared evidence helpers =="
+# One writer for the evidence log, one implementation of the sources dir and the
+# fence filter — three private copies used to drift independently.
+LC=$(mktemp -d); make_lore_project "$LC"
+(
+  # shellcheck disable=SC2034
+  input=""
+  . "$HOOKS/lib/common.sh"
+  lore_ensure_sources_dir "$LC" || exit 1
+  lore_append_evidence "$LC" T1 'https://four.example.org/x' verified
+  lore_append_evidence "$LC" T2 'https://five.example.org/x' verified agent-a
+  lore_append_evidence "$LC" T3 'https://six.example.org/x' verified '' 0123456789abcdef
+  lore_append_evidence "$LC" T4 'https://first.example.org/x
+2000-01-01T00:00:00Z	T4	https://forged.example.org/x	verified' verified
+  lore_append_evidence "$LC" T5 '' verified
+  printf 'live\n```\nfenced\n```\nlive2\n' >"$LC/f.md"
+  lore_live_lines "$LC/f.md" >"$LC/live.out"
+) 2>"$ERRF"
+check_exit 0 "$?" "helpers run under sh"
+LOGC="$LC/.claude/sources/.evidence-log"
+check_file_has "$LC/.claude/sources/.gitignore" "evidence-log" "lore_ensure_sources_dir writes the artifact .gitignore"
+if awk -F'\t' '$2=="T1" && NF==4 {a=1} $2=="T2" && NF==5 && $5=="agent-a" {b=1} $2=="T3" && NF==6 && $5=="" && $6=="0123456789abcdef" {c=1} END { exit !(a&&b&&c) }' "$LOGC"; then
+  pass "lore_append_evidence writes 4, 5 or 6 fields as the caller supplies them"; else fail "lore_append_evidence writes 4, 5 or 6 fields as the caller supplies them"; fi
+grep -q 'forged.example.org' "$LOGC" && fail "lore_append_evidence keeps only the first line of detail" || pass "lore_append_evidence keeps only the first line of detail"
+[ "$(grep -c 'T5' "$LOGC")" -eq 0 ] && pass "an empty detail writes nothing" || fail "an empty detail writes nothing"
+[ "$(tr '\n' ' ' <"$LC/live.out")" = "live live2 " ] && pass "lore_live_lines drops fenced blocks" || fail "lore_live_lines drops fenced blocks"
+if grep -ln '^ensure_sources_dir()\|^live_lines() {$' "$HOOKS"/*.sh "$SCRIPTS"/*.sh 2>/dev/null | grep -q .; then
+  fail "no hook or script keeps a private copy of a shared helper"
+else
+  pass "no hook or script keeps a private copy of a shared helper"
+fi
+if grep -l "printf.*>>.*\.evidence-log" "$HOOKS"/*.sh "$SCRIPTS"/*.sh 2>/dev/null | grep -q .; then
+  fail "the evidence log has exactly one writer (lib/common.sh)"
+else
+  pass "the evidence log has exactly one writer (lib/common.sh)"
+fi
+
+echo "== figma-probe.sh evidence line carries the status and the payload digest =="
+# The probe vouches for its own fetch. Its line used to omit the HTTP status it had in
+# hand; now the detail carries `status=NNN` (the host match is untouched) and field 6
+# is the sha-256 of the saved body — what was fetched, not just that something was.
+PB=$(mktemp -d); make_lore_project "$PB"; mkdir -p "$PB/.claude/sources" "$PB/bin"
+cat >"$PB/bin/curl" <<'STUB'
+#!/bin/sh
+out=""
+while [ $# -gt 0 ]; do
+  case "$1" in -o) out=$2; shift ;; esac
+  shift
+done
+printf '{"comments":[{"id":"1"}]}' >"$out"
+printf '200'
+STUB
+chmod +x "$PB/bin/curl"
+(cd "$PB" && PATH="$PB/bin:$PATH" CLAUDE_PROJECT_DIR="$PB" FIGMA_TOKEN=x sh "$SCRIPTS/figma-probe.sh" comments abc123 "$PB/.claude/sources/raw" >"$PB/probe.out" 2>"$ERRF"); RC=$?
+if command -v jq >/dev/null 2>&1; then check_exit 0 "$RC" "stubbed comments probe succeeds"; fi
+PLOG="$PB/.claude/sources/.evidence-log"
+if awk -F'\t' '$2=="figma-probe" && $3 ~ /api\.figma\.com.*status=200/ && $4=="verified" { f=1 } END { exit !f }' "$PLOG"; then
+  pass "the probe logs a verified line carrying status=200"; else fail "the probe logs a verified line carrying status=200"; fi
+want=$(
+  # shellcheck disable=SC2034
+  input=""; . "$HOOKS/lib/common.sh"; lore_sha256 "$PB/.claude/sources/raw/figma-abc123-comments.json"
+)
+if [ -n "$want" ] && awk -F'\t' -v s="$want" '$2=="figma-probe" && NF==6 && $6==s { f=1 } END { exit !f }' "$PLOG"; then
+  pass "field 6 is the sha-256 of the saved payload"; else fail "field 6 is the sha-256 of the saved payload"; fi
+# The census check must still match the host on the new line shape.
+printf '# c\n\n## Run contract\n| ref | instruction | status | evidence |\n| u1 | x | satisfied | y |\n\n## Trusted Sources (§1) coverage\n| ref | source | probe | status | bytes | raw payload | terms | finding |\n| t1 | https://api.figma.com/v1/files/abc123/comments | GET | 200 | 10 | .claude/sources/raw/figma-abc123-comments.json | a | b |\n' >"$PB/.claude/sources/figma-abc123-census.md"
+posttool "$HOOKS/check-census.sh" "$PB" "$PB/.claude/sources/figma-abc123-census.md"
+check_exit 0 "$RC" "check-census.sh accepts a verified 6-field probe line as the receipt"
+
+echo "== check-citation-loss.sh (PreToolUse) =="
+# The one revision damage class no prompt-level rule reliably prevents: a citation
+# vanishing during a fix. Deterministic here because the evidence log is hook-written.
+CL=$(mktemp -d); make_lore_project "$CL"; mkdir -p "$CL/docs" "$CL/.claude/sources"
+printf '%s\t%s\t%s\t%s\n' 2026-01-01T00:00:00Z WebFetch https://help.example.org/rules verified >"$CL/.claude/sources/.evidence-log"
+printf '%s\t%s\t%s\t%s\n' 2026-01-01T00:00:00Z Bash https://seen.example.org/x mentioned >>"$CL/.claude/sources/.evidence-log"
+printf 'Intro.\n\nRule A ([source](https://help.example.org/rules)).\n\nRule B ([note](https://seen.example.org/x)).\n' >"$CL/docs/page.md"
+
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Edit" \
+  '{"file_path":"'"$CL"'/docs/page.md","old_string":"Rule A ([source](https://help.example.org/rules)).","new_string":"Rule A."}'
+check_exit 2 "$RC" "dropping a verified-host citation is blocked"
+check_stderr "§0.1" "the block names §0.1"
+check_stderr "help.example.org" "the block names the lost citation"
+
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Edit" \
+  '{"file_path":"'"$CL"'/docs/page.md","old_string":"Rule B ([note](https://seen.example.org/x)).","new_string":"Rule B."}'
+check_exit 0 "$RC" "a mentioned-only URL is not a receipt: removing it passes"
+
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Edit" \
+  '{"file_path":"'"$CL"'/docs/page.md","old_string":"Rule A ([source](https://help.example.org/rules)).","new_string":"Rule A applies ([source](https://help.example.org/rules))."}'
+check_exit 0 "$RC" "rewording around a kept citation passes"
+
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Edit" \
+  '{"file_path":"'"$CL"'/docs/page.md","old_string":"Rule A ([source](https://help.example.org/rules)).\n\nRule B","new_string":"Rule A.\n\nSee https://help.example.org/rules.\n\nRule B"}'
+check_exit 0 "$RC" "moving a citation within the file passes"
+
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Write" \
+  '{"file_path":"'"$CL"'/docs/page.md","content":"Intro.\n\nRule A.\n"}'
+check_exit 2 "$RC" "a Write that drops a verified-host citation is blocked"
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Write" \
+  '{"file_path":"'"$CL"'/docs/page.md","content":"Intro.\n\nRule A ([source](https://help.example.org/rules)).\n"}'
+check_exit 0 "$RC" "a Write that keeps every verified citation passes"
+
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Write" \
+  '{"file_path":"'"$CL"'/docs/new.md","content":"fresh page"}'
+check_exit 0 "$RC" "a new file removes nothing"
+cp "$CL/docs/page.md" "$CL/notes.md"
+pretool_tool "$HOOKS/check-citation-loss.sh" "$CL" "Edit" \
+  '{"file_path":"'"$CL"'/notes.md","old_string":"Rule A ([source](https://help.example.org/rules)).","new_string":"Rule A."}'
+check_exit 0 "$RC" "a file outside docs/ is never gated"
+NLC=$(mktemp -d); mkdir -p "$NLC/.claude" "$NLC/docs"; printf 'no import\n' >"$NLC/.claude/CLAUDE.md"; cp "$CL/docs/page.md" "$NLC/docs/"
+pretool_tool "$HOOKS/check-citation-loss.sh" "$NLC" "Edit" \
+  '{"file_path":"'"$NLC"'/docs/page.md","old_string":"Rule A ([source](https://help.example.org/rules)).","new_string":"Rule A."}'
+check_exit 0 "$RC" "a non-Lore repo is never gated"
 
 echo "== record-validator-run.sh (SubagentStop) =="
 subagentstop "$E" "Recommendation: APPROVED"
@@ -1243,7 +1386,7 @@ if command -v jq >/dev/null 2>&1; then
     fail "every hook hooks.json wires up exists and is executable —$miss"
 
   n=$(printf '%s\n' "$wired" | grep -c .)
-  [ "$n" -ge 9 ] && pass "the wiring check covers all $n wired hooks" ||
+  [ "$n" -ge 10 ] && pass "the wiring check covers all $n wired hooks" ||
     fail "the wiring check covers all wired hooks (found only $n)"
 else
   pass "hooks.json wiring check skipped (jq unavailable)"

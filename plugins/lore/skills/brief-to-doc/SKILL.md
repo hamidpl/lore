@@ -26,7 +26,7 @@ You are creating product documentation from textual requirements (briefs, epics,
 
 This is the brief-specific expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources). Before writing:
 
-0. **Write the Run contract first (§0.4).** Before reading anything, capture every explicit instruction the user gave for this run as a `[u#]` row — for a brief that typically means features to prioritise, sections to skip, or an audience to write for.
+0. **Write the Run contract first (§0.4).** Before any payload is read — before the brief itself is opened — capture every explicit instruction the user gave for this run as a `[u#]` row — for a brief that typically means features to prioritise, sections to skip, or an audience to write for.
 1. **Read the entire brief/epic** from start to finish.
 2. **Identify all user stories** / feature requirements.
 3. **Extract acceptance criteria** — these become business rules.

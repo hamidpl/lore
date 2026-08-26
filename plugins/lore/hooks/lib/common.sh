@@ -25,6 +25,10 @@
 #   lore_sha256 <file>          → 64-hex sha-256 of the file's content, or nothing
 #   $_sha_tool                  → "sha256sum" | "shasum" | "openssl" | "" (empty = callers
 #                                 degrade to their pre-digest behaviour, never crash)
+#   lore_ensure_sources_dir <root>   → creates .claude/sources + its .gitignore; 1 on failure
+#   lore_live_lines <file>           → every non-fenced line (a quoted example is not a claim)
+#   lore_append_evidence <root> <tool> <detail> <tier> [agent] [sha]
+#                               → appends ONE sanitised line to .claude/sources/.evidence-log
 #
 # shellcheck disable=SC2154   # $input is the caller's, by contract (see above)
 
@@ -176,6 +180,76 @@ lore_carved_out() {
     .claude/*|templates/*|_templates/*) return 0 ;;
   esac
   return 1
+}
+
+# lore_ensure_sources_dir <root> — create the evidence dir and keep its run artifacts
+# out of git; the census itself stays committed. Used to be private to
+# record-evidence.sh; figma-probe.sh and every later recorder need the same thing.
+lore_ensure_sources_dir() {
+  mkdir -p "$1/.claude/sources" 2>/dev/null || return 1
+  _gi="$1/.claude/sources/.gitignore"
+  if [ -f "$_gi" ]; then
+    # A project scaffolded before the waiver/history artifacts existed has a .gitignore
+    # without them — append the missing entries once, then leave the file alone.
+    grep -qF '.validation-waiver' "$_gi" 2>/dev/null && return 0
+    {
+      echo ".validation-waiver"
+      echo ".validator-history"
+      echo ".image-optim"
+    } >>"$_gi" 2>/dev/null || true
+    return 0
+  fi
+  {
+    echo "# Run artifacts backing the census receipts (DoD 0.1). Not committed."
+    echo ".evidence-log"
+    echo ".validator-receipt"
+    echo ".validator-history"
+    echo ".validation-waiver"
+    echo ".docs-touched"
+    echo ".image-optim"
+    echo "raw/"
+  } >"$_gi" 2>/dev/null || true
+  return 0
+}
+
+# lore_live_lines <file> — every non-fenced line, so a row check never judges a quoted
+# example. Shared by check-census.sh and check-citation-loss.sh.
+lore_live_lines() {
+  awk '/^```/ { fence = !fence; next } !fence { print }' "$1" 2>/dev/null
+}
+
+# lore_append_evidence <root> <tool> <detail> <tier> [agent] [sha]
+#
+# THE ONE WRITER of .claude/sources/.evidence-log. Three private copies of this printf
+# used to exist (record-evidence.sh, figma-probe.sh, …) and each had to remember the
+# same sanitisation. Line shape, TAB-separated:
+#
+#   iso8601  tool  detail  tier  [agent]  [sha]
+#
+# Fields 5–6 are optional and only written when a caller has them: `agent` is the
+# subagent id the runtime put on the hook payload (who fetched), `sha` the sha-256 of
+# the raw payload saved on disk (what was fetched). Every reader uses `NF >= 4`, so a
+# 4-, 5- or 6-field line is read the same way; a 3-field line predates tiering.
+#
+# Sanitisation is here, not at the call sites: only the FIRST line of `detail` is kept
+# (an embedded newline once appended a second, forged entry), and every control
+# character is stripped from every field (an embedded tab forged the tier column).
+lore_append_evidence() {
+  _root=$1
+  _d=$(printf '%s' "$3" | head -n 1 | tr -d '\000-\037')
+  [ -n "$_d" ] || return 0
+  _t=$(printf '%s' "$2" | tr -d '\000-\037')
+  _tier=$(printf '%s' "$4" | tr -d '\000-\037')
+  _a=$(printf '%s' "${5:-}" | tr -d '\000-\037')
+  _s=$(printf '%s' "${6:-}" | tr -d '\000-\037')
+  _ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')
+  _line=$(printf '%s\t%s\t%s\t%s' "$_ts" "$_t" "$_d" "$_tier")
+  if [ -n "$_s" ]; then
+    _line=$(printf '%s\t%s\t%s' "$_line" "$_a" "$_s")
+  elif [ -n "$_a" ]; then
+    _line=$(printf '%s\t%s' "$_line" "$_a")
+  fi
+  printf '%s\n' "$_line" >>"$_root/.claude/sources/.evidence-log" 2>/dev/null || true
 }
 
 true

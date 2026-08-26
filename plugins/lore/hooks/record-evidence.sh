@@ -14,7 +14,14 @@
 # NEVER BLOCKS — always exit 0. This is a recorder, not a gate.
 #
 # Log: .claude/sources/.evidence-log
-#   TAB-separated: iso8601, tool, detail, TIER
+#   TAB-separated: iso8601, tool, detail, TIER, [agent], [sha]   (written via
+#   lore_append_evidence in lib/common.sh — the single writer of this file)
+#
+# AGENT COLUMN. When the tool call happened inside a subagent, the runtime puts an
+# `agent_id` on the hook payload (Claude Code ≥ 2.1.69) and it is recorded as field 5,
+# so a fetch made by one of several parallel extraction workers is attributable to
+# that worker. Absent the field (main thread, or an older runtime) the line has 4
+# fields; every reader uses `NF >= 4`, so both shapes are read the same way.
 #
 # TIERS. Not every entry is a fetch. `verified` means a fetching tool actually ran:
 # WebFetch, a browser navigation, a subagent. `mentioned` means a URL merely appeared
@@ -56,34 +63,8 @@ cwd=$(json_field 'cwd')
 root=$(lore_root "$cwd")
 lore_is_project "$root" || exit 0
 
-# Create the evidence dir and keep its run artifacts out of git; the census itself
-# stays committed.
-ensure_sources_dir() {
-  mkdir -p "$root/.claude/sources" 2>/dev/null || return 1
-  gi="$root/.claude/sources/.gitignore"
-  if [ -f "$gi" ]; then
-    # A project scaffolded before the waiver/history artifacts existed has a .gitignore
-    # without them — append the missing entries once, then leave the file alone.
-    grep -qF '.validation-waiver' "$gi" 2>/dev/null && return 0
-    {
-      echo ".validation-waiver"
-      echo ".validator-history"
-      echo ".image-optim"
-    } >>"$gi" 2>/dev/null || true
-    return 0
-  fi
-  {
-    echo "# Run artifacts backing the census receipts (DoD 0.1). Not committed."
-    echo ".evidence-log"
-    echo ".validator-receipt"
-    echo ".validator-history"
-    echo ".validation-waiver"
-    echo ".docs-touched"
-    echo ".image-optim"
-    echo "raw/"
-  } >"$gi" 2>/dev/null || true
-  return 0
-}
+# Who is fetching: empty on the main thread, the subagent id inside a subagent.
+agent=$(json_field 'agent_id')
 
 # --- what to record, per tool ---
 # WebFetch / browser navigation → the URL. Task → the subagent type. Bash → any URL
@@ -117,7 +98,7 @@ case "$tool" in
     case "${fp#"$root"/}" in
       docs/*)
         [ -n "$sid" ] || sid="unknown-session"
-        ensure_sources_dir || exit 0
+        lore_ensure_sources_dir "$root" || exit 0
         touched="$root/.claude/sources/.docs-touched"
         grep -qxF "$sid" "$touched" 2>/dev/null || printf '%s\n' "$sid" >>"$touched" 2>/dev/null
         ;;
@@ -132,30 +113,20 @@ esac
 
 [ -n "$detail" ] || exit 0
 
-# Only the Bash branch is legitimately multi-line — grep emits one URL per line. For
-# every other tool the value comes straight from tool input, so a URL carrying an
-# embedded newline used to become TWO log lines, the second one a forged entry for a
-# host never contacted, in the very record the census is checked against. A URL has no
-# newline in it: keep the first line and drop the rest.
+# Only the Bash branch is legitimately multi-line — grep emits one URL per line, and
+# each becomes its own entry. For every other tool the value comes straight from tool
+# input, and lore_append_evidence keeps only its first line: a URL carrying an embedded
+# newline used to become TWO log lines, the second one a forged entry for a host never
+# contacted, in the very record the census is checked against.
 case "$tool" in
   Bash) : ;;
   *) detail=$(printf '%s' "$detail" | head -n 1) ;;
 esac
 
-ensure_sources_dir || exit 0
+lore_ensure_sources_dir "$root" || exit 0
 
-ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')
-log="$root/.claude/sources/.evidence-log"
-
-# One line per detail value (Bash may yield several URLs). TAB-separated.
-#
-# Every remaining control character is stripped per line — the fields are tab-separated,
-# so an embedded tab would forge the tier column the same way an embedded newline forged
-# a whole entry.
 printf '%s\n' "$detail" | while IFS= read -r d; do
-  d=$(printf '%s' "$d" | tr -d '\000-\037')
-  [ -n "$d" ] || continue
-  printf '%s\t%s\t%s\t%s\n' "$ts" "$tool" "$d" "$tier" >>"$log" 2>/dev/null || true
+  lore_append_evidence "$root" "$tool" "$d" "$tier" "$agent"
 done
 
 exit 0

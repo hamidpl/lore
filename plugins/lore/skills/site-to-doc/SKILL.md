@@ -27,7 +27,7 @@ You document features by **driving a real browser** through the live product: yo
 
 This is the live-site expansion of `CLAUDE.md` Section 0 (Exhaust Every Source) and Section 1 (Trusted Sources). Complete IN ORDER before writing:
 
-0. **Write the Run contract first (§0.4).** Before any browsing, capture every explicit instruction the user gave for this run as a `[u#]` row — for a live site that typically means extra states to cover ("check the signed-in view too"), viewports, roles, or areas to skip.
+0. **Write the Run contract first (§0.4).** Before any payload is read — that is, before any browsing — capture every explicit instruction the user gave for this run as a `[u#]` row — for a live site that typically means extra states to cover ("check the signed-in view too"), viewports, roles, or areas to skip.
 1. **Browser tooling available?** Confirm the **Playwright MCP** browser tools are reachable (look for a `browser_navigate` / `browser_snapshot` tool). If they are not, **stop** and give the user the one-line install command, then wait:
    ```
    claude mcp add playwright -- npx @playwright/mcp@latest

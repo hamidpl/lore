@@ -162,11 +162,18 @@ bytes=$(wc -c <"$raw" 2>/dev/null | tr -d ' ')
 # `mentioned`, which the census check does not accept. Here we have an actual HTTP status
 # in hand, so the probe vouches for itself. Recorded whatever the status: an observed 403
 # is exactly the evidence §0.3 demands before calling a source inaccessible.
-_ev="${CLAUDE_PROJECT_DIR:-.}/.claude/sources/.evidence-log"
-if [ -d "$(dirname "$_ev")" ]; then
-  printf '%s\tfigma-probe\thttps://api.figma.com%s\tverified\n' \
-    "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo unknown)" "$path" \
-    >>"$_ev" 2>/dev/null || true
+#
+# The line carries the status (`status=NNN` in the detail, so the host match the census
+# check does is untouched) and the sha-256 of the saved payload as field 6 — what was
+# fetched, not just that something was. Written through the shared helper so the log has
+# one writer; the library is optional here because the probe must also run standalone.
+_root="${CLAUDE_PROJECT_DIR:-.}"
+_lib="$(dirname "$0")/../hooks/lib/common.sh"
+if [ -d "$_root/.claude/sources" ] && [ -r "$_lib" ]; then
+  # shellcheck source=../hooks/lib/common.sh
+  . "$_lib"
+  lore_append_evidence "$_root" figma-probe "https://api.figma.com$path status=$status" verified \
+    "" "$(lore_sha256 "$raw")"
 fi
 
 if [ "$status" != "200" ]; then
