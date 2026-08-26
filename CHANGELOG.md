@@ -9,6 +9,131 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
+## 1.0.0
+
+**0.9.0 named the problem: the loop is the fixing, not the validating. This release
+gives the fixing an owner.** The rules that came out of that incident — batch the
+fixes, don't edit under review, stop after two self-feeding rounds — were prose, and
+prose is enforced by nothing. Measured during this release: in both of the first runs
+where the routing rule existed only as a sentence, the agent read it and then applied
+the batch itself anyway. Everything below follows from making those rules deterministic
+instead of hoping.
+
+This is also the first stable release. From here, breaking changes land only in a major.
+
+### The fixing has an owner: `lore:doc-reviser`
+
+A new subagent — the only one in this release, deliberately. It receives the
+validator's report as **someone else's work order**, applies every mechanical and
+content finding of a round as **one batch**, and edits only the files and sections each
+finding names, one exact occurrence at a time.
+
+- **It cannot fetch, and cannot create files** (`tools: Read, Edit, Grep, Glob`). That
+  is the point: the one class of defect a fixer with no network can never introduce is
+  a fabricated source. A finding that needs new evidence is not a revision — it is
+  unfinished extraction, and it goes back there.
+- **It re-opens the evidence before applying a fix**, and returns the finding
+  *unapplied* when the payload contradicts it. A validator's proposed fix is a claim
+  like any other.
+- **Findings are routed by class.** Every `Required Action` now carries
+  `Class / Targets / Evidence / Counter / Severity / Fix` (canonical in the
+  `lore:doc-reviewer` skill). `mechanical` and `content` go to the reviser, `evidence`
+  back to source collection, `decision` to the user. **A blocking finding with no
+  `Evidence:` entry no longer counts toward the verdict.**
+
+**Why not let the writer fix its own page:** the research behind this release measured
+that revision by the authoring context breaks about a third of previously-correct
+content per round, and that *narrower* one-at-a-time feedback breaks **more**, not
+less — 32% at one finding per round against 19% at four. Hence: batch the *what*,
+constrain the *where*.
+
+### Three rules that were prose are now denials
+
+- **`guard-under-review.sh`** — while the standing verdict is BLOCKED, an edit to
+  `docs/` is refused unless it happens inside a reviser run. The run is bracketed by a
+  hook-written marker on the reviser's own `Task` call, not by subagent metadata, so
+  the rule holds on every Claude Code version. A green verdict lifts it immediately and
+  the existing change gate takes over.
+- **`check-citation-loss.sh`** — an edit that would drop a URL whose fetch is in the
+  evidence log is refused. Citation loss during revision is the one damage class no
+  prompt-level mitigation cured in the literature, and it is deterministic here only
+  because the log is hook-written. Judged against the whole file, so a citation *moved*
+  between sections survives; a host the log only ever saw `mentioned` is not a receipt
+  and is not gated.
+- **`guard-reviser-edit.sh`** — denies the reviser a `Write`, a `replace_all`, or any
+  path outside `docs/`. Where the runtime does not expose which agent is editing, this
+  one degrades to prose; its inability to fetch is enforced everywhere by its tool grant.
+
+### The evidence log has one writer, and says who fetched what
+
+`lore_append_evidence` in `hooks/lib/common.sh` is now the single writer of
+`.claude/sources/.evidence-log`; three private copies of that `printf` used to drift
+independently. The line grew two optional columns —
+`ts  tool  detail  tier  [agent]  [sha]`:
+
+- **`agent`** is the subagent id the runtime stamps on a hook payload, so a fetch made
+  by one of several extraction workers is attributable to that worker.
+- **`sha`** is the digest of the saved payload, and `figma-probe.sh` now also records
+  the HTTP status it had in hand. A receipt proves *what* came back, not just that
+  something did.
+
+Every reader uses `NF >= 4`, so 4-, 5- and 6-field lines are read alike and older logs
+keep working.
+
+### Figma extraction can fan out — and by default does not
+
+`require-worker-evidence.sh` refuses to let an extraction worker finish while nothing
+backs what it is about to report: no saved payload on disk, no fetch attributed to it.
+A worker returns a summary, and a summary with no receipt is exactly what the evidence
+model exists to refuse. The merge is deterministic — concatenate the receipt lines, sum
+the counts, one row per payload path, disagreements become anomaly rows, and a scope
+that came back empty is re-run sequentially rather than filled from memory.
+
+**But fan-out is opt-in, because it was measured and it lost.** Three parallel workers
+against a 36-frame file took **877 s and $3.98** where a single pass took **459 s and
+$1.50** — 1.9× slower at 2.7× the cost, with every mechanic working correctly. A
+worker's turns dominate at that size, not the API's latency. The regime where it pays
+is unmeasured, and the skill says so; `lore:site-explorer` is never fanned out, because
+every site worker would share one browser session.
+
+### Two defects the release's own experiment surfaced
+
+- **The verdict parser mis-recorded a green round.** A scoped re-validation that
+  recounted the previous round — "Previous verdict: BLOCKED", or a round-summary table
+  row — was recorded as BLOCKED although it recommended APPROVED, and the loop paid a
+  whole extra round for it. The last verdict-opening line now wins, and table rows never
+  set a verdict.
+- **The overclaim tripwire was watching the wrong files.** Both READMEs promised more
+  than the architecture can deliver — that the evidence gates leave a skipped source
+  nowhere to stay hidden — which contradicts this project's own threat model, where
+  unforgeability is explicitly not a property it can have. The test that should have
+  caught it never scanned the root README, the most public file in the repo. Reworded
+  to what the gates actually do, and the tripwire now covers both READMEs and the
+  documentation site in either language.
+
+### Documentation
+
+The public documentation now describes what the plugin actually does: `lore:doc-reviser`
+and the two new blocking gates are documented on the site in **English and Persian**,
+including why the fixer is not the writer and how findings are routed. Two limits were
+added rather than smoothed over — a receipt records the fetch and not the source's later
+life, and some reviser rules rest on instruction where the runtime does not expose the
+editing agent. Beta wording is retired throughout, and the versioning pages now state
+what a patch, a minor and a major may each change.
+
+### How this was verified
+
+- **401 automated checks** (up from 334), shellcheck clean, `claude plugin validate`
+  passing, and both sites building — documentation in `en` and `fa`, landing.
+- **A measured pilot, not a claim.** Two arms — the 0.9.0 loop against this one — over
+  three real documentation projects, three injected defects each, two runs per arm: the
+  new loop fixed **18/18** planted defects against **16/18**, with **zero** reaching a
+  green verdict against **two**, no harmful fixes and no citations lost in either arm,
+  at +18% cost and +7% wall-clock. That is a pilot at n=6 runs per arm on brief-based
+  fixtures, and the reviser's headline benefit — less collateral damage — was *not*
+  demonstrated, only not contradicted: neither arm produced a harmful fix at this defect
+  size. It is reported as evidence, not as proof.
+
 ## 0.9.0
 
 **The validation loop was self-feeding, and the tooling could not tell.** One real
