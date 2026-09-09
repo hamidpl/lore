@@ -1,6 +1,6 @@
 {
   "theme.ErrorPageContent.title": {
-    "message": "بارگذاری صفحه با خطا روبرو شد.",
+    "message": "بارگذاری صفحه با خطا روبه‌رو شد.",
     "description": "The title of the fallback page when the page crashed"
   },
   "theme.BackToTopButton.buttonAriaLabel": {
@@ -28,7 +28,7 @@
     "description": "The label used to navigate to the older blog posts page (next page)"
   },
   "theme.blog.post.paginator.navAriaLabel": {
-    "message": "کنترل پست‌های صفحه وبلاگ",
+    "message": "کنترل پست‌های صفحه‌ی وبلاگ",
     "description": "The ARIA label for the blog posts pagination"
   },
   "theme.blog.post.paginator.newerPost": {
@@ -95,7 +95,7 @@
     "description": "The label used to tell the user that he's browsing an unreleased doc version"
   },
   "theme.docs.versions.unmaintainedVersionLabel": {
-    "message": "نسخه {siteTitle} {versionLabel} دیگر به روز رسانی نمی شود.",
+    "message": "نسخه {siteTitle} {versionLabel} دیگر به‌روزرسانی نمی‌شود.",
     "description": "The label used to tell the user that he's browsing an unmaintained doc version"
   },
   "theme.docs.versions.latestVersionSuggestionLabel": {
@@ -203,7 +203,7 @@
     "description": "The label used in blog post item excerpts to link to full blog posts"
   },
   "theme.blog.post.readMoreLabel": {
-    "message": "درباره {title} بیشتر بخوانید",
+    "message": "درباره‌ی {title} بیشتر بخوانید",
     "description": "The ARIA label for the link to full blog posts from excerpts"
   },
   "theme.blog.post.readingTime.plurals": {
@@ -299,7 +299,7 @@
     "description": "The unlisted content banner title"
   },
   "theme.contentVisibility.unlistedBanner.message": {
-    "message": "این صفحه فهرست نشده است. موتورهای جستجو آن را ایندکس نمی کنند و فقط کاربرانی که لینک مستقیم دارند می توانند به آن دسترسی داشته باشند.",
+    "message": "این صفحه فهرست نشده است. موتورهای جست‌وجو آن را ایندکس نمی‌کنند و فقط کاربرانی که لینک مستقیم دارند می‌توانند به آن دسترسی داشته باشند.",
     "description": "The unlisted content banner message"
   },
   "theme.contentVisibility.draftBanner.title": {
