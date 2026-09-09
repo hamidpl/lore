@@ -9,6 +9,71 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
+## 1.1.0
+
+**Persian documentation written from English sources reads as translated long after
+the translation is accurate.** Punctuation habits and sentence shapes carry over, and
+nothing in the methodology said anything about it — §7 asked only that the content be
+in the project's language. This release adds the missing half, and it adds it as a
+*reference* rather than as rules of Lore's own.
+
+### §7 defers prose to the language's own writing skill
+
+There is a good open skill for exactly this problem
+([`persian-writing`](https://github.com/ali2000hos/persian-writing), MIT). Wiring it in
+as a plugin dependency would be wrong twice over: it is 13 MB against Lore's 780 KB,
+which every English-only project would pay, and vendoring its rules would fork them and
+break Rule 4. So §7 gains a **conditional reference** instead — when a skill covering
+the configured documentation language is available in the session, it is the authority
+on that language's prose and orthography, and the methodology restates none of it.
+Skills already cite §7 by number, so this reaches every producer with no skill edits.
+
+**What Lore keeps is only what a general language skill cannot know:** the constraints
+Lore's own output format imposes. For a right-to-left language that is two rows, both
+learned from a measured run over this repo's own Persian docs:
+
+- **Ordered-list markers stay ASCII** (`1.`, never `۱.`). CommonMark recognises only
+  `0-9` as a marker, so a localised one renders as literal text and the list stops
+  being a list. Persian digits in headings and prose are correct and stay.
+- **The `U+200F` RLM before a neutral-opening token has to survive** (`/lore:init`, or
+  a code span whose content starts with `/`). The bidi algorithm gives a leading
+  neutral the paragraph direction and flips the token. An RLM before a strong-LTR
+  letter is inert and can go.
+
+A language skill's own automation is **advisory, not authoritative**: run its checker,
+read each finding, never run a bulk auto-fixer over the tree. Two classes of false
+positive are known to reach *correct* text — a substring match with no word boundary,
+and a whitespace normaliser that ignores fenced code blocks.
+
+Absent any such skill, the floor is the language's own punctuation, digits and
+word-joining conventions, and no punctuation pattern carried over from English merely
+because the source text used it.
+
+**Expected, not blocking.** Nothing can judge whether prose reads natively — marking it
+⛔ would claim an enforcement that does not exist. The two format rows above *are*
+checkable, and `lore:doc-reviewer` now runs them: its §7 row reports a localised
+ordered-list marker and a missing RLM before a neutral-opening token as **warnings**,
+citing §7 rather than restating it. Whether the prose itself reads natively is
+explicitly not the validator's to judge.
+
+### Site documentation
+
+- **`review-and-validate` contradicted `enforcement-hooks`** — one said every fix is
+  made by the main agent, the other that edits go through `lore:doc-reviser`. The first
+  was a 0.9.0 sentence that 1.0.0 superseded, and nothing caught it because neither
+  page is the canonical home for the rule. The page now matches the methodology, and
+  keeps the reason the old sentence was worth writing: the actor that produced a claim
+  is the worst-placed to judge what to change.
+- **`multilingual-rtl` covered layout only**, which is half the story. It now states
+  the deferral above, names `persian-writing`, gives the two constraints Lore keeps,
+  and repeats the advisory-linter warning.
+- **The Persian documentation was rewritten as native Persian prose**, under the rules
+  above rather than translated after: zero em dashes, zero explicit kasras, linter
+  clean. Heading parity with the English holds across every page.
+- Two stale facts corrected in `CLAUDE.md`.
+
+**Verified:** `sh tests/run-tests.sh` passes; production build passes for both locales.
+
 ## 1.0.0
 
 **0.9.0 named the problem: the loop is the fixing, not the validating. This release
