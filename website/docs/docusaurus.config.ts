@@ -1,11 +1,15 @@
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js — don't use client-side code here (browser APIs, JSX...).
 
-// Resolved at build time from the latest git tag (e.g. v0.3.1), with a fallback.
+// Resolved at build time from the latest git tag (e.g. v1.0.0). When git or its
+// tags are unavailable (a shallow CI clone, a tarball), fall back to the plugin
+// manifest rather than a hardcoded string -- per Rule 4 the version has exactly
+// two canonical homes, and a third copy here would silently go stale.
 function getVersion(): string {
   try {
     const tag = execSync('git describe --tags --abbrev=0', {
@@ -16,7 +20,9 @@ function getVersion(): string {
   } catch {
     /* no git / no tags */
   }
-  return '0.3.1';
+  return JSON.parse(
+    readFileSync('../../plugins/lore/.claude-plugin/plugin.json', 'utf8'),
+  ).version;
 }
 
 const VERSION = getVersion();
