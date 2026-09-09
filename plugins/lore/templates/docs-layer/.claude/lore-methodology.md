@@ -247,6 +247,22 @@ Terminology must match existing docs; UI labels and behaviors must exactly match
 | File names | English (lowercase, hyphens) |
 | Directory names | English (lowercase, hyphens) |
 | Writing style | Product-oriented, business-focused, non-marketing |
+| House style for that language | A writing skill for the documentation language, when one is available — see below |
+
+**Defer on prose; own the format.** When a skill covering the configured documentation language is available in the session — for Persian, [`persian-writing`](https://github.com/ali2000hos/persian-writing) — it is the authority on that language's prose and orthography, and this file does not restate its rules (Rule 4). What Lore keeps is only what such a skill cannot know: the constraints Lore's *own output format* imposes on that language.
+
+For a right-to-left language those are:
+
+| Constraint | Why it is Lore's and not the language skill's |
+|---|---|
+| Ordered-list markers stay ASCII (`1.`, never `۱.`) | CommonMark recognises only `0-9` as a list marker, so a localised one renders as literal text and the list stops being a list. Digits in headings and prose follow the language skill, not this row. |
+| Keep the `U+200F` RLM before a token that opens with a neutral character (`/lore:init`, or a code span whose content starts with `/`) | The bidi algorithm gives a leading neutral the paragraph direction and flips the token. Needed only where no stylesheet isolates inline-code direction — check that before removing one, and drop RLMs that precede a strong-LTR letter, which do nothing. |
+
+A language skill's own automation is advisory, not authoritative: run its checker, but read each finding before applying it, and never run a bulk auto-fixer over the tree. Two classes of false positive are known to reach *correct* text — a substring match with no word boundary, and a whitespace normaliser that does not respect fenced code blocks.
+
+Absent any such skill, the floor is: the language's own punctuation, digits and word-joining conventions, and no punctuation pattern carried over from English merely because the source text used it.
+
+**Expected, not blocking.** Nothing can judge whether prose reads natively — marking it ⛔ would claim an enforcement that does not exist. The two format rows above *are* checkable, and §6 covers them.
 
 ### Section 8 — Mandatory Final Report (Expected)
 
