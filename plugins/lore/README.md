@@ -28,47 +28,47 @@ This directory is the plugin itself. The repository that contains it is also its
 
 ## What Lore runs, sends, and writes
 
-Lore has no telemetry and no server of its own: nothing it does reports back to its author.
+Lore has no telemetry and no server of its own.
 
-**Hooks run locally and never touch the network.** Every hook in `hooks/hooks.json` is a
-POSIX shell script that reads the hook payload (via `jq` or `python3`) and files in your
-project. Each one exits immediately unless the project is a Lore docs project — one whose
-`.claude/CLAUDE.md` imports `@lore-methodology.md` — so in any other repository they do nothing.
+**Hooks.** Every hook is a local POSIX shell script that reads the hook payload and files in
+your project; none makes a network request. Outside a Lore docs project every hook exits
+immediately — see [scope and safety](https://docs.lorekit.net/concepts/enforcement-hooks#scope-and-safety).
 
-**Network requests happen only for work you ask for:**
+**Network.** Requests happen during the skills and commands you run:
 
-- **`lore:figma-to-doc`** reads the Figma file through the Figma MCP server you configured, or
-  through `scripts/figma-probe.sh`, which calls the Figma REST API (`https://api.figma.com`)
-  with the personal access token you provide in `FIGMA_TOKEN`. The token is sent only to Figma
-  and is never printed or written to disk. Responses are saved under `.claude/sources/raw/`,
-  which the scaffolded `.gitignore` excludes.
-- **`lore:site-to-doc`** drives a browser through the Playwright MCP server you install, and
-  visits only the site you name. Screenshots are saved to `static/img/`. Login state lives in
-  Playwright's own browser profile; if you choose to export it, it goes to `.claude/.auth/`,
-  which the scaffolded `.gitignore` excludes.
-- **Trusted sources** you list in your project are fetched with Claude Code's own tools
-  (such as WebFetch), with Claude Code's usual permission prompts.
-- **`/lore:add-docusaurus`** downloads the latest Docusaurus from the npm registry
-  (`npx create-docusaurus@latest`, then `npm install`) — only when you run that command.
+- **`lore:figma-to-doc`** reads Figma through your Figma MCP server or the Figma REST API
+  (`api.figma.com`), authenticated by the `FIGMA_TOKEN` environment variable. Lore's script
+  sends the token only to Figma and never echoes it or writes it to a file. Set it with
+  `export` in your shell, not in the chat.
+- **`lore:site-to-doc`** drives a browser through your Playwright MCP server on the site you
+  name — which, like any browser, also loads whatever that site loads.
+- **Trusted sources** listed in your project are fetched with Claude Code's own tools, under
+  its permission prompts.
+- **`lore:doc-validator`** runs before every delivery and re-checks the HTTP status of the
+  sources a run claims to have read. It requests status and headers only and saves nothing.
+- **`/lore:add-docusaurus`** downloads Docusaurus from the npm registry.
 
-**Files written in your project:**
+What a skill fetches is set by its instructions to the model, not enforced by code: a skill
+is told which sources to read, not prevented from reading others.
 
-- `/lore:init` scaffolds the docs project (`.claude/`, `docs/`, `templates/`, `README.md`,
-  `.gitignore`). It never overwrites an existing file; `.gitignore` is merged by appending
-  missing lines only. The scaffolded `.claude/settings.json` registers this marketplace and
-  enables the plugin, so collaborators on the repository get the same rules.
-- On session start, a hook keeps `.claude/lore-methodology.md` identical to the installed
-  plugin's copy. Lore owns that file; you don't edit it.
-- Hooks keep local bookkeeping under `.claude/sources/` — which sources were actually
-  fetched (`.evidence-log`) and which validator verdict covers the current content
-  (`.validator-receipt`, `.validator-history`). They are plain text files in your repository.
-- `scripts/optimize-images.sh` recompresses captured PNGs in place with `pngquant`, `oxipng`
-  or `optipng` when one is installed, and changes nothing when none is.
+**Files.**
 
-**Permissions.** Lore never changes Claude Code's permission settings on its own.
-`lore:site-to-doc` *offers* to add `mcp__playwright` to `permissions.allow` in your project's
-`.claude/settings.json` so a browser run is not interrupted by a prompt at every step; it does
-so only if you agree, and you can remove it any time with `/permissions`.
+- `/lore:init` scaffolds the docs project and never overwrites an existing file — see
+  [template layers](https://docs.lorekit.net/reference/template-layers). Its
+  `.claude/settings.json` registers this marketplace and enables the plugin, so
+  collaborators on the repository get the same rules.
+- `.claude/lore-methodology.md` belongs to Lore: a session-start hook keeps it identical to
+  the installed plugin's copy.
+- Raw payloads and the hooks' bookkeeping live under `.claude/sources/` and are git-ignored;
+  the source census beside them is committed as the record of what each run read. Exported
+  browser login state goes to `.claude/.auth/`, also git-ignored. What each hook writes and
+  why: [`hooks/ARCHITECTURE.md`](hooks/ARCHITECTURE.md).
+- Captured screenshots are recompressed in place when a PNG optimizer is installed; nothing
+  changes when none is.
+
+**Permissions.** No Lore file grants a permission. `lore:site-to-doc` is instructed to ask
+before adding `mcp__playwright` to `permissions.allow` in `.claude/settings.json`, so a
+browser run isn't interrupted at every step; remove it any time with `/permissions`.
 
 ## Install and usage
 
