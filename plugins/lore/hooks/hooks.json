@@ -93,6 +93,15 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh\""
           }
         ]
+      },
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/record-handback.sh\""
+          }
+        ]
       }
     ],
     "SubagentStop": [

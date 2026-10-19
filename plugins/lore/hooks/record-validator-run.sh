@@ -63,7 +63,7 @@ case "$agent_type" in
   doc-validator|lore:doc-validator) want='approved|blocked' ;;
   *) want='approved|blocked|files edited' ;;
 esac
-msg=$(lore_subagent_report "$want")
+msg=$(lore_subagent_report "$want" "$root")
 aid=$(lore_subagent_id)
 history="$root/.claude/sources/.validator-history"
 

@@ -29,7 +29,8 @@
 #   lore_live_lines <file>           → every non-fenced line (a quoted example is not a claim)
 #   lore_append_evidence <root> <tool> <detail> <tier> [agent] [sha]
 #                               → appends ONE sanitised line to .claude/sources/.evidence-log
-#   lore_subagent_report <ERE>  → a SubagentStop payload's report text, recovered from the
+#   lore_subagent_report <ERE> <root>
+#                               → a SubagentStop payload's report text, recovered from the
 #                                 subagent's SubagentHandback call when the final message
 #                                 does not carry it
 #   lore_subagent_id            → the payload's agent_id, reduced to [A-Za-z0-9_-], or empty
@@ -203,6 +204,7 @@ lore_ensure_sources_dir() {
       } >>"$_gi" 2>/dev/null || true
     fi
     grep -qF '.reviser-active' "$_gi" 2>/dev/null || echo ".reviser-active" >>"$_gi" 2>/dev/null || true
+    grep -qF '.handback/' "$_gi" 2>/dev/null || echo ".handback/" >>"$_gi" 2>/dev/null || true
     return 0
   fi
   {
@@ -214,6 +216,7 @@ lore_ensure_sources_dir() {
     echo ".docs-touched"
     echo ".image-optim"
     echo ".reviser-active"
+    echo ".handback/"
     echo "raw/"
   } >"$_gi" 2>/dev/null || true
   return 0
@@ -265,23 +268,26 @@ lore_subagent_id() {
   json_field 'agent_id' | tr -cd 'A-Za-z0-9_-'
 }
 
-# lore_subagent_report <ERE> — the text a SubagentStop hook should parse as the report.
+# lore_subagent_report <ERE> <root> — the text a SubagentStop hook should parse as the report.
 #
 # WHY THIS EXISTS. Every SubagentStop parser used to read `last_assistant_message`, which
 # was the report as long as a subagent's last act was writing it. Claude Code 2.1.30x
 # delivers a subagent's result through a SubagentHandback tool call instead, and a
 # subagent that ends in plain text is refused and made to call it. The report then
-# lives in that call's `input.message`, and `last_assistant_message` holds an empty
-# string or a stub. Measured in a real run: the validator returned APPROVED WITH
+# lives in that call's `input.message`, and `last_assistant_message` is absent, empty or
+# a stub (absent on 2.1.301, measured). Measured in a real run: the validator returned APPROVED WITH
 # WARNINGS, the receipt said UNKNOWN, and the Stop gate blocked every turn after it.
 #
 # The parsers were right; their input was wrong. So this returns, in order:
 #   1. last_assistant_message, when it matches <ERE> (case-insensitive) — the line the
 #      caller's parser looks for, so a runtime that still ends in plain text is unchanged;
-#   2. else the `input.message` of the LAST SubagentHandback tool_use in the subagent's
+#   2. else the report record-handback.sh saved from the call's PostToolUse payload
+#      (<root>/.claude/sources/.handback/<agent_id>) — the documented route;
+#   3. else the `input.message` of the LAST SubagentHandback tool_use in the subagent's
 #      own transcript (agent_transcript_path, or <session dir>/subagents/agent-<id>.jsonl,
-#      the on-disk layout when the field is absent);
-#   3. else last_assistant_message as it is.
+#      the on-disk layout when the field is absent). A fallback only: the transcript is
+#      written asynchronously and may not hold the call yet when the hook fires;
+#   4. else last_assistant_message as it is.
 # With no JSON tool, or no transcript, step 2 yields nothing and the hook behaves as it
 # did before this helper existed — never a crash.
 lore_subagent_report() {
@@ -291,8 +297,14 @@ lore_subagent_report() {
     return 0
   fi
   _h=""
-  _tr=$(_lore_subagent_transcript)
-  [ -n "$_tr" ] && _h=$(_lore_last_handback "$_tr")
+  _aid=$(lore_subagent_id)
+  if [ -n "$2" ] && [ -n "$_aid" ] && [ -s "$2/.claude/sources/.handback/$_aid" ]; then
+    _h=$(cat "$2/.claude/sources/.handback/$_aid" 2>/dev/null)
+  fi
+  if [ -z "$_h" ]; then
+    _tr=$(_lore_subagent_transcript)
+    [ -n "$_tr" ] && _h=$(_lore_last_handback "$_tr")
+  fi
   if [ -n "$_h" ]; then printf '%s' "$_h"; else printf '%s' "$_m"; fi
 }
 

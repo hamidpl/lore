@@ -41,7 +41,7 @@ case "$(json_field 'agent_type')" in
   *) exit 0 ;;
 esac
 
-msg=$(lore_subagent_report 'raw=')
+msg=$(lore_subagent_report 'raw=' "$root")
 [ -n "$msg" ] || exit 0
 agent_id=$(json_field 'agent_id')
 log="$root/.claude/sources/.evidence-log"

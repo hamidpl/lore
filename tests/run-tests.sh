@@ -1010,6 +1010,39 @@ check_exit 0 "$?" "no JSON tool: a stub stop still exits 0"
   pass "no JSON tool: a stub stop is UNKNOWN, as before" ||
   fail "no JSON tool: a stub stop is UNKNOWN, as before"
 
+# The documented route (hooks reference, 2.1.271+): a PostToolUse hook on SubagentHandback
+# receives the report as tool_input.message. Measured on 2.1.301: it fires before the
+# subagent's SubagentStop, whose payload then has no last_assistant_message at all.
+handback() { # $1 root, $2 agent_type, $3 agent_id, $4 message (JSON-escaped)
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","agent_type":"%s","agent_id":"%s","tool_name":"SubagentHandback","tool_input":{"message":"%s"},"tool_response":{"success":true}}' \
+    "$1" "$2" "$3" "$4" | CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/record-handback.sh" 2>"$ERRF"
+  RC=$?
+}
+HD=$(mktemp -d); make_lore_project "$HD"; mkdir -p "$HD/docs"; printf 'a\n' >"$HD/docs/a.md"
+handback "$HD" "lore:doc-validator" "h1" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED WITH WARNINGS'
+check_exit 0 "$RC" "the hand-back recorder never blocks"
+[ -s "$HD/.claude/sources/.handback/h1" ] && pass "a Lore subagent's hand-back is saved under its agent_id" ||
+  fail "a Lore subagent's hand-back is saved under its agent_id"
+grep -qxF '.handback/' "$HD/.claude/sources/.gitignore" 2>/dev/null && pass "the hand-back store is git-ignored" ||
+  fail "the hand-back store is git-ignored"
+# the SubagentStop that follows: no last_assistant_message, no transcript on disk yet
+printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"lore:doc-validator","agent_id":"h1","agent_transcript_path":"%s"}' "$HD" "$HD/not-yet.jsonl" |
+  CLAUDE_PROJECT_DIR="$HD" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+[ "$(head -n 1 "$HD/.claude/sources/.validator-receipt" 2>/dev/null | cut -f2)" = "APPROVED WITH WARNINGS" ] &&
+  pass "SubagentStop reads the saved hand-back when the transcript does not hold it yet" ||
+  fail "SubagentStop reads the saved hand-back when the transcript does not hold it yet"
+handback "$HD" "Explore" "h2" 'Recommendation: APPROVED'
+[ ! -e "$HD/.claude/sources/.handback/h2" ] && pass "another subagent's hand-back is not recorded" ||
+  fail "another subagent's hand-back is not recorded"
+handback "$HD" "lore:doc-validator" "../x" 'Recommendation: APPROVED'
+[ ! -e "$HD/.claude/sources/x" ] && [ -s "$HD/.claude/sources/.handback/x" ] &&
+  pass "an agent_id cannot address a path outside the store" ||
+  fail "an agent_id cannot address a path outside the store"
+NL=$(mktemp -d)
+handback "$NL" "lore:doc-validator" "h3" 'Recommendation: APPROVED'
+[ ! -e "$NL/.claude" ] && pass "the hand-back recorder writes nothing outside a Lore project" ||
+  fail "the hand-back recorder writes nothing outside a Lore project"
+
 # The subagent tool is `Agent` on current runtimes (a `Task` matcher still fires, but the
 # payload's tool_name says Agent). Comparing only `Task` recorded zero subagent runs and
 # never opened the reviser bracket.

@@ -21,10 +21,14 @@ project on 2026-10-19.
 
 ### SubagentStop hooks read the report from the hand-back
 
-A new helper, `lore_subagent_report` in `hooks/lib/common.sh`, returns the final message
-when it carries the line the caller parses. Otherwise it returns the `input.message` of
-the subagent's last `SubagentHandback` call, read from `agent_transcript_path` (or from
-`<session>/subagents/agent-<id>.jsonl` when the field is absent). The validator recorder,
+A new hook, `record-handback.sh`, runs on PostToolUse for `SubagentHandback`, which is
+the route the hooks reference documents. It saves a Lore subagent's report under its
+`agent_id`, and it fires before that subagent's SubagentStop (measured on 2.1.301). A new
+helper, `lore_subagent_report` in `hooks/lib/common.sh`, returns the final message when
+it carries the line the caller parses. Otherwise it returns the saved report. If there is
+none, it reads the last `SubagentHandback` call from the subagent's transcript. The
+transcript is only a fallback, because it is written asynchronously and may not hold the
+call yet. The validator recorder,
 the reviser branch and `require-worker-evidence.sh` all use it. The parsers did not
 change. With no JSON tool or no transcript, the hooks behave exactly as before.
 
@@ -63,10 +67,13 @@ mirror read the quoted form, and a new test fails on any unquoted command. Verif
 loading the plugin from a directory whose name contains a space: the SessionStart sync
 hook ran.
 
-**Verified** by capturing the raw SubagentStop and PreToolUse/PostToolUse payloads under
+**Verified** by running the real `lore:doc-validator` under 2.1.301 in auto mode with
+this plugin loaded. The report came through the hand-back, the hook recorded
+`APPROVED WITH WARNINGS 1/1`, and the evidence log gained an `Agent subagent:` row. Also
+verified by capturing the raw SubagentStop and PreToolUse/PostToolUse payloads under
 2.1.301, and by replaying the real incident's two stops through the fixed hook:
 `APPROVED WITH WARNINGS 5/42` and `REVISED 3 3`, where the run had recorded
-`UNKNOWN 42/42` and `REVISED 0 0`. Twenty-three new tests cover the stub stop, the
+`UNKNOWN 42/42` and `REVISED 0 0`. Thirty new tests cover the hand-back recorder, the stub stop, the
 `Files reviewed:` scope, the double stop, the reviser hand-back, an extraction worker's
 hand-back `RECEIPT`, the no-JSON-tool degrade, and `Agent` in both recorders.
 
