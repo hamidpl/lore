@@ -9,7 +9,7 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
-## Unreleased
+## 1.1.1
 
 **On Claude Code 2.1.30x the validator's green verdict was recorded as `UNKNOWN`, and
 the Stop gate then blocked every turn.** The cause was not in the verdict parser. The
@@ -72,8 +72,10 @@ hook ran.
 A hook runs from the documentation repo, and `python3 -c` puts the current directory
 first on `sys.path`. A `json.py` in that repo would therefore have run, as the user,
 whenever a hook fell back to Python for JSON. All four call sites now pass `-I`. A new
-test plants such a module and fails if it is imported. A second test fails on any
-`python3 -c` without `-I`.
+test plants such a module and fails if it is imported. A static sweep fails on any
+`python3` in `hooks/` or `scripts/` whose first option is not `-I` (so `python3 -u -c`
+cannot slip past it), and it runs even on a machine without `python3`. The rationale
+lives in `hooks/ARCHITECTURE.md` next to `json_field`.
 
 ### Maintenance
 
@@ -83,13 +85,29 @@ test plants such a module and fails if it is imported. A second test fails on an
   versioning paragraph had still called Lore pre-1.0. It now states the policy since
   1.0.0, and its pin example points at a current tag.
 - **Site dependencies:** Docusaurus moves from 3.10.1 to 3.10.2, and `npm audit fix`
-  brings the docs site from 67 advisories to 45. The rest come in through Docusaurus's
-  own dependency tree (tinypool, serialize-javascript, postcss-selector-parser, uuid,
-  braces). npm's suggested fix is a downgrade to 3.7.0, and forcing newer versions would
-  put major bumps under packages that did not ask for them. They are build-time only and
-  do not reach the plugin or the served pages. The landing moves to Astro 7.4.0, which
+  brings the docs site from 67 advisories to 45. Most of the rest came in through four
+  packages Docusaurus pins at vulnerable ranges, where npm's only suggested fix was a
+  downgrade to 3.7.0. Each is now overridden to its first patched release (`tinypool`
+  ^2.1.2, `serialize-javascript` ^7.0.5, `postcss-selector-parser` ^7.1.6, `uuid`
+  ^11.1.1), which takes the docs site to 28 advisories and 0 critical. The 28 left are
+  all `braces` ≤ 3.0.3, which has no patched release. Every built HTML page is identical
+  to the pre-override build apart from asset hashes. None of this reaches the plugin; it
+  is build-time only. The landing moves to Astro 7.4.0, which
   fixes its one critical advisory and leaves one low. Its built page has the same text,
   and its CSS differs only by equivalent minifier rewrites.
+- **§7, language-skill automation:** the methodology named two false-positive classes in
+  a language skill's checker, and one of them had since been fixed upstream. The
+  sentence now states the shape of the risk instead of an inventory: such a tool
+  normalises text, while a documentation file is text and structure, so expect a prose
+  rule applied inside a code fence, a table, a URL or a quoted UI string. It reaches
+  existing projects through the methodology sync on update.
+- **Plugin README:** a new section discloses what Lore runs, sends and writes: every
+  network request (Figma API, Playwright, trusted sources, npm for Docusaurus), the files
+  hooks and scripts write, and the one permission change `site-to-doc` offers. It states
+  only what the code enforces.
+- **Hook rationale** moved from the repository's `CLAUDE.md` into
+  `plugins/lore/hooks/ARCHITECTURE.md`, which ships with the plugin. `CLAUDE.md` keeps an
+  index.
 - **CI:** `actions/checkout` and `actions/setup-node` move from v4 to v7, and
   FTP-Deploy-Action from 4.3.5 to 4.4.0, which runs on Node 24. Node 20, which reached
   end of life in April 2026, is replaced by Node 24 in every workflow. Astro 7 needs
