@@ -1,5 +1,5 @@
 #!/bin/sh
-# guard-under-review.sh — PreToolUse (Edit|Write|Task) + PostToolUse (Task), BLOCKING on edits
+# guard-under-review.sh — PreToolUse (Edit|Write|Task|Agent) + PostToolUse (Task|Agent), BLOCKING on edits
 #
 # WHY THIS EXISTS. The Auto-Validation Rule says fixes are applied by lore:doc-reviser,
 # never by the agent that wrote the page. In the first measured runs of that rule the
@@ -11,12 +11,16 @@
 # HOW "INSIDE A REVISER RUN" IS KNOWN. Not by `agent_type` on the edit's own payload —
 # on Claude Code 2.1.52 tool hooks fired inside a subagent carry neither agent_id nor
 # agent_type (measured). Instead the reviser's *invocation* is bracketed: the main
-# thread's PreToolUse on `Task` with subagent_type lore:doc-reviser writes a marker
-# file, and PostToolUse on that Task (or the reviser's SubagentStop, in
+# thread's PreToolUse on the subagent tool with subagent_type lore:doc-reviser writes a
+# marker file, and PostToolUse on that call (or the reviser's SubagentStop, in
 # record-validator-run.sh) removes it. Both events carry subagent_type in tool_input on
 # every version the plugin supports. The marker is hook-written, lives with the other
 # run artifacts, and is stale-proofed by age (30 min) so a crashed reviser cannot leave
 # the door open.
+#
+# The subagent tool is named `Agent` on current runtimes (measured on 2.1.301: a `Task`
+# matcher still fires, but the payload's tool_name says `Agent`) and `Task` on older ones.
+# Both names are accepted; comparing only `Task` left the bracket never opened.
 #
 # WHAT IS NOT GATED. Drafting (no receipt yet), edits after a green verdict (the digest
 # gate reports those), anything outside docs/ (the census is the evidence-class fix and
@@ -45,7 +49,8 @@ lore_is_project "$root" || exit 0
 marker="$root/.claude/sources/.reviser-active"
 
 # --- bracket the reviser run -------------------------------------------------------
-if [ "$tool" = "Task" ]; then
+case "$tool" in Task|Agent) is_spawn=1 ;; *) is_spawn=0 ;; esac
+if [ "$is_spawn" -eq 1 ]; then
   case "$(json_field 'tool_input subagent_type')" in
     doc-reviser|lore:doc-reviser) : ;;
     *) exit 0 ;;
@@ -87,6 +92,6 @@ esac
 
 cat >&2 <<EOF
 BLOCKED (Auto-Validation Rule): the last lore:doc-validator verdict is BLOCKED, and $rel is being edited outside a lore:doc-reviser run.
-Fixes are not applied by the agent that wrote the page. Hand every mechanical/content finding of this round to lore:doc-reviser (Task tool) as ONE batch, then run one scoped validator round over the files its 'Files edited:' line names. A finding of class 'evidence' is fixed in the census (not under docs/); a finding of class 'decision' goes to the user.
+Fixes are not applied by the agent that wrote the page. Hand every mechanical/content finding of this round to lore:doc-reviser (Agent tool) as ONE batch, then run one scoped validator round over the files its 'Files edited:' line names. A finding of class 'evidence' is fixed in the census (not under docs/); a finding of class 'decision' goes to the user.
 EOF
 exit 2

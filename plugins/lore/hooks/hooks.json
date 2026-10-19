@@ -45,7 +45,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write|Task",
+        "matcher": "Edit|Write|Task|Agent",
         "hooks": [
           {
             "type": "command",
@@ -77,7 +77,7 @@
         ]
       },
       {
-        "matcher": "WebFetch|Task|Bash|Write|Edit|mcp__.*(playwright|browser|chrome|puppeteer|fetch).*",
+        "matcher": "WebFetch|Task|Agent|Bash|Write|Edit|mcp__.*(playwright|browser|chrome|puppeteer|fetch).*",
         "hooks": [
           {
             "type": "command",
@@ -86,7 +86,7 @@
         ]
       },
       {
-        "matcher": "Task",
+        "matcher": "Task|Agent",
         "hooks": [
           {
             "type": "command",

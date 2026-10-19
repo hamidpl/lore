@@ -9,6 +9,58 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
+## Unreleased
+
+**On Claude Code 2.1.30x the validator's green verdict was recorded as `UNKNOWN`, and
+the Stop gate then blocked every turn.** The cause was not in the verdict parser. The
+runtime now delivers a subagent's result through a `SubagentHandback` tool call, and
+the SubagentStop payload's `last_assistant_message` holds a stub. The parser read
+`last_assistant_message`, so it was parsing the stub. Re-running the validator could not
+clear the block, and a waiver correctly refused a non-green verdict. Observed in a real
+project on 2026-10-19.
+
+### SubagentStop hooks read the report from the hand-back
+
+A new helper, `lore_subagent_report` in `hooks/lib/common.sh`, returns the final message
+when it carries the line the caller parses. Otherwise it returns the `input.message` of
+the subagent's last `SubagentHandback` call, read from `agent_transcript_path` (or from
+`<session>/subagents/agent-<id>.jsonl` when the field is absent). The validator recorder,
+the reviser branch and `require-worker-evidence.sh` all use it. The parsers did not
+change. With no JSON tool or no transcript, the hooks behave exactly as before.
+
+The same stub caused two quieter defects, and both are fixed:
+
+- A 5-file validation was recorded as **42/42 reviewed**, because the legacy "no
+  `Files reviewed:` line means everything was reviewed" fallback fired on a stub. That
+  fallback now requires a verdict, and a report with no verdict blesses nothing.
+- A three-file reviser batch was recorded as `REVISED 0 0`.
+
+### One run, one record
+
+A subagent that ends in plain text is made to call the hand-back, so SubagentStop fires
+twice for one run, and the second stop's `UNKNOWN` overwrote the green receipt. History
+lines now carry the runtime's `agent_id` as a fifth column. A later stop from the same
+agent writes nothing in two cases: when it carries no verdict (for the reviser, no edited
+files), and when it restates that agent's last result over the same content. A resumed
+agent that returns a different result is still a new record. The Stop gate reads only
+columns 2–4, so existing history files are read the same way.
+
+### The subagent tool is `Agent`
+
+On 2.1.301 a `Task` matcher still fires for an `Agent` call, but the payload's
+`tool_name` says `Agent`. The scripts compared only `Task`. As a result
+`record-evidence.sh` recorded no `subagent:` rows, and `guard-under-review.sh` never
+opened the reviser bracket. Both scripts now accept both names. The `hooks.json`
+matchers name both as well, so the hooks no longer depend on the runtime keeping the
+alias. The skills and hook messages now say "Agent tool".
+
+**Verified** by capturing the raw SubagentStop and PreToolUse/PostToolUse payloads under
+2.1.301, and by replaying the real incident's two stops through the fixed hook:
+`APPROVED WITH WARNINGS 5/42` and `REVISED 3 3`, where the run had recorded
+`UNKNOWN 42/42` and `REVISED 0 0`. Twenty-three new tests cover the stub stop, the
+`Files reviewed:` scope, the double stop, the reviser hand-back, an extraction worker's
+hand-back `RECEIPT`, the no-JSON-tool degrade, and `Agent` in both recorders.
+
 ## 1.1.0
 
 **Persian documentation written from English sources reads as translated long after
