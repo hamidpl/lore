@@ -62,6 +62,14 @@ Installing is two steps, run **inside Claude Code** (both are idempotent):
 /plugin install lore@lore-marketplace       # 2. install the plugin
 ```
 
+On Claude Code 2.1.275 or later, one command does both — it asks you to confirm before adding the marketplace:
+
+```text
+/plugin install lore --marketplace hamidpl/lore
+```
+
+The same from a shell needs 2.1.292 or later: `claude plugin install lore --marketplace hamidpl/lore`.
+
 For a team/CI repo, install at project scope so a clone is self-contained:
 
 ```text

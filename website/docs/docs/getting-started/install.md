@@ -16,6 +16,14 @@ Lore is a Claude Code plugin distributed through its own marketplace. Installing
 /plugin install lore@lore-marketplace      # install the plugin
 ```
 
+On Claude Code 2.1.275 or later, one command does both — it asks you to confirm before adding the marketplace:
+
+```text
+/plugin install lore --marketplace hamidpl/lore
+```
+
+The same from a shell needs 2.1.292 or later: `claude plugin install lore --marketplace hamidpl/lore`.
+
 For a team or CI repository, install at **project scope** so a clone is self-contained:
 
 ```text

@@ -16,6 +16,14 @@ Lore یک پلاگین Claude Code است که از طریق مارکت‌پلی
 /plugin install lore@lore-marketplace      # نصب پلاگین
 ```
 
+در Claude Code نسخهٔ 2.1.275 به بعد، یک دستور هر دو کار را انجام می‌دهد و پیش از افزودن مارکت‌پلیس از شما تأیید می‌گیرد:
+
+```text
+/plugin install lore --marketplace hamidpl/lore
+```
+
+همین کار از خط فرمان به نسخهٔ 2.1.292 به بعد نیاز دارد: `claude plugin install lore --marketplace hamidpl/lore`.
+
 برای یک مخزن تیمی یا CI، در **سطح پروژه** نصب کنید تا یک کلون خودبسنده باشد:
 
 ```text
