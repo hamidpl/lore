@@ -29,6 +29,11 @@
 #   lore_live_lines <file>           → every non-fenced line (a quoted example is not a claim)
 #   lore_append_evidence <root> <tool> <detail> <tier> [agent] [sha]
 #                               → appends ONE sanitised line to .claude/sources/.evidence-log
+#   lore_subagent_report <ERE> <root>
+#                               → a SubagentStop payload's report text, recovered from the
+#                                 subagent's SubagentHandback call when the final message
+#                                 does not carry it
+#   lore_subagent_id            → the payload's agent_id, reduced to [A-Za-z0-9_-], or empty
 #
 # shellcheck disable=SC2154   # $input is the caller's, by contract (see above)
 
@@ -54,7 +59,7 @@ json_field() {
       printf '%s' "$input" | jq -r "$_jq // empty" 2>/dev/null
       ;;
     python3)
-      printf '%s' "$input" | python3 -c '
+      printf '%s' "$input" | python3 -I -c '
 import json,sys
 try:
     d=json.load(sys.stdin)
@@ -199,6 +204,7 @@ lore_ensure_sources_dir() {
       } >>"$_gi" 2>/dev/null || true
     fi
     grep -qF '.reviser-active' "$_gi" 2>/dev/null || echo ".reviser-active" >>"$_gi" 2>/dev/null || true
+    grep -qF '.handback/' "$_gi" 2>/dev/null || echo ".handback/" >>"$_gi" 2>/dev/null || true
     return 0
   fi
   {
@@ -210,6 +216,7 @@ lore_ensure_sources_dir() {
     echo ".docs-touched"
     echo ".image-optim"
     echo ".reviser-active"
+    echo ".handback/"
     echo "raw/"
   } >"$_gi" 2>/dev/null || true
   return 0
@@ -253,6 +260,106 @@ lore_append_evidence() {
     _line=$(printf '%s\t%s' "$_line" "$_a")
   fi
   printf '%s\n' "$_line" >>"$_root/.claude/sources/.evidence-log" 2>/dev/null || true
+}
+
+# lore_subagent_id — the SubagentStop / tool payload's agent_id, safe to use as a path
+# component and a TAB-separated column. Empty on a runtime that does not send one.
+lore_subagent_id() {
+  json_field 'agent_id' | tr -cd 'A-Za-z0-9_-'
+}
+
+# lore_subagent_report <ERE> <root> — the text a SubagentStop hook should parse as the report.
+#
+# WHY THIS EXISTS. Every SubagentStop parser used to read `last_assistant_message`, which
+# was the report as long as a subagent's last act was writing it. Claude Code 2.1.30x
+# delivers a subagent's result through a SubagentHandback tool call instead, and a
+# subagent that ends in plain text is refused and made to call it. The report then
+# lives in that call's `input.message`, and `last_assistant_message` is absent, empty or
+# a stub (absent on 2.1.301, measured). Measured in a real run: the validator returned APPROVED WITH
+# WARNINGS, the receipt said UNKNOWN, and the Stop gate blocked every turn after it.
+#
+# The parsers were right; their input was wrong. So this returns, in order:
+#   1. last_assistant_message, when it matches <ERE> (case-insensitive) — the line the
+#      caller's parser looks for, so a runtime that still ends in plain text is unchanged;
+#   2. else the report record-handback.sh saved from the call's PostToolUse payload
+#      (<root>/.claude/sources/.handback/<agent_id>) — the documented route;
+#   3. else the `input.message` of the LAST SubagentHandback tool_use in the subagent's
+#      own transcript (agent_transcript_path, or <session dir>/subagents/agent-<id>.jsonl,
+#      the on-disk layout when the field is absent). A fallback only: the transcript is
+#      written asynchronously and may not hold the call yet when the hook fires;
+#   4. else last_assistant_message as it is.
+# With no JSON tool, or no transcript, step 2 yields nothing and the hook behaves as it
+# did before this helper existed — never a crash.
+lore_subagent_report() {
+  _m=$(json_field 'last_assistant_message')
+  if [ -n "$_m" ] && printf '%s' "$_m" | grep -qiE "$1" 2>/dev/null; then
+    printf '%s' "$_m"
+    return 0
+  fi
+  _h=""
+  _aid=$(lore_subagent_id)
+  if [ -n "$2" ] && [ -n "$_aid" ] && [ -s "$2/.claude/sources/.handback/$_aid" ]; then
+    _h=$(cat "$2/.claude/sources/.handback/$_aid" 2>/dev/null)
+  fi
+  if [ -z "$_h" ]; then
+    _tr=$(_lore_subagent_transcript)
+    [ -n "$_tr" ] && _h=$(_lore_last_handback "$_tr")
+  fi
+  if [ -n "$_h" ]; then printf '%s' "$_h"; else printf '%s' "$_m"; fi
+}
+
+_lore_subagent_transcript() {
+  _p=$(json_field 'agent_transcript_path')
+  if [ -z "$_p" ] || [ ! -f "$_p" ]; then
+    _tp=$(json_field 'transcript_path')
+    _sid=$(json_field 'session_id' | tr -cd 'A-Za-z0-9_-')
+    _aid=$(lore_subagent_id)
+    [ -n "$_tp" ] && [ -n "$_sid" ] && [ -n "$_aid" ] || return 0
+    _p="$(dirname "$_tp")/$_sid/subagents/agent-$_aid.jsonl"
+  fi
+  [ -f "$_p" ] && printf '%s' "$_p"
+}
+
+# One JSONL line per event; a line that does not parse (a partial write) is skipped, not
+# fatal. Only assistant turns count — the transcript also replays earlier calls inside
+# request records, and those are not the subagent's act.
+_lore_last_handback() {
+  case "$_json_tool" in
+    jq)
+      jq -nrR 'reduce (inputs | fromjson? | select(type == "object" and .type == "assistant")
+        | .message.content? | arrays | .[]
+        | select(type == "object" and .type == "tool_use" and .name == "SubagentHandback")
+        | .input.message? | strings) as $m (""; $m)' "$1" 2>/dev/null
+      ;;
+    python3)
+      python3 -I -c '
+import json,sys
+m=""
+try:
+    f=open(sys.argv[1], encoding="utf-8", errors="replace")
+except Exception:
+    sys.exit(0)
+for line in f:
+    try:
+        d=json.loads(line)
+    except Exception:
+        continue
+    if not isinstance(d, dict) or d.get("type") != "assistant":
+        continue
+    msg=d.get("message")
+    c=msg.get("content") if isinstance(msg, dict) else None
+    if not isinstance(c, list):
+        continue
+    for it in c:
+        if isinstance(it, dict) and it.get("type") == "tool_use" and it.get("name") == "SubagentHandback":
+            inp=it.get("input")
+            v=inp.get("message") if isinstance(inp, dict) else None
+            if isinstance(v, str):
+                m=v
+sys.stdout.write(m)
+' "$1" 2>/dev/null
+      ;;
+  esac
 }
 
 true

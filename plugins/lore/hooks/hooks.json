@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-lore-files.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/sync-lore-files.sh\""
           }
         ]
       }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind-census.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/remind-census.sh\""
           }
         ]
       },
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind-mass-edit.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/remind-mass-edit.sh\""
           }
         ]
       },
@@ -36,20 +36,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-citation-loss.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/check-citation-loss.sh\""
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-reviser-edit.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-reviser-edit.sh\""
           }
         ]
       },
       {
-        "matcher": "Edit|Write|Task",
+        "matcher": "Edit|Write|Task|Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh\""
           }
         ]
       }
@@ -60,37 +60,46 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-image-path.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/check-image-path.sh\""
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-frontmatter.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/check-frontmatter.sh\""
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-no-tooling-refs.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/check-no-tooling-refs.sh\""
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-census.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/check-census.sh\""
           }
         ]
       },
       {
-        "matcher": "WebFetch|Task|Bash|Write|Edit|mcp__.*(playwright|browser|chrome|puppeteer|fetch).*",
+        "matcher": "WebFetch|Task|Agent|Bash|Write|Edit|mcp__.*(playwright|browser|chrome|puppeteer|fetch).*",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/record-evidence.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/record-evidence.sh\""
           }
         ]
       },
       {
-        "matcher": "Task",
+        "matcher": "Task|Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-under-review.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/record-handback.sh\""
           }
         ]
       }
@@ -101,7 +110,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/record-validator-run.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/record-validator-run.sh\""
           }
         ]
       },
@@ -110,7 +119,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/require-worker-evidence.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/require-worker-evidence.sh\""
           }
         ]
       }
@@ -120,7 +129,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verify-docs.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/verify-docs.sh\""
           }
         ]
       }

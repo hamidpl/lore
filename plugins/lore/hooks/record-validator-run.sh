@@ -7,8 +7,10 @@
 # validator run and the verdict it returned; verify-docs.sh (Stop) then refuses to
 # let a turn end when documentation changed but no fresh, green run exists.
 #
-# The receipt is written by this hook from the subagent's own final message, so a run
-# that never happened leaves no receipt in the ordinary course of writing documentation.
+# The receipt is written by this hook from the subagent's own report (its final message,
+# or its SubagentHandback call on runtimes that deliver results that way — see
+# lore_subagent_report in lib/common.sh), so a run that never happened leaves no receipt
+# in the ordinary course of writing documentation.
 # It is a plain file, and an agent with shell access can write one — the gate exists to
 # stop a step being skipped by accident, not to withstand a deliberate forgery.
 #
@@ -19,8 +21,9 @@
 #   line 2     format <TAB> 2                   — presence of this exact line is the v2 detector
 #   file lines file <TAB> status <TAB> sha256 <TAB> project-relative path
 #              one per docs/**/*.md|mdx, digested BY THIS HOOK at receipt time. Status:
-#                reviewed  — named in the report's "Files reviewed:" line (no line at all
-#                            blesses the whole snapshot, preserving v1 semantics)
+#                reviewed  — named in the report's "Files reviewed:" line (no line at all,
+#                            in a report that HAS a verdict, blesses the whole snapshot,
+#                            preserving v1 semantics; a report with no verdict blesses nothing)
 #                inherited — unchanged (same sha) since a previous GREEN receipt covered it
 #                waived    — covered by a user-approved .validation-waiver entry at this
 #                            exact sha (the waiver is folded in here, then removed)
@@ -28,12 +31,17 @@
 #                            alone never grants coverage, so a narrow APPROVED cannot
 #                            silently bless files the validator did not open
 # History: .claude/sources/.validator-history — APPEND-ONLY, one line per run
-#   (iso8601, verdict, reviewed-count, total-docs-count). The receipt keeps only the
+#   (iso8601, verdict, reviewed-count, total-docs-count, [agent_id]). The receipt keeps only the
 #   latest state, which is all the Stop gate needs; how many rounds a delivery took, and
 #   how the verdicts moved, is only reconstructible from this file. A lore:doc-reviser
 #   round is recorded here too, same shape, verdict column `REVISED`, both counts = the
 #   number of files its `Files edited:` line named — so the Stop gate's circuit-breaker
 #   message can count fix rounds as well as validation rounds.
+# One run, one line: the runtime can fire SubagentStop twice for one run (a subagent that
+#   ends in plain text is made to call SubagentHandback, and the hook fires again). A stop
+#   whose agent_id is already recorded, carrying no verdict (or no edited files) or the
+#   same result as that agent's last line, is the same run restated: it writes nothing.
+#   Without this the second stop's UNKNOWN overwrote the first stop's green receipt.
 # Degrade: with no sha tool on PATH the hook writes the v1 one-line receipt and the Stop
 #   gate falls back to its mtime path — never crash, never block.
 # Guard: only acts in a scaffolded Lore project.
@@ -49,7 +57,32 @@ _lib="$(dirname "$0")/lib/common.sh"
 root=$(lore_root "$(json_field 'cwd')")
 lore_is_project "$root" || exit 0
 
-msg=$(json_field 'last_assistant_message')
+agent_type=$(json_field 'agent_type')
+case "$agent_type" in
+  doc-reviser|lore:doc-reviser) want='files edited' ;;
+  doc-validator|lore:doc-validator) want='approved|blocked' ;;
+  *) want='approved|blocked|files edited' ;;
+esac
+msg=$(lore_subagent_report "$want" "$root")
+aid=$(lore_subagent_id)
+history="$root/.claude/sources/.validator-history"
+
+# seen <predicate> — 0 when the history already holds a line for THIS agent_id that the
+# awk predicate accepts ($2 verdict, $3/$4 counts). No agent_id (older runtime) → never.
+seen() {
+  [ -n "$aid" ] && [ -f "$history" ] || return 1
+  awk -F'\t' -v a="$aid" "\$5 == a { last = \$0; any = 1 }
+    END { if (!any) exit 1; \$0 = last; exit(($1) ? 0 : 1) }" "$history" 2>/dev/null
+}
+# append_history <verdict> <reviewed> <total>
+append_history() {
+  if [ -n "$aid" ]; then
+    printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$1" "$2" "$3" "$aid" >>"$history" 2>/dev/null || true
+  else
+    printf '%s\t%s\t%s\t%s\n' "$ts" "$1" "$2" "$3" >>"$history" 2>/dev/null || true
+  fi
+}
+ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')
 
 # --- a lore:doc-reviser round -------------------------------------------------------
 # The same SubagentStop matcher covers the reviser, and its round goes into the SAME
@@ -58,7 +91,6 @@ msg=$(json_field 'last_assistant_message')
 # nothing about the receipt changes. Identified by the runtime's agent_type; on a
 # runtime without that field, by the reviser's own machine-read line (`Files edited:`
 # opening a line) in the absence of any verdict line.
-agent_type=$(json_field 'agent_type')
 edited=$(printf '%s' "$msg" | awk '
   {
     line = $0
@@ -87,8 +119,10 @@ if [ "$is_reviser" -eq 1 ]; then
   rm -f "$root/.claude/sources/.reviser-active" 2>/dev/null
   n=0
   [ -n "$edited" ] && n=$(printf '%s\n' "$edited" | grep -c .)
-  printf '%s\t%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')" \
-    "REVISED" "$n" "$n" >>"$root/.claude/sources/.validator-history" 2>/dev/null || true
+  # the same run, stopping again: nothing new to record
+  if [ "$n" -eq 0 ]; then seen 1 && exit 0
+  else seen "\$2 == \"REVISED\" && \$3 == $n" && exit 0; fi
+  append_history "REVISED" "$n" "$n"
   exit 0
 fi
 
@@ -142,11 +176,13 @@ fi
 
 [ -n "$verdict" ] || verdict="UNKNOWN"
 
+# A verdict-less stop of a run that is already on record is that run stopping again
+# (or a stub left after its hand-back); recording it would overwrite the real verdict.
+[ "$verdict" = "UNKNOWN" ] && seen 1 && exit 0
+
 mkdir -p "$root/.claude/sources" 2>/dev/null || exit 0
-ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')
 receipt="$root/.claude/sources/.validator-receipt"
 waiver="$root/.claude/sources/.validation-waiver"
-history="$root/.claude/sources/.validator-history"
 tab=$(printf '\t')
 
 # The files that exist right now — the snapshot the receipt describes. Paths are
@@ -159,7 +195,7 @@ total=0
 # --- degrade: no digest tool → the v1 one-line receipt, exactly as before ------------
 if [ -z "$_sha_tool" ]; then
   printf '%s\t%s\n' "$ts" "$verdict" >"$receipt" 2>/dev/null || true
-  printf '%s\t%s\t%s\t%s\n' "$ts" "$verdict" "-" "$total" >>"$history" 2>/dev/null || true
+  seen "\$2 == \"$verdict\"" || append_history "$verdict" "-" "$total"
   exit 0
 fi
 
@@ -167,9 +203,11 @@ fi
 # Parsed from the report's "**Files reviewed:** docs/a.md, docs/b.md" line, with the
 # same defensive stance as the verdict parser: markdown decoration is stripped, the
 # label must OPEN a line, and only comma-separated tokens that resolve to a
-# docs/….md|mdx path survive — so prose cannot inject entries. No such line at all
-# means a report predating this format: the whole snapshot is treated as reviewed,
-# which is exactly what the v1 receipt asserted.
+# docs/….md|mdx path survive — so prose cannot inject entries. No such line at all, in
+# a report that carries a verdict, means a report predating this format: the whole
+# snapshot is treated as reviewed, which is exactly what the v1 receipt asserted. A
+# report with no verdict is not such a report — it is an empty or stub message — and
+# blesses nothing: that fallback once recorded 42/42 reviewed for a 5-file run.
 reviewed=$(printf '%s' "$msg" | awk '
   {
     line = $0
@@ -187,6 +225,10 @@ reviewed=$(printf '%s' "$msg" | awk '
       if (t ~ /\.(md|mdx)$/) print t
     }
   }' 2>/dev/null | sort -u)
+
+all_reviewed=0
+[ -z "$reviewed" ] && [ "$verdict" != "UNKNOWN" ] && all_reviewed=1
+prev_reviewed=$(awk -F'\t' '$1 == "file" && $2 == "reviewed" { print $3, $4 }' "$receipt" 2>/dev/null)
 
 # --- what did the previous receipt already cover? ------------------------------------
 # Only a GREEN v2 receipt can pass coverage forward: inheriting from a BLOCKED run
@@ -212,7 +254,7 @@ tmp="$receipt.tmp"
       sha=$(lore_sha256 "$root/$f")
       [ -n "$sha" ] || continue
       status="uncovered"
-      if [ -z "$reviewed" ] || printf '%s\n' "$reviewed" | grep -qxF "$f"; then
+      if [ "$all_reviewed" -eq 1 ] || printf '%s\n' "$reviewed" | grep -qxF "$f"; then
         status="reviewed"
       elif [ "$prev_ok" -eq 1 ] &&
            awk -F'\t' -v p="$f" -v s="$sha" \
@@ -243,6 +285,12 @@ reviewed_count=$(awk -F'\t' '$1 == "file" && $2 == "reviewed"' "$receipt" 2>/dev
 # receipt above, and stale ones must not linger to cover a future edit.
 rm -f "$waiver" 2>/dev/null
 
-printf '%s\t%s\t%s\t%s\n' "$ts" "$verdict" "$reviewed_count" "$total" >>"$history" 2>/dev/null || true
+# The same run stopping again with the same verdict over the same reviewed content is a
+# restatement, not a round: the receipt above is rewritten identically, history is not.
+if [ "$(awk -F'\t' '$1 == "file" && $2 == "reviewed" { print $3, $4 }' "$receipt" 2>/dev/null)" = "$prev_reviewed" ] &&
+   seen "\$2 == \"$verdict\" && \$3 == $reviewed_count && \$4 == $total"; then
+  exit 0
+fi
+append_history "$verdict" "$reviewed_count" "$total"
 
 exit 0

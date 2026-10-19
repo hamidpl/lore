@@ -17,7 +17,7 @@ plugins/lore/                      # the plugin itself
   commands/                        # /lore:init, /lore:config, /lore:add-docusaurus
   skills/                          # figma-to-doc, brief-to-doc, site-to-doc, doc-reviewer
   agents/                          # doc-validator, figma-extractor, site-explorer (worker subagents)
-  hooks/                           # hooks.json + 14 shell scripts (output enforcement + evidence gates + methodology sync)
+  hooks/                           # hooks.json + 15 shell scripts (output enforcement + evidence gates + methodology sync)
     ARCHITECTURE.md                # WHY each hook exists — read before changing one
   scripts/                         # scaffold.sh, detect-project.sh, figma-probe.sh, optimize-images.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
@@ -153,9 +153,10 @@ Hooks in `plugins/lore/hooks/hooks.json` split into two families: **output enfor
 | `record-evidence.sh` | PostToolUse (fetch-ish tools) — never blocks | writes `.claude/sources/.evidence-log`; the `verified`/`mentioned` tier split is the load-bearing part |
 | `check-citation-loss.sh` | PreToolUse Edit\|Write — ⛔ | an edit may not drop a URL whose host has a `verified` fetch |
 | `check-census.sh` | PostToolUse Write\|Edit — ⛔ / `--complete` at Stop | census **shape** at write time, **completeness** at Stop — the split is deliberate |
-| `record-validator-run.sh` | SubagentStop `lore:doc-validator` — never blocks | writes `.validator-receipt` (verdict + per-file digest + coverage) and appends `.validator-history` |
+| `record-validator-run.sh` | SubagentStop `lore:doc-validator` — never blocks | writes `.validator-receipt` (verdict + per-file digest + coverage) and appends `.validator-history`; reads the report from the `SubagentHandback` call when the final message is a stub |
+| `record-handback.sh` | PostToolUse SubagentHandback — never blocks | saves a Lore subagent's hand-back report under its `agent_id` for the SubagentStop recorders |
 | `guard-reviser-edit.sh` | PreToolUse Edit\|Write — ⛔ | confines `lore:doc-reviser` to targeted edits under `docs/` |
-| `guard-under-review.sh` | PreToolUse Edit\|Write\|Task — ⛔ | while the verdict is BLOCKED, only a reviser run may edit `docs/` |
+| `guard-under-review.sh` | PreToolUse Edit\|Write\|Task\|Agent — ⛔ | while the verdict is BLOCKED, only a reviser run may edit `docs/` |
 | `require-worker-evidence.sh` | SubagentStop `lore:figma-extractor` — ⛔ | a worker may not finish without a receipt that exists on disk |
 | `remind-census.sh` | PreToolUse Write — advisory | restates §0 when a new `docs/` page appears with no census |
 | `remind-mass-edit.sh` | PreToolUse Edit\|Bash — advisory | the tree-wide-edit checklist; advisory because the judgement is exactly what went wrong |

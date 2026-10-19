@@ -68,7 +68,7 @@ if command -v jq >/dev/null 2>&1; then
   jq -n --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse", additionalContext:$m}}'
 elif command -v python3 >/dev/null 2>&1; then
-  MSG="$msg" python3 -c 'import json,os;print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":os.environ["MSG"]}}))'
+  MSG="$msg" python3 -I -c 'import json,os;print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":os.environ["MSG"]}}))'
 else
   echo "$msg" >&2
 fi

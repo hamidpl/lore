@@ -182,7 +182,7 @@ if [ -d .claude/sources ]; then
   history=.claude/sources/.validator-history
   tab=$(printf '\t')
   if [ ! -f "$receipt" ]; then
-    echo "BLOCKED: documentation exists under docs/ but lore:doc-validator has never run in this project. Run it (Task tool) and fix anything it reports before delivering." >&2
+    echo "BLOCKED: documentation exists under docs/ but lore:doc-validator has never run in this project. Run it (Agent tool) and fix anything it reports before delivering." >&2
     blocked=1
   else
     verdict=$(head -n 1 "$receipt" 2>/dev/null | cut -f2)

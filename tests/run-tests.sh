@@ -875,6 +875,188 @@ printf '{"hook_event_name":"Stop","stop_hook_active":false,"cwd":"%s","session_i
   PATH="$NOSHA" CLAUDE_PROJECT_DIR="$XN" sh "$HOOKS/verify-docs.sh" 2>"$ERRF"
 check_exit 0 "$?" "no sha tool: the Stop gate degrades to mtime instead of crashing"
 
+echo "== SubagentStop reports delivered through SubagentHandback =="
+# Claude Code 2.1.30x delivers a subagent's result as a SubagentHandback tool call, and
+# last_assistant_message then holds an empty string or a stub. Measured: the validator
+# returned APPROVED WITH WARNINGS, the receipt said UNKNOWN, and every later turn was
+# blocked. The report is read back from the call in the subagent's own transcript.
+HB=$(mktemp -d); make_lore_project "$HB"; mkdir -p "$HB/docs"
+for f in a b c; do printf '%s\n' "$f" >"$HB/docs/$f.md"; done
+HT="$HB/agent-v1.jsonl"
+# an earlier hand-back, a request record replaying one (not the subagent's act), the
+# final hand-back, its tool_result, and a partial last line — only the final one counts
+{
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":"validate"}}'
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"SubagentHandback","input":{"message":"draft\n\nRecommendation: BLOCKED"}}]}}'
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"SubagentHandback","input":{"message":"**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED WITH WARNINGS"}}]}}'
+  printf '%s\n' '{"type":"api-request-blob","message":{"content":[{"type":"tool_use","name":"SubagentHandback","input":{"message":"Recommendation: BLOCKED"}}]}}'
+  printf '%s\n' '{"type":"user","message":{"content":[{"type":"tool_result","content":"delivered"}]}}'
+  printf '%s' '{"type":"assistant","message":{"content":[{"type":"tool_u'
+} >"$HT"
+hbstop() { # $1 root, $2 last_assistant_message, $3 agent_type, $4 agent_id, $5 transcript path
+  printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"%s","agent_id":"%s","agent_transcript_path":"%s","last_assistant_message":"%s"}' \
+    "$1" "$3" "$4" "$5" "$2" |
+    CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+  RC=$?
+}
+HR="$HB/.claude/sources/.validator-receipt"
+hb_with() { # $1 backend, $2 transcript
+  # shellcheck disable=SC2034  # $input is read by json_field(), per lib/common.sh's contract
+  ( input='{}'
+    # shellcheck source=/dev/null
+    . "$HOOKS/lib/common.sh"
+    _json_tool=$1
+    _lore_last_handback "$2" )
+}
+for be in jq python3; do
+  command -v "$be" >/dev/null 2>&1 || continue
+  got=$(hb_with "$be" "$HT" | tail -n 1)
+  [ "$got" = "Recommendation: APPROVED WITH WARNINGS" ] &&
+    pass "the $be backend reads the LAST hand-back of an assistant turn" ||
+    fail "the $be backend reads the LAST hand-back of an assistant turn (got '$got')"
+done
+[ -z "$(hb_with '' "$HT")" ] && pass "with no JSON tool the hand-back reader yields nothing" ||
+  fail "with no JSON tool the hand-back reader yields nothing"
+
+hbstop "$HB" "This agent's report was delivered to you as a message from the validator." "lore:doc-validator" "v1" "$HT"
+check_exit 0 "$RC" "a stub stop never blocks"
+[ "$(head -n 1 "$HR" | cut -f2)" = "APPROVED WITH WARNINGS" ] &&
+  pass "a stub last_assistant_message is resolved from the hand-back: APPROVED WITH WARNINGS" ||
+  fail "a stub last_assistant_message is resolved from the hand-back (got '$(head -n 1 "$HR" | cut -f2)')"
+if [ -n "$(lore_sha "$HB/docs/a.md" 2>/dev/null)" ]; then
+  [ "$(awk -F'\t' '$1=="file" && $2=="reviewed"' "$HR" | grep -c .)" -eq 1 ] &&
+    pass "the hand-back's Files reviewed: line scopes coverage to exactly one file" ||
+    fail "the hand-back's Files reviewed: line scopes coverage (got $(awk -F'\t' '$1=="file" && $2=="reviewed"' "$HR" | grep -c .))"
+fi
+# the agent_transcript_path field is optional: fall back to the on-disk layout
+HS="$HB/sess"; mkdir -p "$HS/s1/subagents"; cp "$HT" "$HS/s1/subagents/agent-v9.jsonl"
+rm -f "$HR"
+printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"lore:doc-validator","agent_id":"v9","session_id":"s1","transcript_path":"%s","last_assistant_message":""}' \
+  "$HB" "$HS/s1.jsonl" | CLAUDE_PROJECT_DIR="$HB" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+[ "$(head -n 1 "$HR" 2>/dev/null | cut -f2)" = "APPROVED WITH WARNINGS" ] &&
+  pass "without agent_transcript_path the transcript is found under <session>/subagents/" ||
+  fail "without agent_transcript_path the transcript is found under <session>/subagents/"
+# a plain-text final message that carries the verdict still wins (unchanged path)
+hbstop "$HB" "Recommendation: BLOCKED" "lore:doc-validator" "v2" "$HT"
+[ "$(head -n 1 "$HR" | cut -f2)" = "BLOCKED" ] &&
+  pass "a final message that carries a verdict is used as before" ||
+  fail "a final message that carries a verdict is used as before"
+
+# The double stop: the subagent ends in plain text (green), is made to call the
+# hand-back, and SubagentStop fires again with a stub. The second stop overwrote the
+# green receipt with UNKNOWN; one run must stay one record.
+DS=$(mktemp -d); make_lore_project "$DS"; mkdir -p "$DS/docs"; printf 'a\n' >"$DS/docs/a.md"
+DR="$DS/.claude/sources/.validator-receipt"; DH="$DS/.claude/sources/.validator-history"
+hbstop "$DS" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED' "lore:doc-validator" "d1" "$DS/none.jsonl"
+hbstop "$DS" "stub" "lore:doc-validator" "d1" "$DS/none.jsonl"
+[ "$(head -n 1 "$DR" | cut -f2)" = "APPROVED" ] &&
+  pass "a verdict-less second stop of the same agent leaves the green receipt alone" ||
+  fail "a verdict-less second stop of the same agent leaves the green receipt alone (got '$(head -n 1 "$DR" | cut -f2)')"
+[ "$(grep -c . "$DH")" -eq 1 ] && pass "…and adds no history line" ||
+  fail "…and adds no history line (got $(grep -c . "$DH"))"
+awk -F'\t' 'NF == 5 && $5 == "d1"' "$DH" | grep -q . &&
+  pass "a history line carries the agent_id as its fifth column" ||
+  fail "a history line carries the agent_id as its fifth column"
+# the same run restating the same verdict over the same content is not a second round
+hbstop "$DS" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED' "lore:doc-validator" "d1" "$DS/none.jsonl"
+[ "$(grep -c . "$DH")" -eq 1 ] && pass "a restated identical verdict is not a second validation round" ||
+  fail "a restated identical verdict is not a second validation round (got $(grep -c . "$DH"))"
+# … but a stub from an agent never seen before is still UNKNOWN, as before
+hbstop "$DS" "stub" "lore:doc-validator" "d2" "$DS/none.jsonl"
+[ "$(head -n 1 "$DR" | cut -f2)" = "UNKNOWN" ] &&
+  pass "a verdict-less stop of a new agent is still UNKNOWN (never a pass)" ||
+  fail "a verdict-less stop of a new agent is still UNKNOWN (never a pass)"
+if [ -n "$(lore_sha "$DS/docs/a.md" 2>/dev/null)" ]; then
+  [ "$(awk -F'\t' '$1=="file" && $2=="reviewed"' "$DR" | grep -c .)" -eq 0 ] &&
+    pass "a report with no verdict and no Files reviewed: line blesses nothing" ||
+    fail "a report with no verdict and no Files reviewed: line blesses nothing"
+fi
+# a resumed agent's genuinely new verdict is recorded
+printf 'a changed\n' >"$DS/docs/a.md"
+hbstop "$DS" '**Files reviewed:** docs/a.md\n\nRecommendation: BLOCKED' "lore:doc-validator" "d1" "$DS/none.jsonl"
+[ "$(head -n 1 "$DR" | cut -f2)" = "BLOCKED" ] && [ "$(grep -c . "$DH")" -eq 3 ] &&
+  pass "a resumed agent's new verdict is a new record" ||
+  fail "a resumed agent's new verdict is a new record"
+
+# the reviser: its Files edited: line arrives in the hand-back too
+RT="$HB/agent-r1.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"SubagentHandback","input":{"message":"Applied.\n\nFiles edited: docs/a.md, docs/b.md\n\n1. applied\n2. applied"}}]}}' >"$RT"
+RHB=$(mktemp -d); make_lore_project "$RHB"; mkdir -p "$RHB/docs"
+hbstop "$RHB" "stub" "lore:doc-reviser" "r1" "$RT"
+awk -F'\t' '$2=="REVISED" && $3=="2" && $4=="2"' "$RHB/.claude/sources/.validator-history" | grep -q . &&
+  pass "a reviser hand-back records REVISED 2 2" ||
+  fail "a reviser hand-back records REVISED 2 2 (got '$(cat "$RHB/.claude/sources/.validator-history" 2>/dev/null)')"
+hbstop "$RHB" "stub" "lore:doc-reviser" "r1" "$RHB/none.jsonl"
+hbstop "$RHB" "Files edited: docs/a.md, docs/b.md" "lore:doc-reviser" "r1" "$RHB/none.jsonl"
+[ "$(grep -c . "$RHB/.claude/sources/.validator-history")" -eq 1 ] &&
+  pass "the reviser's repeated stops are one round" ||
+  fail "the reviser's repeated stops are one round (got $(grep -c . "$RHB/.claude/sources/.validator-history"))"
+
+# the extraction worker: a RECEIPT delivered through the hand-back lets it finish
+WH=$(mktemp -d); make_lore_project "$WH"; mkdir -p "$WH/.claude/sources/raw"
+printf '{"nodes":{}}' >"$WH/.claude/sources/raw/figma-K-nodes-1-2.json"
+printf '%s\tfigma-probe\thttps://api.figma.com/v1/files/K/nodes?ids=1:2 status=200\tverified\n' 2026-01-01T00:00:00Z >"$WH/.claude/sources/.evidence-log"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"SubagentHandback","input":{"message":"Summary.\nRECEIPT probe=GET:/v1/files/K/nodes status=200 bytes=11 raw=.claude/sources/raw/figma-K-nodes-1-2.json scanned=3"}}]}}' >"$WH/agent-w1.jsonl"
+printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"lore:figma-extractor","agent_id":"w1","stop_hook_active":false,"agent_transcript_path":"%s","last_assistant_message":"stub"}' \
+  "$WH" "$WH/agent-w1.jsonl" | CLAUDE_PROJECT_DIR="$WH" sh "$HOOKS/require-worker-evidence.sh" 2>"$ERRF"
+check_exit 0 "$?" "a worker whose RECEIPT came through the hand-back is not returned to work"
+
+# no transcript, no JSON tool: degraded exactly as before — exit 0, UNKNOWN
+NJ=$(mktemp -d); make_lore_project "$NJ"; mkdir -p "$NJ/docs"; printf 'a\n' >"$NJ/docs/a.md"
+printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_id":"n1","agent_transcript_path":"%s","last_assistant_message":"stub"}' "$NJ" "$HT" |
+  PATH="$NOSHA" CLAUDE_PROJECT_DIR="$NJ" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+check_exit 0 "$?" "no JSON tool: a stub stop still exits 0"
+[ "$(head -n 1 "$NJ/.claude/sources/.validator-receipt" 2>/dev/null | cut -f2)" = "UNKNOWN" ] &&
+  pass "no JSON tool: a stub stop is UNKNOWN, as before" ||
+  fail "no JSON tool: a stub stop is UNKNOWN, as before"
+
+# The documented route (hooks reference, 2.1.271+): a PostToolUse hook on SubagentHandback
+# receives the report as tool_input.message. Measured on 2.1.301: it fires before the
+# subagent's SubagentStop, whose payload then has no last_assistant_message at all.
+handback() { # $1 root, $2 agent_type, $3 agent_id, $4 message (JSON-escaped)
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","agent_type":"%s","agent_id":"%s","tool_name":"SubagentHandback","tool_input":{"message":"%s"},"tool_response":{"success":true}}' \
+    "$1" "$2" "$3" "$4" | CLAUDE_PROJECT_DIR="$1" sh "$HOOKS/record-handback.sh" 2>"$ERRF"
+  RC=$?
+}
+HD=$(mktemp -d); make_lore_project "$HD"; mkdir -p "$HD/docs"; printf 'a\n' >"$HD/docs/a.md"
+handback "$HD" "lore:doc-validator" "h1" '**Files reviewed:** docs/a.md\n\nRecommendation: APPROVED WITH WARNINGS'
+check_exit 0 "$RC" "the hand-back recorder never blocks"
+[ -s "$HD/.claude/sources/.handback/h1" ] && pass "a Lore subagent's hand-back is saved under its agent_id" ||
+  fail "a Lore subagent's hand-back is saved under its agent_id"
+grep -qxF '.handback/' "$HD/.claude/sources/.gitignore" 2>/dev/null && pass "the hand-back store is git-ignored" ||
+  fail "the hand-back store is git-ignored"
+# the SubagentStop that follows: no last_assistant_message, no transcript on disk yet
+printf '{"hook_event_name":"SubagentStop","cwd":"%s","agent_type":"lore:doc-validator","agent_id":"h1","agent_transcript_path":"%s"}' "$HD" "$HD/not-yet.jsonl" |
+  CLAUDE_PROJECT_DIR="$HD" sh "$HOOKS/record-validator-run.sh" 2>"$ERRF"
+[ "$(head -n 1 "$HD/.claude/sources/.validator-receipt" 2>/dev/null | cut -f2)" = "APPROVED WITH WARNINGS" ] &&
+  pass "SubagentStop reads the saved hand-back when the transcript does not hold it yet" ||
+  fail "SubagentStop reads the saved hand-back when the transcript does not hold it yet"
+handback "$HD" "Explore" "h2" 'Recommendation: APPROVED'
+[ ! -e "$HD/.claude/sources/.handback/h2" ] && pass "another subagent's hand-back is not recorded" ||
+  fail "another subagent's hand-back is not recorded"
+handback "$HD" "lore:doc-validator" "../x" 'Recommendation: APPROVED'
+[ ! -e "$HD/.claude/sources/x" ] && [ -s "$HD/.claude/sources/.handback/x" ] &&
+  pass "an agent_id cannot address a path outside the store" ||
+  fail "an agent_id cannot address a path outside the store"
+NL=$(mktemp -d)
+handback "$NL" "lore:doc-validator" "h3" 'Recommendation: APPROVED'
+[ ! -e "$NL/.claude" ] && pass "the hand-back recorder writes nothing outside a Lore project" ||
+  fail "the hand-back recorder writes nothing outside a Lore project"
+
+# The subagent tool is `Agent` on current runtimes (a `Task` matcher still fires, but the
+# payload's tool_name says Agent). Comparing only `Task` recorded zero subagent runs and
+# never opened the reviser bracket.
+AG=$(mktemp -d); make_lore_project "$AG"
+posttool_tool "$HOOKS/record-evidence.sh" "$AG" "Agent" '{"subagent_type":"lore:site-explorer"}'
+grep -q 'subagent:lore:site-explorer' "$AG/.claude/sources/.evidence-log" 2>/dev/null &&
+  pass "an Agent call is recorded as a subagent: row" || fail "an Agent call is recorded as a subagent: row"
+pretool_tool "$HOOKS/guard-under-review.sh" "$AG" "Agent" '{"subagent_type":"lore:doc-reviser","prompt":"apply"}'
+[ -f "$AG/.claude/sources/.reviser-active" ] && pass "the reviser's Agent PreToolUse opens the bracket" ||
+  fail "the reviser's Agent PreToolUse opens the bracket"
+posttool_tool "$HOOKS/guard-under-review.sh" "$AG" "Agent" '{"subagent_type":"lore:doc-reviser","prompt":"apply"}'
+[ ! -f "$AG/.claude/sources/.reviser-active" ] && pass "the reviser's Agent PostToolUse closes it" ||
+  fail "the reviser's Agent PostToolUse closes it"
+
 echo "== remind-mass-edit.sh (PreToolUse) =="
 # The class of damage no output check can see: nothing is mis-typed, every changed line
 # is individually correct, and only the sentence around it became false.
@@ -1589,7 +1771,7 @@ echo "== hooks.json wiring (mirrors the CI check) =="
 HJ="$SCRIPT_DIR/../plugins/lore/hooks/hooks.json"
 if command -v jq >/dev/null 2>&1; then
   wired=$(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' "$HJ" |
-    sed 's#^\${CLAUDE_PLUGIN_ROOT}/hooks/##' | sort -u)
+    sed 's#^"##; s#"$##; s#^\${CLAUDE_PLUGIN_ROOT}/hooks/##' | sort -u)
   miss=""
   for h in $wired; do
     [ -f "$HOOKS/$h" ] || miss="$miss $h(missing)"
@@ -1597,6 +1779,12 @@ if command -v jq >/dev/null 2>&1; then
   done
   [ -z "$miss" ] && pass "every hook hooks.json wires up exists and is executable" ||
     fail "every hook hooks.json wires up exists and is executable —$miss"
+
+  # An unquoted placeholder splits on a space in the install path, and the hook silently
+  # never runs. `claude plugin validate --strict` (2.1.281+) rejects it; so does this.
+  unq=$(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' "$HJ" | grep -v '^"\${CLAUDE_PLUGIN_ROOT}/[^"]*"$')
+  [ -z "$unq" ] && pass "every hook command quotes \${CLAUDE_PLUGIN_ROOT}" ||
+    fail "every hook command quotes \${CLAUDE_PLUGIN_ROOT} — $unq"
 
   n=$(printf '%s\n' "$wired" | grep -c .)
   [ "$n" -ge 10 ] && pass "the wiring check covers all $n wired hooks" ||
@@ -1893,6 +2081,14 @@ if command -v python3 >/dev/null 2>&1; then
   agree=$(jf_with python3 'stop_hook_active' '{"stop_hook_active":true}')
   [ "$agree" = "true" ] && pass "the python3 backend reads a boolean" ||
     fail "the python3 backend reads a boolean (got '$agree')"
+  # A hook runs from the docs repo, and `python3 -c` puts the current directory first on
+  # sys.path: a json.py there would run on `import json`. Every call uses -I.
+  PJ=$(mktemp -d); printf 'import os\nopen(os.environ["PJ_HIT"], "w").write("x")\n' >"$PJ/json.py"
+  ( cd "$PJ" && PJ_HIT="$PJ/hit" jf_with python3 'session_id' '{"session_id":"s1"}' >/dev/null )
+  [ ! -e "$PJ/hit" ] && pass "the python3 backend never imports a module from the project directory" ||
+    fail "the python3 backend never imports a module from the project directory"
+  grep -n 'python3 -c' "$HOOKS"/*.sh "$HOOKS"/lib/*.sh "$SCRIPTS"/*.sh >/dev/null 2>&1 &&
+    fail "every python3 -c call runs isolated (-I)" || pass "every python3 -c call runs isolated (-I)"
 fi
 
 echo

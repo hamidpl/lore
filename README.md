@@ -62,6 +62,12 @@ Installing is two steps, run **inside Claude Code** (both are idempotent):
 /plugin install lore@lore-marketplace       # 2. install the plugin
 ```
 
+On Claude Code 2.1.275 or later, one command does both:
+
+```text
+/plugin install lore --marketplace hamidpl/lore
+```
+
 For a team/CI repo, install at project scope so a clone is self-contained:
 
 ```text
@@ -125,7 +131,7 @@ Full guides, the skill reference, and walkthroughs live on the website:
 
 ## Versioning
 
-Lore uses [semantic versioning](https://semver.org); the current version lives in [`plugins/lore/.claude-plugin/plugin.json`](plugins/lore/.claude-plugin/plugin.json) and changes are recorded in [CHANGELOG.md](CHANGELOG.md). It is **pre-1.0**, so minor releases may include breaking changes until `1.0.0`. To pin a version, add the marketplace at a fixed git tag — e.g. `/plugin marketplace add hamidpl/lore#v0.1.0`.
+Lore uses [semantic versioning](https://semver.org); the current version lives in [`plugins/lore/.claude-plugin/plugin.json`](plugins/lore/.claude-plugin/plugin.json) and changes are recorded in [CHANGELOG.md](CHANGELOG.md). Since `1.0.0`, breaking changes land only in a major release; minor releases add capability and stay backward compatible, and patches fix. To pin a version, add the marketplace at a fixed git tag — e.g. `/plugin marketplace add hamidpl/lore#v1.1.0`.
 
 > **Security note:** Lore ships hooks that run shell scripts automatically in your repo. Review plugin updates the way you would any dependency bump.
 

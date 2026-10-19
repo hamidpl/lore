@@ -9,6 +9,102 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
+## Unreleased
+
+**On Claude Code 2.1.30x the validator's green verdict was recorded as `UNKNOWN`, and
+the Stop gate then blocked every turn.** The cause was not in the verdict parser. The
+runtime now delivers a subagent's result through a `SubagentHandback` tool call, and
+the SubagentStop payload's `last_assistant_message` holds a stub. The parser read
+`last_assistant_message`, so it was parsing the stub. Re-running the validator could not
+clear the block, and a waiver correctly refused a non-green verdict. Observed in a real
+project on 2026-10-19.
+
+### SubagentStop hooks read the report from the hand-back
+
+A new hook, `record-handback.sh`, runs on PostToolUse for `SubagentHandback`, which is
+the route the hooks reference documents. It saves a Lore subagent's report under its
+`agent_id`, and it fires before that subagent's SubagentStop (measured on 2.1.301). A new
+helper, `lore_subagent_report` in `hooks/lib/common.sh`, returns the final message when
+it carries the line the caller parses. Otherwise it returns the saved report. If there is
+none, it reads the last `SubagentHandback` call from the subagent's transcript. The
+transcript is only a fallback, because it is written asynchronously and may not hold the
+call yet. The validator recorder,
+the reviser branch and `require-worker-evidence.sh` all use it. The parsers did not
+change. With no JSON tool or no transcript, the hooks behave exactly as before.
+
+The same stub caused two quieter defects, and both are fixed:
+
+- A 5-file validation was recorded as **42/42 reviewed**, because the legacy "no
+  `Files reviewed:` line means everything was reviewed" fallback fired on a stub. That
+  fallback now requires a verdict, and a report with no verdict blesses nothing.
+- A three-file reviser batch was recorded as `REVISED 0 0`.
+
+### One run, one record
+
+A subagent that ends in plain text is made to call the hand-back, so SubagentStop fires
+twice for one run, and the second stop's `UNKNOWN` overwrote the green receipt. History
+lines now carry the runtime's `agent_id` as a fifth column. A later stop from the same
+agent writes nothing in two cases: when it carries no verdict (for the reviser, no edited
+files), and when it restates that agent's last result over the same content. A resumed
+agent that returns a different result is still a new record. The Stop gate reads only
+columns 2–4, so existing history files are read the same way.
+
+### The subagent tool is `Agent`
+
+On 2.1.301 a `Task` matcher still fires for an `Agent` call, but the payload's
+`tool_name` says `Agent`. The scripts compared only `Task`. As a result
+`record-evidence.sh` recorded no `subagent:` rows, and `guard-under-review.sh` never
+opened the reviser bracket. Both scripts now accept both names. The `hooks.json`
+matchers name both as well, so the hooks no longer depend on the runtime keeping the
+alias. The skills and hook messages now say "Agent tool".
+
+### Hook commands quote `${CLAUDE_PLUGIN_ROOT}`
+
+When the install path contained a space, an unquoted placeholder split into several
+words and the hook did not run. `claude plugin validate --strict` rejects that form on
+2.1.281 and later. All 15 commands now quote the path. The CI wiring check and its test
+mirror read the quoted form, and a new test fails on any unquoted command. Verified by
+loading the plugin from a directory whose name contains a space: the SessionStart sync
+hook ran.
+
+### Python in hooks runs isolated
+
+A hook runs from the documentation repo, and `python3 -c` puts the current directory
+first on `sys.path`. A `json.py` in that repo would therefore have run, as the user,
+whenever a hook fell back to Python for JSON. All four call sites now pass `-I`. A new
+test plants such a module and fails if it is imported. A second test fails on any
+`python3 -c` without `-I`.
+
+### Maintenance
+
+- **Install:** the README and the install page (EN and FA) add the one-step form
+  `/plugin install lore --marketplace hamidpl/lore`, for Claude Code 2.1.275 or later. The
+  two-step form stays the default because it works on every version. The README's
+  versioning paragraph had still called Lore pre-1.0. It now states the policy since
+  1.0.0, and its pin example points at a current tag.
+- **Site dependencies:** Docusaurus moves from 3.10.1 to 3.10.2, and `npm audit fix`
+  brings the docs site from 67 advisories to 45. The rest come in through Docusaurus's
+  own dependency tree (tinypool, serialize-javascript, postcss-selector-parser, uuid,
+  braces). npm's suggested fix is a downgrade to 3.7.0, and forcing newer versions would
+  put major bumps under packages that did not ask for them. They are build-time only and
+  do not reach the plugin or the served pages. The landing moves to Astro 7.4.0, which
+  fixes its one critical advisory and leaves one low. Its built page has the same text,
+  and its CSS differs only by equivalent minifier rewrites.
+- **CI:** `actions/checkout` and `actions/setup-node` move from v4 to v7, and
+  FTP-Deploy-Action from 4.3.5 to 4.4.0, which runs on Node 24. Node 20, which reached
+  end of life in April 2026, is replaced by Node 24 in every workflow. Astro 7 needs
+  Node ≥ 22.22.
+
+**Verified** by running the real `lore:doc-validator` under 2.1.301 in auto mode with
+this plugin loaded. The report came through the hand-back, the hook recorded
+`APPROVED WITH WARNINGS 1/1`, and the evidence log gained an `Agent subagent:` row. Also
+verified by capturing the raw SubagentStop and PreToolUse/PostToolUse payloads under
+2.1.301, and by replaying the real incident's two stops through the fixed hook:
+`APPROVED WITH WARNINGS 5/42` and `REVISED 3 3`, where the run had recorded
+`UNKNOWN 42/42` and `REVISED 0 0`. Thirty new tests cover the hand-back recorder, the stub stop, the
+`Files reviewed:` scope, the double stop, the reviser hand-back, an extraction worker's
+hand-back `RECEIPT`, the no-JSON-tool degrade, and `Agent` in both recorders.
+
 ## 1.1.0
 
 **Persian documentation written from English sources reads as translated long after

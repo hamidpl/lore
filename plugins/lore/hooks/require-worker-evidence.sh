@@ -12,12 +12,14 @@
 #   - by attribution: on Claude Code ≥ 2.1.69 tool hooks inside a subagent carry agent_id,
 #     and record-evidence.sh writes it as field 5 — so `verified` lines carrying THIS
 #     worker's id are its own fetches;
-#   - by the worker's own claims: the RECEIPT lines in its final message (`raw=<path>`),
-#     which figma-probe.sh prints and self-logs. This is the path on 2.1.52, where tool
+#   - by the worker's own claims: the RECEIPT lines in its report (`raw=<path>`), which
+#     figma-probe.sh prints and self-logs — read from its final message, or from its
+#     SubagentHandback call where the runtime delivers results that way. This is the path on 2.1.52, where tool
 #     hooks inside a subagent carry no agent_id (measured); the claim is falsified against
 #     the file on disk and the log, which is the evidence model's own shape.
 # A worker with neither is told, via exit 2, what to do and keeps running (SubagentStop
-# exit 2 re-prompts the subagent). `stop_hook_active` guards the loop.
+# exit 2 re-prompts the subagent). `stop_hook_active` guards the loop: the re-prompted
+# stop carries it, so a worker is returned to work at most once per run.
 #
 # Guard: only acts in a scaffolded Lore project; never blocks a worker that is not an
 # extraction worker (matcher), and exits 0 rather than guess when the message is empty.
@@ -39,7 +41,7 @@ case "$(json_field 'agent_type')" in
   *) exit 0 ;;
 esac
 
-msg=$(json_field 'last_assistant_message')
+msg=$(lore_subagent_report 'raw=' "$root")
 [ -n "$msg" ] || exit 0
 agent_id=$(json_field 'agent_id')
 log="$root/.claude/sources/.evidence-log"

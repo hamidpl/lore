@@ -1,5 +1,5 @@
 #!/bin/sh
-# record-evidence.sh — PostToolUse hook (matcher: WebFetch|Task|Bash|mcp__*browser*)
+# record-evidence.sh — PostToolUse hook (matcher: WebFetch|Task|Agent|Bash|mcp__*browser*)
 #
 # WHY THIS EXISTS. Every §0 obligation used to be discharged by writing a sentence:
 # "nothing relevant — confirmed searched" is the same string whether the source was
@@ -67,15 +67,16 @@ lore_is_project "$root" || exit 0
 agent=$(json_field 'agent_id')
 
 # --- what to record, per tool ---
-# WebFetch / browser navigation → the URL. Task → the subagent type. Bash → any URL
-# in the command (covers curl/wget, which is how a source often gets fetched).
+# WebFetch / browser navigation → the URL. Agent (`Task` on older runtimes) → the
+# subagent type. Bash → any URL in the command (covers curl/wget, which is how a source
+# often gets fetched).
 detail=""
 tier="verified"
 case "$tool" in
   WebFetch)
     detail=$(json_field 'tool_input url')
     ;;
-  Task)
+  Task|Agent)
     detail=$(json_field 'tool_input subagent_type')
     [ -n "$detail" ] && detail="subagent:$detail"
     ;;
