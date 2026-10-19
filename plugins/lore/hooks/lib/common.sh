@@ -59,7 +59,7 @@ json_field() {
       printf '%s' "$input" | jq -r "$_jq // empty" 2>/dev/null
       ;;
     python3)
-      printf '%s' "$input" | python3 -c '
+      printf '%s' "$input" | python3 -I -c '
 import json,sys
 try:
     d=json.load(sys.stdin)
@@ -332,7 +332,7 @@ _lore_last_handback() {
         | .input.message? | strings) as $m (""; $m)' "$1" 2>/dev/null
       ;;
     python3)
-      python3 -c '
+      python3 -I -c '
 import json,sys
 m=""
 try:

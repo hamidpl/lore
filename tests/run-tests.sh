@@ -2081,6 +2081,14 @@ if command -v python3 >/dev/null 2>&1; then
   agree=$(jf_with python3 'stop_hook_active' '{"stop_hook_active":true}')
   [ "$agree" = "true" ] && pass "the python3 backend reads a boolean" ||
     fail "the python3 backend reads a boolean (got '$agree')"
+  # A hook runs from the docs repo, and `python3 -c` puts the current directory first on
+  # sys.path: a json.py there would run on `import json`. Every call uses -I.
+  PJ=$(mktemp -d); printf 'import os\nopen(os.environ["PJ_HIT"], "w").write("x")\n' >"$PJ/json.py"
+  ( cd "$PJ" && PJ_HIT="$PJ/hit" jf_with python3 'session_id' '{"session_id":"s1"}' >/dev/null )
+  [ ! -e "$PJ/hit" ] && pass "the python3 backend never imports a module from the project directory" ||
+    fail "the python3 backend never imports a module from the project directory"
+  grep -n 'python3 -c' "$HOOKS"/*.sh "$HOOKS"/lib/*.sh "$SCRIPTS"/*.sh >/dev/null 2>&1 &&
+    fail "every python3 -c call runs isolated (-I)" || pass "every python3 -c call runs isolated (-I)"
 fi
 
 echo

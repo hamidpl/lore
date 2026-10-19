@@ -67,6 +67,14 @@ mirror read the quoted form, and a new test fails on any unquoted command. Verif
 loading the plugin from a directory whose name contains a space: the SessionStart sync
 hook ran.
 
+### Python in hooks runs isolated
+
+A hook runs from the documentation repo, and `python3 -c` puts the current directory
+first on `sys.path`. A `json.py` in that repo would therefore have run, as the user,
+whenever a hook fell back to Python for JSON. All four call sites now pass `-I`. A new
+test plants such a module and fails if it is imported. A second test fails on any
+`python3 -c` without `-I`.
+
 **Verified** by running the real `lore:doc-validator` under 2.1.301 in auto mode with
 this plugin loaded. The report came through the hand-back, the hook recorded
 `APPROVED WITH WARNINGS 1/1`, and the evidence log gained an `Agent subagent:` row. Also
