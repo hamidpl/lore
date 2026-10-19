@@ -2087,9 +2087,12 @@ if command -v python3 >/dev/null 2>&1; then
   ( cd "$PJ" && PJ_HIT="$PJ/hit" jf_with python3 'session_id' '{"session_id":"s1"}' >/dev/null )
   [ ! -e "$PJ/hit" ] && pass "the python3 backend never imports a module from the project directory" ||
     fail "the python3 backend never imports a module from the project directory"
-  grep -n 'python3 -c' "$HOOKS"/*.sh "$HOOKS"/lib/*.sh "$SCRIPTS"/*.sh >/dev/null 2>&1 &&
-    fail "every python3 -c call runs isolated (-I)" || pass "every python3 -c call runs isolated (-I)"
 fi
+# A static sweep, so it runs with or without python3 on the machine. Any option other
+# than -I first (`python3 -c`, `python3 -u -c`, `python3 -m`) is an unisolated call.
+unisolated=$(grep -nE 'python3[[:space:]]+-[^I]' "$HOOKS"/*.sh "$HOOKS"/lib/*.sh "$SCRIPTS"/*.sh 2>/dev/null)
+[ -z "$unisolated" ] && pass "every python3 call in hooks/ and scripts/ runs isolated (-I)" ||
+  fail "every python3 call in hooks/ and scripts/ runs isolated (-I): $unisolated"
 
 echo
 echo "==== $PASS passed, $FAIL failed ===="

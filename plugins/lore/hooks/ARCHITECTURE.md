@@ -76,6 +76,8 @@ Two invariants:
 
 `json_field` takes **one** argument: a space-separated key path (`json_field 'tool_input file_path'`). Each backend derives its own form from it. It used to take three — a jq filter, a python path and a bare `sed` key — which meant every call site restated the same path in three dialects and could get them out of step. The text fallback (used only when neither jq nor python3 exists) honours the **path** and takes the **first** match: `s/.*"file_path".../` is greedy, so it returned the *last* occurrence in the payload — the `tool_response` echo rather than `tool_input` — on every `Write`. It also reads unquoted scalars, because `stop_hook_active` is a boolean and a string-only scan silently disabled the Stop hook's loop guard.
 
+**Every `python3` runs with `-I` (isolated mode).** Hooks run with the user's project as the working directory, and `python3 -c` puts that directory first on `sys.path` — so a `json.py` at the project root would execute on `import json`, in every hook, on every tool call, on any machine without `jq`. `-I` drops it from the path and ignores `PYTHON*` variables. Two tests hold it: a planted `json.py` must not run through the python3 backend, and a static sweep fails on any `python3` in `hooks/` or `scripts/` whose first option is not `-I` — so a new call site cannot reopen it, even on a CI machine without python3.
+
 Hook paths in `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`. The wizard *scripts* self-locate via `$(dirname "$0")`; the command *markdown* files must not (there `$0` is the shell) — they resolve the root via `${CLAUDE_PLUGIN_ROOT}` → glob → ask.
 
 The hooks are covered by `tests/run-tests.sh` and CI (`.github/workflows/ci.yml`) — run `sh tests/run-tests.sh` after changing any hook or script.
