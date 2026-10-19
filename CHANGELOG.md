@@ -54,6 +54,15 @@ opened the reviser bracket. Both scripts now accept both names. The `hooks.json`
 matchers name both as well, so the hooks no longer depend on the runtime keeping the
 alias. The skills and hook messages now say "Agent tool".
 
+### Hook commands quote `${CLAUDE_PLUGIN_ROOT}`
+
+When the install path contained a space, an unquoted placeholder split into several
+words and the hook did not run. `claude plugin validate --strict` rejects that form on
+2.1.281 and later. All 15 commands now quote the path. The CI wiring check and its test
+mirror read the quoted form, and a new test fails on any unquoted command. Verified by
+loading the plugin from a directory whose name contains a space: the SessionStart sync
+hook ran.
+
 **Verified** by capturing the raw SubagentStop and PreToolUse/PostToolUse payloads under
 2.1.301, and by replaying the real incident's two stops through the fixed hook:
 `APPROVED WITH WARNINGS 5/42` and `REVISED 3 3`, where the run had recorded

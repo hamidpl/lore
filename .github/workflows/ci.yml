@@ -47,7 +47,7 @@ jobs:
           fail=0
           jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' \
             plugins/lore/hooks/hooks.json |
-            sed 's#^\${CLAUDE_PLUGIN_ROOT}/#plugins/lore/#' | sort -u |
+            sed 's#^"##; s#"$##; s#^\${CLAUDE_PLUGIN_ROOT}/#plugins/lore/#' | sort -u |
             while read -r p; do
               test -f "$p" || { echo "hooks.json references a missing file: $p"; exit 1; }
               test -x "$p" || { echo "hooks.json references a non-executable file: $p"; exit 1; }

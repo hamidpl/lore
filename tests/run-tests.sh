@@ -1738,7 +1738,7 @@ echo "== hooks.json wiring (mirrors the CI check) =="
 HJ="$SCRIPT_DIR/../plugins/lore/hooks/hooks.json"
 if command -v jq >/dev/null 2>&1; then
   wired=$(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' "$HJ" |
-    sed 's#^\${CLAUDE_PLUGIN_ROOT}/hooks/##' | sort -u)
+    sed 's#^"##; s#"$##; s#^\${CLAUDE_PLUGIN_ROOT}/hooks/##' | sort -u)
   miss=""
   for h in $wired; do
     [ -f "$HOOKS/$h" ] || miss="$miss $h(missing)"
@@ -1746,6 +1746,12 @@ if command -v jq >/dev/null 2>&1; then
   done
   [ -z "$miss" ] && pass "every hook hooks.json wires up exists and is executable" ||
     fail "every hook hooks.json wires up exists and is executable —$miss"
+
+  # An unquoted placeholder splits on a space in the install path, and the hook silently
+  # never runs. `claude plugin validate --strict` (2.1.281+) rejects it; so does this.
+  unq=$(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' "$HJ" | grep -v '^"\${CLAUDE_PLUGIN_ROOT}/[^"]*"$')
+  [ -z "$unq" ] && pass "every hook command quotes \${CLAUDE_PLUGIN_ROOT}" ||
+    fail "every hook command quotes \${CLAUDE_PLUGIN_ROOT} — $unq"
 
   n=$(printf '%s\n' "$wired" | grep -c .)
   [ "$n" -ge 10 ] && pass "the wiring check covers all $n wired hooks" ||
