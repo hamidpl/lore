@@ -75,6 +75,26 @@ whenever a hook fell back to Python for JSON. All four call sites now pass `-I`.
 test plants such a module and fails if it is imported. A second test fails on any
 `python3 -c` without `-I`.
 
+### Maintenance
+
+- **Install:** the README and the install page (EN and FA) add the one-step form
+  `/plugin install lore --marketplace hamidpl/lore`, for Claude Code 2.1.275 or later. The
+  two-step form stays the default because it works on every version. The README's
+  versioning paragraph had still called Lore pre-1.0. It now states the policy since
+  1.0.0, and its pin example points at a current tag.
+- **Site dependencies:** Docusaurus moves from 3.10.1 to 3.10.2, and `npm audit fix`
+  brings the docs site from 67 advisories to 45. The rest come in through Docusaurus's
+  own dependency tree (tinypool, serialize-javascript, postcss-selector-parser, uuid,
+  braces). npm's suggested fix is a downgrade to 3.7.0, and forcing newer versions would
+  put major bumps under packages that did not ask for them. They are build-time only and
+  do not reach the plugin or the served pages. The landing moves to Astro 7.4.0, which
+  fixes its one critical advisory and leaves one low. Its built page has the same text,
+  and its CSS differs only by equivalent minifier rewrites.
+- **CI:** `actions/checkout` and `actions/setup-node` move from v4 to v7, and
+  FTP-Deploy-Action from 4.3.5 to 4.4.0, which runs on Node 24. Node 20, which reached
+  end of life in April 2026, is replaced by Node 24 in every workflow. Astro 7 needs
+  Node ≥ 22.22.
+
 **Verified** by running the real `lore:doc-validator` under 2.1.301 in auto mode with
 this plugin loaded. The report came through the hand-back, the hook recorded
 `APPROVED WITH WARNINGS 1/1`, and the evidence log gained an `Agent subagent:` row. Also
