@@ -41,6 +41,9 @@ const config: Config = {
 
   url: 'https://docs.lorekit.net',
   baseUrl: '/',
+  // The host 301s /page to /page/ (each page is page/index.html). Without this,
+  // every canonical, hreflang and sitemap URL pointed at a redirect.
+  trailingSlash: true,
 
   organizationName: 'hamidpl',
   projectName: 'lore',
@@ -66,6 +69,10 @@ const config: Config = {
           editUrl: `${GITHUB_URL}/tree/main/website/docs/`,
         },
         blog: false,
+        // Tag listing pages are thin and outnumbered the real pages in the sitemap.
+        sitemap: {
+          ignorePatterns: ['/tags/**', '/fa/tags/**'],
+        },
         theme: {
           // custom-rtl.css only affects html[dir='rtl'] (the fa locale).
           customCss: ['./src/css/custom.css', './src/css/custom-rtl.css'],
@@ -75,6 +82,8 @@ const config: Config = {
   ],
 
   themeConfig: {
+    // Social card (og:image / twitter:image) for every page.
+    image: 'img/og.png',
     colorMode: {
       respectPrefersColorScheme: true,
     },

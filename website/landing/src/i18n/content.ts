@@ -6,9 +6,11 @@
 
 export const t = {
   meta: {
-    title: 'Lore — Product Documentation Factory for Claude Code',
+    title: 'Lore — Claude Code Plugin for Product Documentation',
     description:
-      'A reusable, product-agnostic documentation factory packaged as a Claude Code plugin. Turn Figma designs, briefs, or a live product into maintainable docs.',
+      'Open-source Claude Code plugin that turns Figma designs, PRDs and briefs, or a live product into validated, maintainable product documentation.',
+    ogImageAlt:
+      'Lore — turn Figma designs, briefs and live products into documentation that lasts.',
   },
   nav: {
     docs: 'Docs',
