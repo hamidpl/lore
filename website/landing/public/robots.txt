@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lorekit.net/sitemap-index.xml

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Docusaurus writes one sitemap per locale.
+Sitemap: https://docs.lorekit.net/sitemap.xml
+Sitemap: https://docs.lorekit.net/fa/sitemap.xml
