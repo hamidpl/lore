@@ -8,7 +8,7 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
 <!-- ============================ HERO ============================ -->
 <section class="hero">
   <div class="container hero-inner" data-reveal>
-    <p class="hero-wordmark"><LogoMark size="1.15em" />{t.hero.wordmark}</p>
+    <p class="hero-wordmark"><LogoMark />{t.hero.wordmark}</p>
     <p class="eyebrow">{t.hero.eyebrow}</p>
     <h1 class="hero-title">
       {t.hero.titleLead}{' '}
@@ -161,8 +161,8 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
   .hero-inner { max-width: 54rem; }
   .hero-wordmark {
     display: flex;
-    align-items: center;
-    gap: 0.35em;
+    align-items: baseline;
+    gap: 0.28em;
     font-family: var(--font-serif);
     font-weight: 600;
     font-size: clamp(2.1rem, 1.6rem + 1.6vw, 3rem);

@@ -2,10 +2,13 @@
 // The Lore mark: a stack of books in an accent tile, the newest one askew.
 // Inline (not <img>) so it follows the theme tokens. Decorative: the
 // "Lore" text beside it carries the name. Source: website/brand/lore-mark.svg.
+// The default 0.8em is a touch taller than Fraunces' cap height (0.7em, the
+// height of "Lore"): it sits on the text baseline (the parent uses
+// align-items: baseline) and rises just above the word.
 interface Props {
   size?: string;
 }
-const { size = '1em' } = Astro.props;
+const { size = '0.8em' } = Astro.props;
 ---
 
 <svg
