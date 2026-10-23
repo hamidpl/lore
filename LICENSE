@@ -19,10 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-The bundled Vazirmatn font files under
-plugins/lore/templates/rtl-assets/static/fonts/ are licensed separately under
-the SIL Open Font License 1.1 — see the LICENSE-Vazirmatn file in that
-directory. The MIT license above does not apply to those font files.

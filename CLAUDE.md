@@ -24,7 +24,7 @@ plugins/lore/                      # the plugin itself
 tests/run-tests.sh                 # POSIX hook/script test harness (run before release)
 .github/workflows/ci.yml           # shellcheck + manifest + hook tests + scaffold smoke
 CHANGELOG.md                       # release notes (tagged vX.Y.Z)
-LICENSE                            # MIT (Vazirmatn font: separate OFL notice)
+LICENSE                            # plain MIT text only, so GitHub detects it (Vazirmatn OFL note: README + fonts dir)
 ```
 
 ## Commands
