@@ -35,6 +35,6 @@ A language skill's own linter is advisory, not authoritative: read each finding 
 
 The documentation you are reading is bilingual — English and Persian — built on exactly this mechanism. Use the language dropdown in the navigation bar to switch; the Persian version flips to a right-to-left layout in the Vazirmatn font.
 
-:::note Font license
+:::note[Font license]
 Vazirmatn is bundled under the SIL Open Font License 1.1, separate from Lore's own MIT license.
 :::

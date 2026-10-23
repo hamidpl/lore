@@ -34,6 +34,16 @@ const config: Config = {
   title: 'Lore',
   tagline: 'A product-documentation factory for Claude Code',
   favicon: 'img/favicon.ico',
+  headTags: [
+    {
+      tagName: 'link',
+      attributes: { rel: 'icon', type: 'image/svg+xml', href: '/img/favicon.svg' },
+    },
+    {
+      tagName: 'link',
+      attributes: { rel: 'apple-touch-icon', href: '/img/apple-touch-icon.png' },
+    },
+  ],
 
   future: {
     v4: true,
@@ -89,6 +99,7 @@ const config: Config = {
     },
     navbar: {
       title: 'Lore',
+      logo: { alt: 'Lore', src: 'img/logo.svg', srcDark: 'img/logo-dark.svg' },
       items: [
         {
           type: 'docSidebar',
