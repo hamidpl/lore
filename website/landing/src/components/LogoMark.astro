@@ -1,0 +1,32 @@
+---
+// The Lore mark: a stack of books in an accent tile, the newest one askew.
+// Inline (not <img>) so it follows the theme tokens. Decorative: the
+// "Lore" text beside it carries the name. Source: website/brand/lore-mark.svg.
+interface Props {
+  size?: string;
+}
+const { size = '1em' } = Astro.props;
+---
+
+<svg
+  class="logo-mark"
+  viewBox="4 4 56 56"
+  width={size}
+  height={size}
+  aria-hidden="true"
+  focusable="false"
+>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="var(--accent)" />
+  <g fill="var(--paper)">
+    <rect x="13" y="41" width="38" height="9" rx="3" />
+    <rect x="16" y="29.5" width="32" height="9" rx="3" />
+    <rect x="15" y="17" width="28" height="9" rx="3" transform="rotate(-9 29 21.5)" />
+  </g>
+</svg>
+
+<style>
+  .logo-mark {
+    flex: none;
+    display: block;
+  }
+</style>

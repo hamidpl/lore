@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Lore</title>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#bd4f24"/>
+  <g fill="#fffdf8">
+    <rect x="13" y="41" width="38" height="9" rx="3"/>
+    <rect x="16" y="29.5" width="32" height="9" rx="3"/>
+    <rect x="15" y="17" width="28" height="9" rx="3" transform="rotate(-9 29 21.5)"/>
+  </g>
+</svg>

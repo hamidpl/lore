@@ -53,3 +53,24 @@ table {
   color: var(--ifm-color-emphasis-600);
   margin-top: 0.5rem;
 }
+
+/* Home (intro) page: the logo mark leads the "Lore" heading, as on lorekit.net.
+   The text stays in the h1; the mark is decoration. */
+.docs-doc-id-intro article h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.docs-doc-id-intro article h1::before {
+  content: '';
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  background: url('../../static/img/logo.svg') center / contain no-repeat;
+}
+
+/* data-theme and the doc-id class both sit on <html>, hence no space. */
+[data-theme='dark'].docs-doc-id-intro article h1::before {
+  background-image: url('../../static/img/logo-dark.svg');
+}

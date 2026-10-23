@@ -1,5 +1,6 @@
 ---
 import CodeBlock from './CodeBlock.astro';
+import LogoMark from './LogoMark.astro';
 import { t } from '../i18n/content';
 import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
 ---
@@ -7,7 +8,7 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
 <!-- ============================ HERO ============================ -->
 <section class="hero">
   <div class="container hero-inner" data-reveal>
-    <p class="hero-wordmark">{t.hero.wordmark}<span class="brand-dot">.</span></p>
+    <p class="hero-wordmark"><LogoMark size="1.15em" />{t.hero.wordmark}</p>
     <p class="eyebrow">{t.hero.eyebrow}</p>
     <h1 class="hero-title">
       {t.hero.titleLead}{' '}
@@ -159,6 +160,9 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
   .hero { padding-block-start: var(--space-xl); }
   .hero-inner { max-width: 54rem; }
   .hero-wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
     font-family: var(--font-serif);
     font-weight: 600;
     font-size: clamp(2.1rem, 1.6rem + 1.6vw, 3rem);
@@ -166,7 +170,6 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
     letter-spacing: -0.01em;
     margin-block-end: var(--space-s);
   }
-  .hero-wordmark .brand-dot { color: var(--accent); }
   .hero-title {
     font-size: var(--step-3);
     font-weight: 500;

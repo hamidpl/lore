@@ -34,6 +34,6 @@ npm run serve     # preview the production build
 
 The production build is configured to **fail on a broken link**, not warn about one. The [Definition of Done](../concepts/definition-of-done.md) treats this build as its authoritative link check, and a warning gates nothing — so a site could go green with dead links in it while the documentation promised the opposite.
 
-:::tip Keeping Docusaurus up to date
+:::tip[Keeping Docusaurus up to date]
 Because the viewer is a normal npm project, Docusaurus is a versioned dependency in its `package.json`. Update it deliberately with `npm update` (minor/patch) or by bumping `@docusaurus/*` and running `npm install` for a major, then re-running the build.
 :::
