@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
-title: Document from a live site
+title: "Document a live website with Playwright"
+sidebar_label: "Document from a live site"
 description: Use lore:site-to-doc to drive a real browser, run scenarios, capture screenshots, and document how a product actually behaves.
 tags: [guides, live-site, playwright]
 ---

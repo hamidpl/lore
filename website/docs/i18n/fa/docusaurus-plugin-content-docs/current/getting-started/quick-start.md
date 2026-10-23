@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
-title: شروع سریع
+title: "شروع سریع: از مخزن خالی تا مستندات منتشرشده"
+sidebar_label: "شروع سریع"
 description: از یک مخزن خالی تا مستندات منتشرشده در چهار حرکت؛ اسکفولد، تولید، بازبینی، استقرار.
 tags: [getting-started, quick-start]
 ---

@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
-title: The Definition of Done
+title: "Definition of Done for product documentation"
+sidebar_label: "The Definition of Done"
 description: The shared quality bar every document must meet — sources, structure, scenarios, accuracy, technical validity, language, and a final report.
 tags: [concepts, quality, definition-of-done]
 ---

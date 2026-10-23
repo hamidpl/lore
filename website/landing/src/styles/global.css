@@ -143,3 +143,22 @@ html.js [data-reveal].is-visible {
     transition: none;
   }
 }
+
+/* ---- Buttons (home page and use-case pages) ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.3rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: var(--step-0);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); color: #fff; }
+.btn-ghost { color: var(--ink); border-color: var(--line-strong); background: var(--surface); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }

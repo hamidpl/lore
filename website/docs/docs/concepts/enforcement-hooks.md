@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
-title: Enforcement hooks
+title: "Claude Code hooks that enforce documentation rules"
+sidebar_label: "Enforcement hooks"
 description: Deterministic, blocking hooks that check the shape of what was written and the evidence that the work behind it actually happened.
 tags: [concepts, hooks, enforcement]
 ---

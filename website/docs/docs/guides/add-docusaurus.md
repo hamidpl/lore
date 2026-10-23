@@ -1,6 +1,7 @@
 ---
 sidebar_position: 5
-title: Add the Docusaurus viewer
+title: "Publish your docs as a Docusaurus site"
+sidebar_label: "Add the Docusaurus viewer"
 description: Use /lore:add-docusaurus to turn a Markdown-only Lore project into a browsable site, with RTL styling when the documentation language is right-to-left.
 tags: [guides, docusaurus]
 ---

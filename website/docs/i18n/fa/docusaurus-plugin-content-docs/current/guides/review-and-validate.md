@@ -1,6 +1,7 @@
 ---
 sidebar_position: 4
-title: بازبینی و اعتبارسنجی
+title: "اعتبارسنجی مستندات پیش از تحویل"
+sidebar_label: "بازبینی و اعتبارسنجی"
 description: با lore:doc-reviewer و ساب‌اجنت doc-validator مستندات را پیش از تحویل در برابر تعریف انجام‌شدن بررسی کنید.
 tags: [guides, review, quality]
 ---

@@ -43,20 +43,24 @@ export const t = {
     items: [
       {
         skill: 'figma-to-doc',
+        href: '/figma-to-docs/',
         name: 'From Figma',
         desc: 'Read design files, annotations, and comments. Extract individual frames as inline screenshots and turn them into documented flows and business rules.',
       },
       {
         skill: 'brief-to-doc',
+        href: '/prd-to-docs/',
         name: 'From a brief',
         desc: 'Work from a PRD, epic, or user story. Infer scenarios from acceptance criteria and log every clarification so gaps are explicit, not guessed.',
       },
       {
         skill: 'site-to-doc',
+        href: '/live-site-to-docs/',
         name: 'From a live product',
         desc: 'Drive a real browser to run scenarios, capture screenshots, and record exact UI text — documenting how the product actually behaves today.',
       },
     ],
+    more: 'How it works',
   },
   how: {
     eyebrow: 'How it works',
@@ -132,6 +136,7 @@ export const t = {
     product: 'Product',
     resources: 'Resources',
     docs: 'Documentation',
+    useCases: 'Use cases',
     github: 'GitHub repository',
     changelog: 'Changelog',
     license: 'License',

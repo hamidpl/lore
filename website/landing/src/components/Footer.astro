@@ -2,6 +2,7 @@
 import { t } from '../i18n/content';
 import { SITE } from '../config';
 import LogoMark from './LogoMark.astro';
+import { USE_CASES } from '../i18n/usecases';
 
 const year = 2026;
 
@@ -9,6 +10,7 @@ const productLinks = [
   { label: t.footer.docs, href: SITE.docsUrl },
   { label: t.footer.changelog, href: SITE.changelogUrl },
 ];
+const useCaseLinks = USE_CASES.map((uc) => ({ label: uc.cardLabel, href: `/${uc.slug}/` }));
 const resourceLinks = [
   { label: t.footer.github, href: SITE.githubUrl },
   { label: t.footer.license, href: SITE.licenseUrl },
@@ -25,6 +27,11 @@ const resourceLinks = [
     <nav class="footer-col" aria-label={t.footer.product}>
       <h2>{t.footer.product}</h2>
       {productLinks.map((l) => <a href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+    </nav>
+
+    <nav class="footer-col" aria-label={t.footer.useCases}>
+      <h2>{t.footer.useCases}</h2>
+      {useCaseLinks.map((l) => <a href={l.href}>{l.label}</a>)}
     </nav>
 
     <nav class="footer-col" aria-label={t.footer.resources}>
@@ -48,7 +55,7 @@ const resourceLinks = [
   }
   .footer-inner {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: var(--space-l);
   }
   .footer-brand .brand-mark {

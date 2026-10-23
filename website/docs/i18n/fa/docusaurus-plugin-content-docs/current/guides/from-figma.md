@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
-title: مستندسازی از Figma
+title: "تولید مستندات محصول از روی طراحی Figma"
+sidebar_label: "مستندسازی از Figma"
 description: با lore:figma-to-doc فایل‌های طراحی Figma، حاشیه‌نویسی‌های Dev Mode، کامنت‌ها و سیم‌کشی پروتوتایپ را به سناریوها و قواعد کسب‌وکار با اسکرین‌شات‌های درون‌متنی تبدیل کنید.
 tags: [guides, figma]
 ---

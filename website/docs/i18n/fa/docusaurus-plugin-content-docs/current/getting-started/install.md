@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
-title: نصب و فعال‌سازی
+title: "نصب و فعال‌سازی پلاگین در Claude Code"
+sidebar_label: "نصب و فعال‌سازی"
 description: مارکت‌پلیس Lore را اضافه کنید، پلاگین را نصب کنید، آن را برای پروژه‌تان فعال کنید و به‌روز نگه دارید.
 tags: [getting-started, install]
 ---

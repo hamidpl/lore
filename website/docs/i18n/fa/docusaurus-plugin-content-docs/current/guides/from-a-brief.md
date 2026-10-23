@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
-title: مستندسازی از یک بریف
+title: "تبدیل PRD و بریف محصول به مستندات"
+sidebar_label: "مستندسازی از یک بریف"
 description: با lore:brief-to-doc بریف‌های محصول، PRD، اپیک و یوزر استوری را به مستندات تبدیل کنید و سناریوها را از معیارهای پذیرش استنتاج کنید.
 tags: [guides, brief, prd]
 ---

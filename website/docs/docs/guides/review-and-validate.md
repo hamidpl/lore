@@ -1,6 +1,7 @@
 ---
 sidebar_position: 4
-title: Review & validate
+title: "Validate documentation before delivery"
+sidebar_label: "Review & validate"
 description: Use lore:doc-reviewer and the doc-validator subagent to check documentation against the Definition of Done before delivery.
 tags: [guides, review, quality]
 ---

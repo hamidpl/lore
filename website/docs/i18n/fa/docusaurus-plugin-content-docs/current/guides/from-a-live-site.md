@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
-title: مستندسازی از یک سایت زنده
+title: "مستندسازی سایت زنده با Playwright"
+sidebar_label: "مستندسازی از یک سایت زنده"
 description: با lore:site-to-doc یک مرورگر واقعی را هدایت کنید، سناریوها را اجرا کنید، اسکرین‌شات بگیرید و رفتار واقعی محصول را مستند کنید.
 tags: [guides, live-site, playwright]
 ---

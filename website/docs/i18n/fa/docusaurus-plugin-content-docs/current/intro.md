@@ -1,7 +1,8 @@
 ---
 slug: /
 sidebar_position: 1
-title: معرفی
+title: "پلاگین Claude Code برای مستندسازی محصول"
+sidebar_label: "معرفی"
 description: Lore چیست؛ یک کارخانه‌ی مستندسازی محصول‌محور و قابل استفاده‌ی مجدد، بسته‌بندی‌شده به‌شکل یک پلاگین Claude Code.
 tags: [introduction, overview]
 ---

@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
-title: هوک‌های کنترلی
+title: "هوک‌های Claude Code برای اجرای قواعد مستندسازی"
+sidebar_label: "هوک‌های کنترلی"
 description: هوک‌های قطعی و بازدارنده که هم شکل آنچه نوشته شده را می‌سنجند و هم شواهد اینکه کار پشت آن واقعاً انجام شده است.
 tags: [concepts, hooks, enforcement]
 ---
