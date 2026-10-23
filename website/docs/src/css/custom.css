@@ -4,6 +4,9 @@
  * scoped to html[dir='rtl'] — the fa locale).
  */
 
+/* Fraunces: the face of the "Lore" logotype, as on lorekit.net. */
+@import '@fontsource-variable/fraunces';
+
 :root {
   --ifm-color-primary: #bd4f24;
   --ifm-color-primary-dark: #aa471f;
@@ -54,23 +57,49 @@ table {
   margin-top: 0.5rem;
 }
 
-/* Home (intro) page: the logo mark leads the "Lore" heading, as on lorekit.net.
-   The text stays in the h1; the mark is decoration. */
+/* The logo is the mark + "Lore" in Fraunces, used as one unit: in the navbar
+   and leading the intro page's h1 (whose text stays "Lore" for search).
+   Sizes match lorekit.net (nav 1.5rem, hero clamp below). The mark is 0.8em,
+   a touch taller than Fraunces' cap height (0.7em), sitting on the baseline. direction: ltr keeps the lockup unmirrored
+   on the fa locale; logical margins survive the rtlcss flip of the RTL build. */
+.navbar__title,
 .docs-doc-id-intro article h1 {
   display: flex;
-  align-items: center;
-  gap: 0.35em;
+  align-items: baseline;
+  /* rtlcss would flip this to rtl in the fa build. */
+  /*rtl:ignore*/
+  direction: ltr;
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
+.navbar__title {
+  font-size: 1.5rem;
+}
+
+/* Beats custom-rtl.css's unscoped h1 { font-size: 2.2rem }. */
+.docs-doc-id-intro article h1 {
+  font-size: clamp(2.1rem, 1.6rem + 1.6vw, 3rem);
+}
+
+.navbar__title::before,
 .docs-doc-id-intro article h1::before {
   content: '';
   flex: none;
-  width: 1.1em;
-  height: 1.1em;
+  width: 0.8em;
+  height: 0.8em;
+  margin-inline-end: 0.28em;
   background: url('../../static/img/logo.svg') center / contain no-repeat;
 }
 
-/* data-theme and the doc-id class both sit on <html>, hence no space. */
+/* data-theme sits on <html>, as does the doc-id class, hence no space there. */
+[data-theme='dark'] .navbar__title::before,
 [data-theme='dark'].docs-doc-id-intro article h1::before {
   background-image: url('../../static/img/logo-dark.svg');
+}
+
+/* With direction: ltr the fa h1 would start on the left; keep it on the right. */
+html[dir='rtl'].docs-doc-id-intro article h1 {
+  justify-content: flex-end;
 }

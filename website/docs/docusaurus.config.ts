@@ -99,7 +99,6 @@ const config: Config = {
     },
     navbar: {
       title: 'Lore',
-      logo: { alt: 'Lore', src: 'img/logo.svg', srcDark: 'img/logo-dark.svg' },
       items: [
         {
           type: 'docSidebar',
