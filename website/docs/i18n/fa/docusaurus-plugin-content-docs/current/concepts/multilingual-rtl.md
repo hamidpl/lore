@@ -1,6 +1,7 @@
 ---
 sidebar_position: 4
-title: چندزبانه و RTL
+title: "مستندات چندزبانه و راست‌به‌چپ (فارسی)"
+sidebar_label: "چندزبانه و RTL"
 description: چطور Lore از چند زبان و چیدمان‌های راست‌به‌چپ پشتیبانی می‌کند، با یک فونت فارسی self-hosted که با زبان مستندات هدایت می‌شود.
 tags: [concepts, i18n, rtl]
 ---

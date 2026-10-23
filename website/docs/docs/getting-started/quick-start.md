@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
-title: Quick start
+title: "Quick start: from an empty repo to published docs"
+sidebar_label: "Quick start"
 description: From an empty repository to published documentation in four moves — scaffold, generate, review, deploy.
 tags: [getting-started, quick-start]
 ---

@@ -1,7 +1,8 @@
 ---
 slug: /
 sidebar_position: 1
-title: Introduction
+title: "Claude Code plugin for product documentation"
+sidebar_label: "Introduction"
 description: What Lore is — a reusable, product-agnostic documentation factory packaged as a Claude Code plugin.
 tags: [introduction, overview]
 ---

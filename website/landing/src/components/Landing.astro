@@ -50,6 +50,7 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
           <code class="path-skill">{item.skill}</code>
           <h3>{item.name}</h3>
           <p>{item.desc}</p>
+          <a class="path-more" href={item.href}>{t.paths.more} <span aria-hidden="true">→</span></a>
         </article>
       ))}
     </div>
@@ -127,25 +128,6 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
 </section>
 
 <style>
-  /* ---- Buttons ---- */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.7rem 1.3rem;
-    border-radius: var(--radius);
-    font-weight: 600;
-    font-size: var(--step-0);
-    text-decoration: none;
-    border: 1px solid transparent;
-    transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
-  }
-  .btn:active { transform: translateY(1px); }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-hover); color: #fff; }
-  .btn-ghost { color: var(--ink); border-color: var(--line-strong); background: var(--surface); }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-
   /* ---- Section scaffolding ---- */
   .section { padding-block: var(--space-2xl); }
   .container.narrow { max-width: 56rem; }
@@ -230,6 +212,14 @@ import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
     transition: border-color 0.18s var(--ease), transform 0.18s var(--ease);
   }
   .path-card:hover { border-color: var(--line-strong); transform: translateY(-3px); }
+  .path-more {
+    display: inline-block;
+    margin-block-start: var(--space-s);
+    font-weight: 600;
+    font-size: var(--step--1);
+    text-decoration: none;
+  }
+  .path-more:hover { text-decoration: underline; }
   .path-num {
     position: absolute;
     inset-block-start: 0.8rem;

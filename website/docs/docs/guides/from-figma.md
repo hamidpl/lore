@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
-title: Document from Figma
+title: "Generate product documentation from Figma"
+sidebar_label: "Document from Figma"
 description: Use lore:figma-to-doc to turn Figma design files, Dev-Mode annotations, comments, and prototype wiring into documented flows and business rules with inline screenshots.
 tags: [guides, figma]
 ---

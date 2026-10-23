@@ -1,6 +1,7 @@
 ---
 sidebar_position: 4
-title: Multilingual & RTL
+title: "Multilingual and RTL (Persian) documentation"
+sidebar_label: "Multilingual & RTL"
 description: How Lore supports multiple languages and right-to-left layouts, with a self-hosted Persian font, driven by the documentation language.
 tags: [concepts, i18n, rtl]
 ---

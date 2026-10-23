@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
-title: Install & enable
+title: "Install the Claude Code plugin"
+sidebar_label: "Install & enable"
 description: Add the Lore marketplace, install the plugin, enable it for your project, and keep it updated.
 tags: [getting-started, install]
 ---

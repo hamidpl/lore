@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
-title: Document from a brief
+title: "Turn a PRD or product brief into documentation"
+sidebar_label: "Document from a brief"
 description: Use lore:brief-to-doc to turn product briefs, PRDs, epics, and user stories into documentation, inferring scenarios from acceptance criteria.
 tags: [guides, brief, prd]
 ---

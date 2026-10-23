@@ -1,0 +1,144 @@
+---
+// One page per input: /figma-to-docs/, /prd-to-docs/, /live-site-to-docs/.
+// Copy lives in ../i18n/usecases.ts.
+import Base from '../layouts/Base.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+import { USE_CASES, type UseCase } from '../i18n/usecases';
+import { SITE, INSTALL_COMMANDS, INIT_COMMAND } from '../config';
+
+export function getStaticPaths() {
+  return USE_CASES.map((uc) => ({ params: { slug: uc.slug }, props: { uc } }));
+}
+
+const { uc } = Astro.props as { uc: UseCase };
+const others = USE_CASES.filter((o) => o.slug !== uc.slug);
+---
+
+<Base title={uc.metaTitle} description={uc.metaDescription}>
+  <article class="uc">
+    <header class="container uc-hero">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Lore</a><span aria-hidden="true">/</span>{uc.cardLabel}</nav>
+      <p class="eyebrow">Claude Code plugin · <code>{uc.skill}</code></p>
+      <h1>{uc.title}</h1>
+      <p class="lead prose">{uc.lead}</p>
+      <div class="uc-run">
+        {uc.prereq && (
+          <div class="uc-prereq">
+            <p>{uc.prereq.text}</p>
+            <CodeBlock lines={[uc.prereq.command]} />
+          </div>
+        )}
+        <CodeBlock label="Run it inside Claude Code" lines={[uc.command]} />
+      </div>
+      <div class="uc-cta">
+        <a class="btn btn-primary" href="#install">Install Lore</a>
+        <a class="btn btn-ghost" href={uc.guideUrl}>{uc.guideLabel}</a>
+      </div>
+    </header>
+
+    <div class="container uc-body">
+      {uc.sections.map((section) => (
+        <section class="uc-section">
+          <h2>{section.heading}</h2>
+          {section.ordered ? (
+            <ol class="uc-steps">{section.items.map((item) => <li>{item}</li>)}</ol>
+          ) : (
+            <ul class="uc-list">{section.items.map((item) => <li>{item}</li>)}</ul>
+          )}
+        </section>
+      ))}
+
+      <section class="uc-section uc-notes">
+        <h2>Good to know</h2>
+        <ul class="uc-list">{uc.notes.map((note) => <li>{note}</li>)}</ul>
+      </section>
+
+      <section class="uc-section" id="install">
+        <h2>Install Lore</h2>
+        <p>Two commands inside Claude Code, then scaffold a documentation project:</p>
+        <CodeBlock lines={INSTALL_COMMANDS} />
+        <CodeBlock lines={[INIT_COMMAND]} />
+        <p>
+          Full setup, including enabling the plugin for your project, is in the
+          <a href={`${SITE.docsUrl}/getting-started/install/`}>installation guide</a>.
+        </p>
+      </section>
+
+      <section class="uc-section uc-others">
+        <h2>Other ways in</h2>
+        <ul>
+          {others.map((o) => (
+            <li><a href={`/${o.slug}/`}>{o.cardLabel}</a> <span>with <code>{o.skill}</code></span></li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .uc-hero {
+    padding-block: var(--space-xl) var(--space-l);
+    max-width: 54rem;
+  }
+  .crumbs {
+    display: flex;
+    gap: 0.5rem;
+    font-size: var(--step--1);
+    color: var(--ink-faint);
+    margin-block-end: var(--space-m);
+  }
+  .crumbs a { color: var(--ink-soft); }
+  .eyebrow code { font-size: inherit; text-transform: none; letter-spacing: 0; }
+  h1 {
+    font-size: var(--step-3);
+    font-weight: 500;
+    line-height: 1.15;
+    max-width: 24ch;
+    margin-block: var(--space-xs) 0;
+  }
+  .lead {
+    margin-block-start: var(--space-m);
+    font-size: var(--step-1);
+    color: var(--ink-soft);
+  }
+  .uc-run {
+    display: grid;
+    /* minmax(0, …): a long command scrolls inside its block instead of
+       widening the page on a phone. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-s);
+    margin-block-start: var(--space-l);
+    max-width: 40rem;
+  }
+  .uc-prereq p { margin-block-end: var(--space-2xs); color: var(--ink-soft); }
+  .uc-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    margin-block-start: var(--space-l);
+  }
+  .uc-body { max-width: 54rem; }
+  .uc-section {
+    padding-block: var(--space-l);
+    border-block-start: 1px solid var(--line);
+  }
+  .uc-section h2 {
+    font-size: var(--step-2);
+    margin-block-end: var(--space-m);
+  }
+  .uc-section > p { color: var(--ink-soft); max-width: var(--maxw-prose); }
+  .uc-section :global(.code-block) { margin-block: var(--space-s); max-width: 40rem; }
+  .uc-list, .uc-steps {
+    display: grid;
+    gap: var(--space-s);
+    max-width: var(--maxw-prose);
+    padding-inline-start: 1.25rem;
+    color: var(--ink-soft);
+  }
+  .uc-list li::marker { color: var(--accent); }
+  .uc-steps li::marker { color: var(--accent); font-weight: 600; }
+  .uc-others ul { list-style: none; padding: 0; display: grid; gap: var(--space-xs); }
+  .uc-others a { font-family: var(--font-serif); font-size: var(--step-1); font-weight: 600; }
+  .uc-others span { color: var(--ink-faint); margin-inline-start: 0.5rem; }
+</style>

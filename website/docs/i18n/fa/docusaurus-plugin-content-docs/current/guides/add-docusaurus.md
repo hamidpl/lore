@@ -1,6 +1,7 @@
 ---
 sidebar_position: 5
-title: افزودن ویوئر Docusaurus
+title: "انتشار مستندات به‌صورت سایت Docusaurus"
+sidebar_label: "افزودن ویوئر Docusaurus"
 description: با /lore:add-docusaurus یک پروژه‌ی فقط-Markdown را به یک سایت قابل‌مرور تبدیل کنید، با استایل RTL وقتی زبان مستندات راست‌به‌چپ است.
 tags: [guides, docusaurus]
 ---
