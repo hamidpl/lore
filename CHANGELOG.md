@@ -9,6 +9,45 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
+## 1.1.2
+
+**A brand-new project could not finish `/lore:init` without a documentation run's
+ceremony.** Init rewrites the sample `docs/intro.md` in the documentation language. That
+is an ordinary `Write`/`Edit` under `docs/`, so `record-evidence.sh` marked the session
+as having produced documentation, and the first Stop demanded a source census and a
+`lore:doc-validator` run for a page no source was read for. In the observed run the model
+wrote an `init-intro-census.md` and spawned the validator, which approved a translated
+placeholder. `/lore:config` rewrites the same page from the product description and hit
+the same block. Observed in a real project on 2026-10-24.
+
+### The starter page is recorded by content, not by session
+
+A new script, `scripts/mark-starter.sh`, runs after init or config rewrites the page. It
+records the page's sha-256 in `.claude/sources/.starter-baseline`, which is git-ignored.
+The Stop gate now treats a session whose only `docs/` output is that page, still at that
+digest, as having produced no documentation. The validator gate also stops reporting the
+page as new and unvalidated. Two properties keep this from becoming a hole:
+
+- The path is fixed (`docs/intro.md`). The script takes no page argument, so it cannot
+  take a real page out of the gate.
+- The exemption follows the digest, like the validation waiver. The first edit by a
+  skill, the reviser or a hand makes the page documentation again.
+
+With no digest tool on the machine the page stays gated, as before. The init and config
+commands now say explicitly not to write a census or run the validator for this page.
+Verified by 11 new tests: the unmarked page is still gated, the marked page passes, an
+edit after marking is gated, the starter page next to a real page is gated, a re-mark
+keeps one line, and the script refuses a non-Lore tree.
+
+Existing projects need no action. A leftover census for the starter page, such as
+`init-intro-census.md`, records a run that did not happen and can be deleted.
+
+### LICENSE is plain MIT
+
+GitHub reported the license as `NOASSERTION` ("Other") because the Vazirmatn font notice
+was appended to the MIT text. `LICENSE` now holds the MIT text only. The font's OFL
+notice stays in the README's License section and in the fonts directory.
+
 ## 1.1.1
 
 **On Claude Code 2.1.30x the validator's green verdict was recorded as `UNKNOWN`, and

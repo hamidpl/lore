@@ -57,6 +57,8 @@ A **Stop** hook does the final sweep. It blocks on misplaced images and bad imag
 
 It also warns about images nothing references, and it is loop-aware so it won't trap you on an unfixable violation.
 
+The home page that `/lore:init` and `/lore:config` write (`docs/intro.md`) is setup, not documentation: while it is still exactly what the command wrote, none of these checks apply to it. The first edit makes it a page like any other.
+
 ### A change after a green review is your call, not another round
 
 The last check used to compare timestamps, which was wrong in both directions. A `git pull`, a rebase or an editor save that restores identical bytes forced a whole re-validation round for nothing — and when something genuinely *had* changed, the only available response was "run it again", so a one-word typo fix and a sweeping find-and-replace were treated identically. Neither reached you.
