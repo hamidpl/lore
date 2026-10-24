@@ -105,6 +105,18 @@ if [ -d .claude/sources ]; then
       produced=1
     fi
   fi
+  # …and wrote something other than the setup commands' starter page. /lore:init and
+  # /lore:config rewrite docs/intro.md from the init answers / product description, not
+  # from any source, so a session whose only docs/ output is that page — still at the
+  # digest scripts/mark-starter.sh recorded — produced no documentation. Without this
+  # the first thing a new project met was a demand for a census and a validator run.
+  if [ "$produced" -eq 1 ] && [ -f .claude/sources/.starter-baseline ] &&
+     ! find docs -type f \( -name '*.md' -o -name '*.mdx' \) 2>/dev/null |
+       while IFS= read -r f; do
+         lore_is_starter "$(pwd)" "$f" || { echo x; break; }
+       done | grep -q .; then
+    produced=0
+  fi
 
   if [ "$produced" -eq 1 ]; then
 
@@ -212,6 +224,8 @@ if [ -d .claude/sources ]; then
         while IFS= read -r f; do
           cur=$(lore_sha256 "$f")
           [ -n "$cur" ] || continue
+          # Unchanged starter content is not a claim (see the scoping block above).
+          lore_is_starter "$(pwd)" "$f" && continue
           entry=$(awk -F'\t' -v p="$f" \
             '$1 == "file" && $4 == p { print $2 FS $3; exit }' "$receipt" 2>/dev/null)
           if [ -z "$entry" ]; then

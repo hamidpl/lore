@@ -55,7 +55,7 @@ Edit the generated files to replace the essential placeholders only. The optiona
 
 - `.claude/CLAUDE.md`: `{{PRODUCT_NAME}}`, `{{DOC_LANGUAGE}}`, `{{LOCALE}}`, `{{DIRECTION}}`, `{{HTML_LANG}}`.
 - `README.md`: `{{PRODUCT_NAME}}` (the project root README scaffolded by the docs layer).
-- `docs/intro.md`: rewrite the sample title/body in the chosen documentation language. **Never put `{{...}}` inside any file under `docs/`** — Docusaurus parses it as MDX and the build fails (`{...}` = JS). Use plain text.
+- `docs/intro.md`: rewrite the sample title/body in the chosen documentation language. **Never put `{{...}}` inside any file under `docs/`** — Docusaurus parses it as MDX and the build fails (`{...}` = JS). Use plain text. Once the page is final, record it as starter content: `sh "$PLUGIN_ROOT/scripts/mark-starter.sh"`. Without that, the Stop gate reads the rewrite as a documentation run and demands a source census and a `lore:doc-validator` run for a page no source was read for. Don't write a census or run the validator for this page — setup is not a documentation run.
 
 ### Write the project marker
 
