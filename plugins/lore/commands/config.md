@@ -12,7 +12,7 @@ Ensure `.claude/CLAUDE.md` exists in the cwd (this is a Lore project). If not, t
 
 Read `.claude/lore.json` for the project's current settings (language, locale, direction, docusaurus on/off, scaffoldVersion). If the file is missing (a pre-marker project), reconstruct it from the current state — language/locale/direction from `.claude/CLAUDE.md`, `docusaurus` from whether `docusaurus.config.*` exists — and write it, so subsequent runs have a single source of truth for these values.
 
-Resolve the plugin root the same way as `/lore:init` (env `${CLAUDE_PLUGIN_ROOT}`, else glob `~/.claude/plugins/marketplaces/*/plugins/lore`, else ask) — never `$(dirname "$0")` — in case you need the bundled document template.
+Resolve the plugin root the same way as `/lore:init` (env `${CLAUDE_PLUGIN_ROOT}`, else glob `~/.claude/plugins/marketplaces/*/plugins/lore`, else ask) — never `$(dirname "$0")` — for the bundled document template and `scripts/mark-starter.sh`.
 
 ## Step 1 — Ask which settings to set (ALL skippable)
 
@@ -40,7 +40,7 @@ For each setting the user provided (skip the rest), edit the right file. §1 con
 
 **Product description → three derived surfaces** (only when the user gave/changed a description):
 1. **`.claude/CLAUDE.md`** — rewrite the default line in the **Product Overview — PRODUCT LAYER** block with the one/two-sentence description (the canonical copy, Rule 4).
-2. **`docs/intro.md`** — expand the description into a real home page: a fitting title and a short introduction, in the documentation language, from the product name + description (you may also summarize the sections already present under `docs/`). This replaces the sample starter body.
+2. **`docs/intro.md`** — expand the description into a real home page: a fitting title and a short introduction, in the documentation language, from the product name + description (you may also summarize the sections already present under `docs/`). This replaces the sample starter body. Then record it as starter content with `sh "$PLUGIN_ROOT/scripts/mark-starter.sh"`, so the Stop gate does not mistake a settings change for a documentation run (see `/lore:init` Step 4).
 3. **Docusaurus `tagline`** — set it from the same description (only if Docusaurus is present).
 
 **Never write `{{...}}` into any file under `docs/`** (MDX breaks the build) — `docs/intro.md` is plain text only.

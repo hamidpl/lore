@@ -25,6 +25,8 @@
 #   lore_sha256 <file>          → 64-hex sha-256 of the file's content, or nothing
 #   $_sha_tool                  → "sha256sum" | "shasum" | "openssl" | "" (empty = callers
 #                                 degrade to their pre-digest behaviour, never crash)
+#   lore_is_starter <root> <rel>     → 0 when the page is unchanged setup-command starter
+#                                 content (recorded by scripts/mark-starter.sh)
 #   lore_ensure_sources_dir <root>   → creates .claude/sources + its .gitignore; 1 on failure
 #   lore_live_lines <file>           → every non-fenced line (a quoted example is not a claim)
 #   lore_append_evidence <root> <tool> <detail> <tier> [agent] [sha]
@@ -141,6 +143,18 @@ lore_sha256() {
   esac
 }
 
+# lore_is_starter <root> <rel path> — true when the page is byte-for-byte the starter
+# content a setup command (/lore:init, /lore:config) recorded via scripts/mark-starter.sh.
+# Scoped by digest, like the validation waiver: any later edit makes it documentation
+# again. No digest tool means "not starter" — the page stays gated, never the reverse.
+lore_is_starter() {
+  _sb="$1/.claude/sources/.starter-baseline"
+  [ -f "$_sb" ] || return 1
+  _cur=$(lore_sha256 "$1/$2")
+  [ -n "$_cur" ] || return 1
+  awk -F'\t' -v s="$_cur" -v p="$2" '$1 == s && $2 == p { ok = 1 } END { exit(ok ? 0 : 1) }' "$_sb" 2>/dev/null
+}
+
 # lore_root <payload cwd> — CLAUDE_PROJECT_DIR wins; trailing slash stripped so every
 # "$root/..." concatenation below is stable.
 lore_root() {
@@ -205,6 +219,7 @@ lore_ensure_sources_dir() {
     fi
     grep -qF '.reviser-active' "$_gi" 2>/dev/null || echo ".reviser-active" >>"$_gi" 2>/dev/null || true
     grep -qF '.handback/' "$_gi" 2>/dev/null || echo ".handback/" >>"$_gi" 2>/dev/null || true
+    grep -qF '.starter-baseline' "$_gi" 2>/dev/null || echo ".starter-baseline" >>"$_gi" 2>/dev/null || true
     return 0
   fi
   {
@@ -217,6 +232,7 @@ lore_ensure_sources_dir() {
     echo ".image-optim"
     echo ".reviser-active"
     echo ".handback/"
+    echo ".starter-baseline"
     echo "raw/"
   } >"$_gi" 2>/dev/null || true
   return 0

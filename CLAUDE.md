@@ -19,7 +19,7 @@ plugins/lore/                      # the plugin itself
   agents/                          # doc-validator, figma-extractor, site-explorer (worker subagents)
   hooks/                           # hooks.json + 15 shell scripts (output enforcement + evidence gates + methodology sync)
     ARCHITECTURE.md                # WHY each hook exists — read before changing one
-  scripts/                         # scaffold.sh, detect-project.sh, figma-probe.sh, optimize-images.sh (self-locating)
+  scripts/                         # scaffold.sh, detect-project.sh, figma-probe.sh, optimize-images.sh, mark-starter.sh (self-locating)
   templates/                       # docs-layer, docusaurus-base, rtl-assets, skill-template.md
 tests/run-tests.sh                 # POSIX hook/script test harness (run before release)
 .github/workflows/ci.yml           # shellcheck + manifest + hook tests + scaffold smoke

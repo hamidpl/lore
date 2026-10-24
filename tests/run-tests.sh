@@ -1316,6 +1316,59 @@ printf '## Run contract\n| u1 | cover mobile | pending | — |\n' >"$SS3/.claude
 stophook "$SS3" false "sess-reader"
 check_exit 0 "$RC" "open run-contract row does not block a session that produced nothing"
 
+echo "== the setup commands' starter page is not documentation =="
+# /lore:init rewrites docs/intro.md in the documentation language with an ordinary Write,
+# so the session lands in .docs-touched — and the first Stop of a brand-new project used to
+# demand a census and a validator run for a page no source was read for.
+mark_starter() { CLAUDE_PROJECT_DIR="$1" sh "$SCRIPTS/mark-starter.sh" >/dev/null 2>"$ERRF"; RC=$?; }
+ST=$(mktemp -d); make_lore_project "$ST"; mkdir -p "$ST/docs"
+printf -- '---\ntitle: Home\n---\n# Welcome\n' >"$ST/docs/intro.md"
+mkdir -p "$ST/.claude/sources"; printf 'sess-init\n' >"$ST/.claude/sources/.docs-touched"
+stophook "$ST" false "sess-init"
+check_exit 2 "$RC" "init's intro rewrite, unmarked → still gated (the original false block)"
+mark_starter "$ST"; check_exit 0 "$RC" "mark-starter.sh records the page"
+check_file_has "$ST/.claude/sources/.gitignore" "^.starter-baseline$" "the starter baseline is git-ignored"
+stophook "$ST" false "sess-init"
+check_exit 0 "$RC" "a session whose only docs output is the marked starter page is not gated"
+mark_starter "$ST"
+if [ "$(grep -c . "$ST/.claude/sources/.starter-baseline")" -eq 1 ]; then
+  pass "re-marking keeps one line per page"
+else
+  fail "re-marking keeps one line per page"
+fi
+
+# The exemption is the CONTENT, not the session: the first edit makes it documentation.
+printf -- '---\ntitle: Home\n---\n# Welcome to the product\n' >"$ST/docs/intro.md"
+stophook "$ST" false "sess-init"
+check_exit 2 "$RC" "the starter page edited after marking → gated again"
+mark_starter "$ST"
+printf 'page\n' >"$ST/docs/a.md"
+stophook "$ST" false "sess-init"
+check_exit 2 "$RC" "starter page plus a real page → gated (no census)"
+
+# Gate (d): a real run validated a.md before the starter page existed; the unchanged
+# starter page is not "new, unvalidated" documentation.
+SV=$(mktemp -d); make_lore_project "$SV"; mkdir -p "$SV/docs" "$SV/.claude/sources"
+printf 'page\n' >"$SV/docs/a.md"
+printf 'sess-v\n' >"$SV/.claude/sources/.docs-touched"
+printf '## Run contract\n| u1 | x | satisfied | docs/a.md |\n' >"$SV/.claude/sources/brief-v-census.md"
+subagentstop "$SV" "Recommendation: APPROVED"
+printf -- '---\ntitle: Home\n---\n# Welcome\n' >"$SV/docs/intro.md"
+stophook "$SV" false "sess-v"
+check_exit 2 "$RC" "an unmarked page missing from the receipt is new documentation"
+mark_starter "$SV"
+stophook "$SV" false "sess-v"
+check_exit 0 "$RC" "the marked starter page is not new, unvalidated documentation"
+
+# The path is fixed: the script takes no page argument and refuses a non-Lore tree.
+NL=$(mktemp -d); mkdir -p "$NL/docs"; printf 'x\n' >"$NL/docs/intro.md"
+mark_starter "$NL"; check_exit 1 "$RC" "mark-starter.sh refuses a non-Lore project"
+if [ -f "$NL/.claude/sources/.starter-baseline" ]; then
+  fail "a refused mark writes nothing"
+else
+  pass "a refused mark writes nothing"
+fi
+
 echo "== the census must EXIST, and be complete by Stop (2A) =="
 # Every §0 rule is checked against the census, and check-census.sh only fires when one
 # is written — so a run that never writes one skips all of them at once. Requiring the
