@@ -84,6 +84,36 @@ append_history() {
 }
 ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')
 
+# listed_docs <label> — the docs/….md|mdx paths on the report line that OPENS with
+# "<label>:" (markdown decoration stripped for that test only), comma-separated, sorted.
+# Only tokens that resolve to a docs/ page survive, so prose cannot inject entries.
+#
+# An absolute path loses its project root FIRST, then takes the first `docs/`. Taking the
+# first `docs/` of the raw path turned /x/acme-docs/docs/a.md into docs/docs/a.md, so in
+# any repo named *-docs an approved page read as never validated. Tokens keep their
+# underscores: stripping decoration from the whole line used to rename my_page.md too.
+listed_docs() {
+  printf '%s' "$msg" | awk -v want="$1" -v root="$root/" '
+    {
+      lab = $0
+      gsub(/[*_`#>]/, "", lab)
+      sub(/^[^A-Za-z]+/, "", lab)
+      if (tolower(lab) !~ ("^" want "[[:space:]]*:")) next
+      line = substr($0, index($0, ":") + 1)
+      n = split(line, toks, ",")
+      for (i = 1; i <= n; i++) {
+        t = toks[i]
+        gsub(/[*`]/, "", t)
+        sub(/^[[:space:]]+/, "", t); sub(/[[:space:]]+$/, "", t)
+        if (length(root) > 1 && (p = index(t, root)) > 0) t = substr(t, p + length(root))
+        p = index(t, "docs/")
+        if (p == 0) continue
+        t = substr(t, p)
+        if (t ~ /\.(md|mdx)$/) print t
+      }
+    }' 2>/dev/null | sort -u
+}
+
 # --- a lore:doc-reviser round -------------------------------------------------------
 # The same SubagentStop matcher covers the reviser, and its round goes into the SAME
 # history file as a `REVISED` line — one file, one parser, and the Stop gate can say
@@ -91,23 +121,7 @@ ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')
 # nothing about the receipt changes. Identified by the runtime's agent_type; on a
 # runtime without that field, by the reviser's own machine-read line (`Files edited:`
 # opening a line) in the absence of any verdict line.
-edited=$(printf '%s' "$msg" | awk '
-  {
-    line = $0
-    gsub(/[*_`#>]/, "", line)
-    sub(/^[^A-Za-z]+/, "", line)
-    if (tolower(line) !~ /^files edited[[:space:]]*:/) next
-    line = substr(line, index(line, ":") + 1)
-    n = split(line, toks, ",")
-    for (i = 1; i <= n; i++) {
-      t = toks[i]
-      sub(/^[[:space:]]+/, "", t); sub(/[[:space:]]+$/, "", t)
-      p = index(t, "docs/")
-      if (p == 0) continue
-      t = substr(t, p)
-      if (t ~ /\.(md|mdx)$/) print t
-    }
-  }' 2>/dev/null | sort -u)
+edited=$(listed_docs 'files edited')
 is_reviser=0
 case "$agent_type" in
   doc-reviser|lore:doc-reviser) is_reviser=1 ;;
@@ -208,23 +222,7 @@ fi
 # snapshot is treated as reviewed, which is exactly what the v1 receipt asserted. A
 # report with no verdict is not such a report — it is an empty or stub message — and
 # blesses nothing: that fallback once recorded 42/42 reviewed for a 5-file run.
-reviewed=$(printf '%s' "$msg" | awk '
-  {
-    line = $0
-    gsub(/[*_`#>]/, "", line)
-    sub(/^[^A-Za-z]+/, "", line)
-    if (tolower(line) !~ /^files reviewed[[:space:]]*:/) next
-    line = substr(line, index(line, ":") + 1)
-    n = split(line, toks, ",")
-    for (i = 1; i <= n; i++) {
-      t = toks[i]
-      sub(/^[[:space:]]+/, "", t); sub(/[[:space:]]+$/, "", t)
-      p = index(t, "docs/")
-      if (p == 0) continue
-      t = substr(t, p)
-      if (t ~ /\.(md|mdx)$/) print t
-    }
-  }' 2>/dev/null | sort -u)
+reviewed=$(listed_docs 'files reviewed')
 
 all_reviewed=0
 [ -z "$reviewed" ] && [ "$verdict" != "UNKNOWN" ] && all_reviewed=1

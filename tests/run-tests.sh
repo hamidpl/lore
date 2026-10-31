@@ -722,6 +722,18 @@ if [ "$HAVE_SHA" -eq 1 ]; then
     pass "a narrow APPROVED does not bless a file changed outside its scope" ||
     fail "a narrow APPROVED does not bless a file outside its scope (got '$(rcpt_status "$W" docs/a.md)')"
 
+  # An absolute path in a repo whose own name ends in "docs": taking the first `docs/`
+  # read /…/acme-docs/docs/a.md as docs/docs/a.md, and an approved page as unvalidated.
+  WA="$(mktemp -d)/acme-docs"; make_lore_project "$WA"; mkdir -p "$WA/docs" "$WA/.claude/sources"
+  printf 'page\n' >"$WA/docs/a.md"; printf 'page\n' >"$WA/docs/my_page.md"
+  subagentstop "$WA" "**Files reviewed:** $WA/docs/a.md, docs/my_page.md\n\nRecommendation: APPROVED"
+  [ "$(rcpt_status "$WA" docs/a.md)" = "reviewed" ] &&
+    pass "an absolute path inside a *-docs repo is still the reviewed page" ||
+    fail "an absolute path inside a *-docs repo is still the reviewed page (got '$(rcpt_status "$WA" docs/a.md)')"
+  [ "$(rcpt_status "$WA" docs/my_page.md)" = "reviewed" ] &&
+    pass "an underscore in a reviewed filename survives the parse" ||
+    fail "an underscore in a reviewed filename survives the parse (got '$(rcpt_status "$WA" docs/my_page.md)')"
+
   # A BLOCKED run must not pass coverage forward — inheriting from it would launder it.
   WB=$(mktemp -d); make_lore_project "$WB"; mkdir -p "$WB/docs" "$WB/.claude/sources"
   printf 'page\n' >"$WB/docs/a.md"; printf 'page2\n' >"$WB/docs/b.md"
@@ -1473,6 +1485,17 @@ u_check "Satisfied"         "o2"  0 "status matching is case-insensitive"
 u_check "waived"            ""    0 "'waived' closes the row without evidence"
 u_check "waived (user approved)" "" 0 "'waived (user approved)' closes the row"
 
+# Inline code is part of a real row; only fenced blocks are quoted examples. Skipping
+# every row with a backtick let an open instruction that quoted a path pass.
+printf '## Run contract\n| u1 | also cover the `/settings` page | pending | |\n' >"$U/.claude/sources/brief-u-census.md"
+subagentstop "$U" "Recommendation: APPROVED"
+stophook "$U" false "sess-u"
+check_exit 2 "$RC" "an open row that quotes a path in backticks still blocks"
+printf '## Run contract\n| u1 | x | satisfied | o2 |\n\nFormat:\n```\n| u1 | <instruction> | pending | |\n```\n' >"$U/.claude/sources/brief-u-census.md"
+subagentstop "$U" "Recommendation: APPROVED"
+stophook "$U" false "sess-u"
+check_exit 0 "$RC" "a fenced example row is not an open instruction"
+
 echo "== record-evidence.sh session marker =="
 posttool_tool "$HOOKS/record-evidence.sh" "$E" "Write" '{"file_path":"'"$E"'/docs/new.md"}'
 check_exit 0 "$RC" "docs write never blocks"
@@ -1483,6 +1506,23 @@ if [ "$(wc -l <"$E/.claude/sources/.docs-touched")" -eq 1 ]; then
 else
   fail "a non-docs write is not recorded"
 fi
+
+# A shell write into docs/ is documentation output too — otherwise a fresh session's
+# `sed -i` over a validated page ended its turn with the Stop gate never applying.
+bash_marks() { # command expected(1|0) name
+  BM=$(mktemp -d); make_lore_project "$BM"; mkdir -p "$BM/docs"
+  printf '{"hook_event_name":"PostToolUse","cwd":"%s","session_id":"s-bash","tool_name":"Bash","tool_input":{"command":"%s"}}' "$BM" "$1" |
+    CLAUDE_PROJECT_DIR="$BM" sh "$HOOKS/record-evidence.sh" 2>"$ERRF"
+  got=0; grep -qxF s-bash "$BM/.claude/sources/.docs-touched" 2>/dev/null && got=1
+  [ "$got" = "$2" ] && pass "$3" || fail "$3 (marked=$got)"
+}
+bash_marks "sed -i '' 's/a/b/' docs/a.md" 1 "an in-place sed of docs/ records the session"
+bash_marks "find docs -name '*.md' -exec sed -i 's/a/b/' {} +" 1 "find docs … -exec sed -i records the session"
+bash_marks "perl -pi -e 's/a/b/' docs/x.md" 1 "an in-place perl of docs/ records the session"
+bash_marks "cat > docs/new.md" 1 "a redirection into docs/ records the session"
+bash_marks "echo x | tee -a docs/new.md" 1 "tee into docs/ records the session"
+bash_marks "grep -rn foo docs/ 2>/dev/null" 0 "reading docs/ does not record the session"
+bash_marks "sed -n 1p docs/a.md > /tmp/x" 0 "a non-in-place sed writing elsewhere does not record the session"
 
 echo "== remind-census.sh (PreToolUse) =="
 R=$(mktemp -d); make_lore_project "$R"; mkdir -p "$R/docs"

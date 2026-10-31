@@ -23,6 +23,7 @@
 #   lore_env_marker_ok          → cheap pre-parse bail; use as `lore_env_marker_ok || exit 0`
 #   $_json_tool                 → "jq" | "python3" | "" (empty = degraded, warn loudly)
 #   lore_sha256 <file>          → 64-hex sha-256 of the file's content, or nothing
+#   lore_sha256_each            → paths on stdin → "<sha><TAB><path>" lines, one process
 #   $_sha_tool                  → "sha256sum" | "shasum" | "openssl" | "" (empty = callers
 #                                 degrade to their pre-digest behaviour, never crash)
 #   lore_is_starter <root> <rel>     → 0 when the page is unchanged setup-command starter
@@ -142,6 +143,26 @@ lore_sha256() {
     openssl)   openssl dgst -sha256 <"$1" 2>/dev/null | awk '{print $NF}' ;;
   esac
 }
+
+# lore_sha256_each — paths on stdin, one per line → "<sha-256><TAB><path>" per readable
+# file. One process for the whole list, not one per file: the Stop gate hashes every page
+# on every turn, and per-file spawning cost about a second at 200 pages. A line whose
+# digest column is not 64 characters (GNU escapes odd filenames with a leading `\`) is
+# dropped, so that file simply reads as unhashed. openssl has no stable multi-file
+# output, so it keeps the per-file path.
+lore_sha256_each() {
+  case "$_sha_tool" in
+    sha256sum) tr '\n' '\0' | xargs -0 -r sha256sum 2>/dev/null | _lore_sha_tsv ;;
+    shasum)    tr '\n' '\0' | xargs -0 -r shasum -a 256 2>/dev/null | _lore_sha_tsv ;;
+    openssl)
+      while IFS= read -r _f; do
+        _h=$(lore_sha256 "$_f")
+        [ -n "$_h" ] && printf '%s\t%s\n' "$_h" "$_f"
+      done
+      ;;
+  esac
+}
+_lore_sha_tsv() { awk 'length($1) == 64 { print $1 "\t" substr($0, 67) }'; }
 
 # lore_is_starter <root> <rel path> — true when the page is byte-for-byte the starter
 # content a setup command (/lore:init, /lore:config) recorded via scripts/mark-starter.sh.

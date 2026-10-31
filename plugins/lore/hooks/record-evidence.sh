@@ -48,11 +48,11 @@ _lib="$(dirname "$0")/lib/common.sh"
 # guard is two filesystem ops and we exit without ever starting jq.
 lore_env_marker_ok || exit 0
 
-# Everything we record is either a URL or a subagent type. A payload containing
-# neither can be dropped without parsing it — which is the overwhelming majority of
-# Bash calls (`ls`, `git status`, a test run …).
+# Everything we record is a URL, a subagent type, or a docs/ write (a path, or an
+# in-place sed/perl over the tree). A payload with none of them can be dropped without
+# parsing it — which is the overwhelming majority of Bash calls (`ls`, `git status` …).
 case "$input" in
-  *http*|*subagent_type*|*docs/*) : ;;
+  *http*|*subagent_type*|*docs/*|*sed\ *|*perl\ *) : ;;
   *) exit 0 ;;
 esac
 
@@ -65,6 +65,18 @@ lore_is_project "$root" || exit 0
 
 # Who is fetching: empty on the main thread, the subagent id inside a subagent.
 agent=$(json_field 'agent_id')
+
+# Record that THIS session edited documentation. The Stop gate uses this to apply only
+# to sessions that actually produced docs — otherwise an unrelated `git pull` that
+# touches docs/ would block the next turn in any session, which is a false block on
+# someone who did nothing wrong.
+mark_docs_touched() {
+  sid=$(json_field 'session_id')
+  [ -n "$sid" ] || sid="unknown-session"
+  lore_ensure_sources_dir "$root" || return 0
+  touched="$root/.claude/sources/.docs-touched"
+  grep -qxF "$sid" "$touched" 2>/dev/null || printf '%s\n' "$sid" >>"$touched" 2>/dev/null
+}
 
 # --- what to record, per tool ---
 # WebFetch / browser navigation → the URL. Agent (`Task` on older runtimes) → the
@@ -88,21 +100,22 @@ case "$tool" in
     # `verified` entry once it has an HTTP status in hand.
     detail=$(printf '%s' "$cmd" | grep -oE 'https?://[^ "'"'"'`)>]+' 2>/dev/null | head -n 10)
     tier="mentioned"
+    # A shell write into docs/ is documentation output too: an in-place sed/perl, a
+    # redirection, or tee. Marking only Write/Edit let a fresh session `sed -i` a
+    # validated page and end its turn with the Stop gate never applying — the exact
+    # tree-wide-edit incident the digest gate exists for.
+    # The in-place test only needs `docs` anywhere: `find docs … -exec sed -i …` names
+    # the tree before the editor.
+    if { printf '%s' "$cmd" | grep -qE '(^|[;&|[:space:]])(sed[[:space:]]+(-[A-Za-z]*i|--in-place)|perl[[:space:]]+-[A-Za-z]*i)' &&
+         printf '%s' "$cmd" | grep -qE '(^|[^A-Za-z0-9_.-])docs([/[:space:]"'"'"']|$)'; } ||
+       printf '%s' "$cmd" | grep -qE '(>|(^|[;&|[:space:]])tee[[:space:]]+(-a[[:space:]]+)?)[[:space:]]*["'"'"']?([^[:space:]"'"'"';&|]*/)?docs/'; then
+      mark_docs_touched
+    fi
     ;;
   Write|Edit)
-    # Record that THIS session edited documentation. The Stop gate uses this to
-    # apply only to sessions that actually produced docs — otherwise an unrelated
-    # `git pull` that touches docs/ would block the next turn in any session,
-    # which is a false block on someone who did nothing wrong.
     fp=$(json_field 'tool_input file_path')
-    sid=$(json_field 'session_id')
     case "${fp#"$root"/}" in
-      docs/*)
-        [ -n "$sid" ] || sid="unknown-session"
-        lore_ensure_sources_dir "$root" || exit 0
-        touched="$root/.claude/sources/.docs-touched"
-        grep -qxF "$sid" "$touched" 2>/dev/null || printf '%s\n' "$sid" >>"$touched" 2>/dev/null
-        ;;
+      docs/*) mark_docs_touched ;;
     esac
     exit 0
     ;;
