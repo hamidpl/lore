@@ -9,6 +9,49 @@ From `1.0.0` onward, breaking changes land only in a major release; minor releas
 add capability and stay backward compatible, and patches fix. Entries below `1.0.0`
 are the pre-1.0 history, where a minor could still break.
 
+## 1.1.3
+
+**Three ways documentation could get past the Stop gate, or stay stuck behind it, plus a
+Stop hook that cost seconds on every turn.** All came from a whole-repo audit on
+2026-11-01, and each bug was reproduced in a temporary Lore project before it was fixed.
+
+### An open instruction no longer hides behind a backtick
+
+The run-contract check skipped every `[u#]` row that contained a backtick. So
+``| u1 | also cover the `/settings` page | pending | |`` passed, while the same row without
+backticks blocked. In the other direction, fenced code blocks were not skipped, so a format
+example quoted inside ``` blocked a valid census. Rows are now read with fenced blocks
+removed, and inline code is treated as part of the row.
+
+### Approved pages are recognised in repos named `*-docs`
+
+The validator's `Files reviewed:` line was parsed from the first `docs/` in each path. An
+absolute path such as `/x/acme-docs/docs/a.md` became `docs/docs/a.md`, so an approved page
+stayed `uncovered`. The Stop gate then reported that the page had changed after the last
+green run, and every re-run repeated that. The project root is now removed before `docs/`
+is found. The same parser handles the reviser's `Files edited:` line. It now also keeps
+underscores in filenames: before, `docs/my_page.md` could never be recorded as reviewed.
+
+### A docs edit made through the shell is gated like any other
+
+Only the `Write` and `Edit` tools marked a session as having produced documentation. A
+fresh session could `sed -i` a validated page and end its turn with the Stop gate never
+applying, which is the tree-wide-edit incident the digest gate was built for. These
+commands now mark the session too: an in-place `sed`/`perl` over `docs` (including
+`find docs … -exec sed -i`), a redirection into `docs/`, and `tee` into `docs/`. Reading
+the docs does not.
+
+### The Stop hook is about 9× faster
+
+Each page's digest is now computed once, in one process, and reused by both checks that
+need it. The unreferenced-image warning runs one search instead of one per image. With
+200 pages and 400 images, a turn end took 2.4 s and now takes 0.27 s (1.2 s → 0.18 s for a
+session that wrote nothing). The warnings it prints are unchanged. `optimize-images.sh`
+now uses the hooks' shared digest helper instead of its own copy.
+
+Verified by 11 new tests (456 in total) on macOS and in CI on Ubuntu. Existing projects
+need no action.
+
 ## 1.1.2
 
 **A brand-new project could not finish `/lore:init` without a documentation run's
