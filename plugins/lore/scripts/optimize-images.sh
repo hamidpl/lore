@@ -63,23 +63,19 @@ tool_label="$LOSSY${LOSSY:+${LOSSLESS:++}}$LOSSLESS"
 [ -n "$tool_label" ] || tool_label="none"
 
 # --- fingerprint: sha-256 where available, byte size as the fallback ----------------
-_sha=""
-if command -v sha256sum >/dev/null 2>&1; then _sha="sha256sum"
-elif command -v shasum >/dev/null 2>&1; then _sha="shasum"
-elif command -v openssl >/dev/null 2>&1; then _sha="openssl"
-fi
+# The digest ladder is the hooks' (lib/common.sh); without the library, size is used.
+# shellcheck disable=SC2034  # read by json_field() in lib/common.sh, per its contract
+input=""
+_lib="$(dirname "$0")/../hooks/lib/common.sh"
+# shellcheck source=../hooks/lib/common.sh
+[ -r "$_lib" ] && . "$_lib"
 
 bytes_of() { # $1 file → size in bytes, or 0
   wc -c <"$1" 2>/dev/null | tr -d ' ' || echo 0
 }
 
 fingerprint() { # $1 file → a stable id for this exact content
-  case "$_sha" in
-    sha256sum) sha256sum <"$1" 2>/dev/null | awk '{print $1}' ;;
-    shasum)    shasum -a 256 <"$1" 2>/dev/null | awk '{print $1}' ;;
-    openssl)   openssl dgst -sha256 <"$1" 2>/dev/null | awk '{print $NF}' ;;
-    *)         printf 'size:%s' "$(bytes_of "$1")" ;;
-  esac
+  if [ -n "${_sha_tool:-}" ]; then lore_sha256 "$1"; else printf 'size:%s' "$(bytes_of "$1")"; fi
 }
 
 # --- targets ------------------------------------------------------------------------

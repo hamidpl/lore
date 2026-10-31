@@ -110,11 +110,19 @@ if [ -d .claude/sources ]; then
   # from any source, so a session whose only docs/ output is that page — still at the
   # digest scripts/mark-starter.sh recorded — produced no documentation. Without this
   # the first thing a new project met was a demand for a census and a validator run.
-  if [ "$produced" -eq 1 ] && [ -f .claude/sources/.starter-baseline ] &&
-     ! find docs -type f \( -name '*.md' -o -name '*.mdx' \) 2>/dev/null |
-       while IFS= read -r f; do
-         lore_is_starter "$(pwd)" "$f" || { echo x; break; }
-       done | grep -q .; then
+  #
+  # Every page's digest is computed ONCE here ("sha<TAB>path" lines, one process) and
+  # reused by gate 4. With no digest tool nothing is starter content: the page stays gated.
+  digests=""
+  [ "$produced" -eq 1 ] &&
+    digests=$(find docs -type f \( -name '*.md' -o -name '*.mdx' \) 2>/dev/null | lore_sha256_each)
+  starter=.claude/sources/.starter-baseline
+  [ -f "$starter" ] || starter=/dev/null
+  if [ "$produced" -eq 1 ] && [ "$starter" != /dev/null ] && [ -n "$_sha_tool" ] &&
+     printf '%s' "$digests" | awk -F'\t' '
+       phase == 1 { st[$1 FS $2] = 1; next }
+       !(($1 FS $2) in st) { real = 1 }
+       END { exit(real ? 1 : 0) }' phase=1 "$starter" phase=2 -; then
     produced=0
   fi
 
@@ -150,8 +158,13 @@ if [ -d .claude/sources ]; then
   #    passed the very failure it was built to catch. Anything that is not literally
   #    `satisfied` or `waived` is open. §0.4 also requires satisfied rows to carry
   #    evidence, so an empty evidence column is an open row too.
-  open_u=$(awk -F'|' '
-    index($0, "`") { next }                       # a fenced/inline example, not a row
+  #
+  #    Fenced blocks are dropped (a quoted format example is not a row); inline code is
+  #    NOT a reason to skip one. Skipping any row containing a backtick let an open
+  #    instruction that quoted a path or UI string pass, while a fenced example blocked.
+  open_u=$(for c in .claude/sources/*-census.md; do
+    [ -f "$c" ] || continue
+    lore_live_lines "$c" | awk -F'|' -v file="$c" '
     /^\|[[:space:]]*[uU][0-9]+[[:space:]]*\|/ {
       st = $4; ev = $5
       gsub(/^[[:space:]]+/, "", st); gsub(/[[:space:]]+$/, "", st)
@@ -161,14 +174,15 @@ if [ -d .claude/sources ]; then
         # No alphanumerics means no evidence: an empty cell, or any of the dashes
         # ("-", "--", "—", "–") a model reaches for when it has nothing to cite.
         if (ev !~ /[A-Za-z0-9]/) {
-          printf "%s: %s\n      ^ status is satisfied but the evidence column is empty\n", FILENAME, $0
+          printf "%s: %s\n      ^ status is satisfied but the evidence column is empty\n", file, $0
         }
         next
       }
       if (lc ~ /^waived([[:space:]]*\(.*\))?$/) next
-      printf "%s: %s\n      ^ status %s is not satisfied/waived\n", FILENAME, $0, (st == "" ? "(empty)" : "\"" st "\"")
+      printf "%s: %s\n      ^ status %s is not satisfied/waived\n", file, $0, (st == "" ? "(empty)" : "\"" st "\"")
     }
-  ' .claude/sources/*-census.md 2>/dev/null || true)
+  ' 2>/dev/null
+  done || true)
   if [ -n "$open_u" ]; then
     echo "BLOCKED: run-contract rows are still open (DoD §0.4). Every explicit instruction the user gave must end the run as 'satisfied' WITH evidence in the last column, or 'waived (user approved)'. Those are the only two accepted values — 'not satisfied', 'pending', 'partial' and an empty status all count as open:" >&2
     echo "$open_u" >&2
@@ -219,23 +233,17 @@ if [ -d .claude/sources ]; then
       # unvalidated = new (not in the snapshot) + edited (digest differs) + uncovered
       # (in the snapshot but validated by nothing) + deleted (in the snapshot, gone
       # from disk). TAB-separated "kind<TAB>path", one per line.
+      # One awk joins the digests against the receipt (first match per path wins, as
+      # the per-file lookup did); unchanged starter content is not a claim.
       unvalidated=$(
-        find docs -type f \( -name '*.md' -o -name '*.mdx' \) 2>/dev/null |
-        while IFS= read -r f; do
-          cur=$(lore_sha256 "$f")
-          [ -n "$cur" ] || continue
-          # Unchanged starter content is not a claim (see the scoping block above).
-          lore_is_starter "$(pwd)" "$f" && continue
-          entry=$(awk -F'\t' -v p="$f" \
-            '$1 == "file" && $4 == p { print $2 FS $3; exit }' "$receipt" 2>/dev/null)
-          if [ -z "$entry" ]; then
-            printf 'new\t%s\n' "$f"
-          elif [ "${entry#*"$tab"}" != "$cur" ]; then
-            printf 'edited\t%s\n' "$f"
-          elif [ "${entry%%"$tab"*}" = "uncovered" ]; then
-            printf 'unvalidated\t%s\n' "$f"
-          fi
-        done
+        printf '%s' "$digests" | awk -F'\t' -v OFS='\t' '
+          phase == 1 { if ($1 == "file" && !($4 in sha)) { status[$4] = $2; sha[$4] = $3 } next }
+          phase == 2 { st[$1 FS $2] = 1; next }
+          ($1 FS $2) in st          { next }
+          !($2 in sha)              { print "new", $2; next }
+          sha[$2] != $1             { print "edited", $2; next }
+          status[$2] == "uncovered" { print "unvalidated", $2 }
+        ' phase=1 "$receipt" phase=2 "$starter" phase=3 - 2>/dev/null
         awk -F'\t' '$1 == "file" { print $4 }' "$receipt" 2>/dev/null |
         while IFS= read -r p; do
           [ -f "$p" ] || printf 'deleted\t%s\n' "$p"
@@ -291,21 +299,26 @@ fi
 #    config, or source file. References come from docs/ (as /img/...) and from
 #    site config/source (as img/...). Both forms are matched as the substring
 #    "img/<relative path>". Handles paths with spaces (no word-splitting) and
-#    both .ts and .js config variants.
-if [ -d static/img ]; then
-  haystack=$(
-    find docs -type f \( -name '*.md' -o -name '*.mdx' \) -exec cat {} + 2>/dev/null
-    [ -d src ] && find src -type f -exec cat {} + 2>/dev/null
-    for cfg in docusaurus.config.ts docusaurus.config.js sidebars.ts sidebars.js; do
-      [ -f "$cfg" ] && cat "$cfg"
-    done
-  )
+#    both .ts and .js config variants. ONE grep over the text with every image as a
+#    pattern, then a set difference — a grep per image cost ~1s per turn at 400 images.
+pat=""
+[ -d static/img ] && pat=$(mktemp 2>/dev/null)
+if [ -n "$pat" ]; then
   find static/img -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \
     -o -name '*.gif' -o -name '*.webp' -o -name '*.svg' -o -name '*.ico' \) 2>/dev/null |
-  while IFS= read -r f; do
-    rel="img/${f#static/img/}"
-    printf '%s' "$haystack" | grep -qF "$rel" || echo "WARNING: orphan image not referenced anywhere: $f" >&2
-  done
+    sed 's#^static/##' >"$pat"
+  if [ -s "$pat" ]; then
+    {
+      find docs -type f \( -name '*.md' -o -name '*.mdx' \) -exec cat {} + 2>/dev/null
+      [ -d src ] && find src -type f -exec cat {} + 2>/dev/null
+      for cfg in docusaurus.config.ts docusaurus.config.js sidebars.ts sidebars.js; do
+        [ -f "$cfg" ] && cat "$cfg"
+      done
+    } | grep -oF -f "$pat" 2>/dev/null |
+      awk 'phase == 2 && !($0 in used) { print "WARNING: orphan image not referenced anywhere: static/" $0 }
+           phase != 2 { used[$0] = 1 }' - phase=2 "$pat" >&2
+  fi
+  rm -f "$pat"
 fi
 
 # 6) Heavy images that were never optimized (WARNING only). Figma exports at 2x and raw
